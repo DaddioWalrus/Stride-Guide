@@ -1,0 +1,22 @@
+{
+  "name": "Stride Guide",
+  "short_name": "Stride Guide",
+  "description": "A walking route generator",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4A90D9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192.png?text=SG",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512.png?text=SG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
