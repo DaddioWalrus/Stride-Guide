@@ -45,9 +45,30 @@ const changeBtn = document.getElementById('change-btn');
 
 window.onDestinationSet = function (lat, lng) {
   destination = { lat, lng };
-  abDestInput.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  // Reverse geocode to get a place name instead of raw coordinates
+  reverseGeocode(lat, lng, function(name) {
+    abDestInput.value = name;
+  });
   updateGenerateButton();
 };
+
+// ─── Reverse Geocode (coordinates → place name) ───────────────────────────────
+
+async function reverseGeocode(lat, lng, callback) {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'StrideGuide/1.0' } }
+    );
+    const data = await response.json();
+    const name = data.display_name
+      ? data.display_name.split(',').slice(0, 2).join(', ')
+      : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    callback(name);
+  } catch (e) {
+    callback(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+  }
+}
 
 // ─── Toggle Loop / A→B ────────────────────────────────────────────────────────
 
@@ -145,20 +166,27 @@ async function handleAddressSearch(input, type) {
   if (!query) return;
   clearError();
 
+  input.disabled = true;
+  input.value = 'Searching...';
+
   try {
     const result = await searchAddress(query);
+
+    input.disabled = false;
+    input.value = result.name;
+
     if (type === 'start') {
-      startLocation = result;
-      input.value = result.name;
+      startLocation = { lat: result.lat, lng: result.lng };
       placeStartMarker(result.lat, result.lng);
       if (isLoop) modeRow.classList.remove('hidden');
     } else {
-      destination = result;
-      input.value = result.name;
+      destination = { lat: result.lat, lng: result.lng };
       placeDestinationPin(result.lat, result.lng);
     }
     updateGenerateButton();
   } catch (e) {
+    input.disabled = false;
+    input.value = query;
     showError(e.message);
   }
 }
@@ -249,7 +277,7 @@ async function handleGenerateRoute() {
     collapsePanel(result.summary);
 
   } catch (e) {
-    showError(e.message);
+    showError('Could not generate route — please check your locations and try again');
   }
 
   loading = false;
