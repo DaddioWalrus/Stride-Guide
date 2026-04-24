@@ -16,61 +16,79 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        height: 100vh;
-        overflow: hidden;
-      }
-
-      #map {
-        width: 100vw;
-        height: 100vh;
-      }
-    </style>
+    <!-- Stride Guide styles -->
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
 
   <body>
+
+    <!-- Map -->
     <div id="map"></div>
 
-    <script>
-      // Create the map centred on Witney as a fallback
-      const map = L.map('map').setView([51.7851, -1.4842], 15);
+    <!-- Route Panel -->
+    <div id="route-panel">
 
-      // Load OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+      <!-- Collapsed view — shows after route is generated -->
+      <div class="panel-collapsed">
+        <div>
+          <div class="collapsed-title" id="collapsed-title">Route Ready 🗺️</div>
+          <div class="collapsed-summary" id="collapsed-summary"></div>
+        </div>
+        <button class="change-btn" id="change-btn">Change</button>
+      </div>
 
-      // Ask for GPS location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
+      <!-- Full panel -->
+      <div class="panel-full">
 
-            // Fly smoothly to user's location
-            map.flyTo([lat, lng], 15, { duration: 2 });
+        <!-- Search box — A→B only -->
+        <div class="search-row hidden" id="search-row">
+          <input
+            class="search-input"
+            id="search-input"
+            type="text"
+            placeholder="Search for a destination..."
+          />
+          <button class="search-btn" id="search-btn">Go</button>
+        </div>
 
-            // Drop a start marker
-            setTimeout(function() {
-              L.marker([lat, lng])
-                .addTo(map)
-                .bindPopup('Start Here')
-                .openPopup();
-            }, 2000);
-          },
-          function(error) {
-            console.log('GPS not available:', error);
-          }
-        );
-      }
-    </script>
+        <!-- Destination status — A→B only -->
+        <div class="destination-status hidden" id="destination-status">
+          📍 Search above or tap the map to set a destination
+        </div>
+
+        <!-- Loop / A→B Toggle -->
+        <div class="toggle-container">
+          <button class="toggle-btn" id="ab-btn">A→B</button>
+          <button class="toggle-btn active" id="loop-btn">Loop</button>
+        </div>
+
+        <!-- Time / Distance selector -->
+        <div class="mode-row" id="mode-row">
+          <button class="mode-btn" id="time-btn">⏱ Time</button>
+          <button class="mode-btn" id="distance-btn">📏 Distance</button>
+        </div>
+
+        <!-- +/- value input -->
+        <div class="step-row hidden" id="step-row">
+          <button class="step-btn" id="step-down">−</button>
+          <div class="step-value" id="step-value">30 min</div>
+          <button class="step-btn" id="step-up">+</button>
+        </div>
+
+        <!-- Error message -->
+        <div class="error-text hidden" id="error-text"></div>
+
+        <!-- Generate button -->
+        <button class="generate-btn hidden" id="generate-btn">Generate Route</button>
+
+      </div>
+    </div>
+
+    <!-- Scripts — order matters! -->
+    <script>window.ORS_API_KEY = '__ORS_API_KEY__';</script>
+    <script src="/js/map.js"></script>
+    <script src="/js/route.js"></script>
+    <script src="/js/ui.js"></script>
+
   </body>
 </html>
