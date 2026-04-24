@@ -7,6 +7,7 @@
 
     <!-- PWA support -->
     <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Stride Guide" />
@@ -40,30 +41,49 @@
       <!-- Full panel -->
       <div class="panel-full">
 
-        <!-- Search box — A→B only -->
-        <div class="search-row hidden" id="search-row">
-          <input
-            class="search-input"
-            id="search-input"
-            type="text"
-            placeholder="Search for a destination..."
-          />
-          <button class="search-btn" id="search-btn">Go</button>
-        </div>
-
-        <!-- Destination status — A→B only -->
-        <div class="destination-status hidden" id="destination-status">
-          📍 Search above or tap the map to set a destination
-        </div>
-
         <!-- Loop / A→B Toggle -->
         <div class="toggle-container">
           <button class="toggle-btn" id="ab-btn">A→B</button>
           <button class="toggle-btn active" id="loop-btn">Loop</button>
         </div>
 
-        <!-- Time / Distance selector -->
-        <div class="mode-row" id="mode-row">
+        <!-- Loop start location -->
+        <div class="location-row" id="loop-location-row">
+          <div class="location-input-wrap">
+            <input
+              class="location-input"
+              id="loop-start-input"
+              type="text"
+              placeholder="Start location..."
+            />
+            <button class="gps-btn" id="loop-gps-btn" title="Use my location">📍</button>
+          </div>
+        </div>
+
+        <!-- A→B start and destination locations -->
+        <div class="location-rows hidden" id="ab-location-rows">
+          <div class="location-input-wrap">
+            <input
+              class="location-input"
+              id="ab-start-input"
+              type="text"
+              placeholder="Start location..."
+            />
+            <button class="gps-btn" id="ab-start-gps-btn" title="Use my location">📍</button>
+          </div>
+          <div class="location-input-wrap">
+            <input
+              class="location-input"
+              id="ab-dest-input"
+              type="text"
+              placeholder="Destination..."
+            />
+            <button class="gps-btn" id="ab-dest-gps-btn" title="Use my location">📍</button>
+          </div>
+        </div>
+
+        <!-- Time / Distance selector — Loop only -->
+        <div class="mode-row hidden" id="mode-row">
           <button class="mode-btn" id="time-btn">⏱ Time</button>
           <button class="mode-btn" id="distance-btn">📏 Distance</button>
         </div>
