@@ -3,23 +3,27 @@
 let isLoop = true;
 let mode = null;
 let value = 30;
+let startLocation = null;
 let destination = null;
-let searching = false;
 let loading = false;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
 const panel = document.getElementById('route-panel');
-const panelFull = document.querySelector('.panel-full');
-const panelCollapsed = document.querySelector('.panel-collapsed');
 
 const loopBtn = document.getElementById('loop-btn');
 const abBtn = document.getElementById('ab-btn');
 
-const searchRow = document.getElementById('search-row');
-const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
-const destinationStatus = document.getElementById('destination-status');
+const loopLocationRow = document.getElementById('loop-location-row');
+const abLocationRows = document.getElementById('ab-location-rows');
+
+const loopStartInput = document.getElementById('loop-start-input');
+const loopGpsBtn = document.getElementById('loop-gps-btn');
+
+const abStartInput = document.getElementById('ab-start-input');
+const abStartGpsBtn = document.getElementById('ab-start-gps-btn');
+const abDestInput = document.getElementById('ab-dest-input');
+const abDestGpsBtn = document.getElementById('ab-dest-gps-btn');
 
 const modeRow = document.getElementById('mode-row');
 const timeBtn = document.getElementById('time-btn');
@@ -41,7 +45,7 @@ const changeBtn = document.getElementById('change-btn');
 
 window.onDestinationSet = function (lat, lng) {
   destination = { lat, lng };
-  updateDestinationStatus();
+  abDestInput.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   updateGenerateButton();
 };
 
@@ -51,31 +55,115 @@ loopBtn.addEventListener('click', function () {
   isLoop = true;
   loopBtn.classList.add('active');
   abBtn.classList.remove('active');
-  searchRow.classList.add('hidden');
-  destinationStatus.classList.add('hidden');
+  loopLocationRow.classList.remove('hidden');
+  abLocationRows.classList.add('hidden');
   modeRow.classList.remove('hidden');
   destination = null;
   clearDestination();
   clearRoute();
-  flyToUserLocation();
   updateGenerateButton();
-  updateStepRow();
 });
 
 abBtn.addEventListener('click', function () {
   isLoop = false;
   abBtn.classList.add('active');
   loopBtn.classList.remove('active');
-  searchRow.classList.remove('hidden');
-  destinationStatus.classList.remove('hidden');
+  abLocationRows.classList.remove('hidden');
+  loopLocationRow.classList.add('hidden');
   modeRow.classList.add('hidden');
   stepRow.classList.add('hidden');
   mode = null;
+  clearRoute();
   updateGenerateButton();
-  updateDestinationStatus();
 });
 
-// ─── Mode Buttons (Time / Distance) ───────────────────────────────────────────
+// ─── GPS Buttons ──────────────────────────────────────────────────────────────
+
+loopGpsBtn.addEventListener('click', function () {
+  handleGPS(loopGpsBtn, function (loc) {
+    startLocation = loc;
+    loopStartInput.value = 'My Location';
+    placeStartMarker(loc.lat, loc.lng);
+    modeRow.classList.remove('hidden');
+    updateGenerateButton();
+  });
+});
+
+abStartGpsBtn.addEventListener('click', function () {
+  handleGPS(abStartGpsBtn, function (loc) {
+    startLocation = loc;
+    abStartInput.value = 'My Location';
+    placeStartMarker(loc.lat, loc.lng);
+    updateGenerateButton();
+  });
+});
+
+abDestGpsBtn.addEventListener('click', function () {
+  handleGPS(abDestGpsBtn, function (loc) {
+    destination = loc;
+    abDestInput.value = 'My Location';
+    placeDestinationPin(loc.lat, loc.lng);
+    updateGenerateButton();
+  });
+});
+
+function handleGPS(btn, onSuccess) {
+  btn.classList.add('loading');
+  btn.textContent = '⏳';
+  clearError();
+
+  requestGPS(
+    function (loc) {
+      btn.classList.remove('loading');
+      btn.textContent = '📍';
+      onSuccess(loc);
+    },
+    function (errMsg) {
+      btn.classList.remove('loading');
+      btn.textContent = '📍';
+      showError(errMsg);
+    }
+  );
+}
+
+// ─── Address Search on Input ──────────────────────────────────────────────────
+
+loopStartInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleAddressSearch(loopStartInput, 'start');
+});
+
+abStartInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleAddressSearch(abStartInput, 'start');
+});
+
+abDestInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleAddressSearch(abDestInput, 'destination');
+});
+
+async function handleAddressSearch(input, type) {
+  const query = input.value.trim();
+  if (!query) return;
+  clearError();
+
+  try {
+    const result = await searchAddress(query);
+    if (type === 'start') {
+      startLocation = result;
+      input.value = result.name;
+      placeStartMarker(result.lat, result.lng);
+      if (isLoop) modeRow.classList.remove('hidden');
+    } else {
+      destination = result;
+      input.value = result.name;
+      placeDestinationPin(result.lat, result.lng);
+    }
+    updateGenerateButton();
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+// ─── Mode Buttons ─────────────────────────────────────────────────────────────
 
 timeBtn.addEventListener('click', function () {
   mode = 'time';
@@ -97,7 +185,7 @@ distanceBtn.addEventListener('click', function () {
   updateGenerateButton();
 });
 
-// ─── Step Buttons (+/-) ───────────────────────────────────────────────────────
+// ─── Step Buttons ─────────────────────────────────────────────────────────────
 
 stepDown.addEventListener('click', function () {
   const min = mode === 'time' ? 5 : 0.5;
@@ -116,49 +204,6 @@ function updateStepValue() {
   stepValueEl.textContent = mode === 'time' ? `${value} min` : `${value} km`;
 }
 
-function updateStepRow() {
-  if (mode) {
-    stepRow.classList.remove('hidden');
-  } else {
-    stepRow.classList.add('hidden');
-  }
-}
-
-// ─── Search ───────────────────────────────────────────────────────────────────
-
-searchBtn.addEventListener('click', handleSearch);
-searchInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') handleSearch();
-});
-
-async function handleSearch() {
-  const query = searchInput.value.trim();
-  if (!query || searching) return;
-
-  searching = true;
-  searchBtn.textContent = '...';
-  clearError();
-
-  try {
-    await searchAddress(query);
-  } catch (e) {
-    showError(e.message);
-  }
-
-  searching = false;
-  searchBtn.textContent = 'Go';
-}
-
-// ─── Destination Status ───────────────────────────────────────────────────────
-
-function updateDestinationStatus() {
-  if (destination) {
-    destinationStatus.textContent = '📍 Destination set — or tap the map to move it';
-  } else {
-    destinationStatus.textContent = '📍 Search above or tap the map to set a destination';
-  }
-}
-
 // ─── Generate Route ───────────────────────────────────────────────────────────
 
 generateBtn.addEventListener('click', handleGenerateRoute);
@@ -166,13 +211,13 @@ generateBtn.addEventListener('click', handleGenerateRoute);
 async function handleGenerateRoute() {
   if (loading) return;
 
-  if (!userLocation) {
-    showError('Waiting for your location...');
+  if (!startLocation) {
+    showError('Please set a start location first');
     return;
   }
 
   if (!isLoop && !destination) {
-    showError('Please set a destination on the map or search for one');
+    showError('Please set a destination');
     return;
   }
 
@@ -187,14 +232,14 @@ async function handleGenerateRoute() {
 
     if (isLoop) {
       result = await generateLoopRoute(
-        userLocation.lat,
-        userLocation.lng,
+        startLocation.lat,
+        startLocation.lng,
         distanceKm
       );
     } else {
       result = await generateABRoute(
-        userLocation.lat,
-        userLocation.lng,
+        startLocation.lat,
+        startLocation.lng,
         destination.lat,
         destination.lng
       );
@@ -231,9 +276,9 @@ changeBtn.addEventListener('click', function () {
 // ─── Generate Button Visibility ───────────────────────────────────────────────
 
 function updateGenerateButton() {
-  if (isLoop && mode) {
+  if (isLoop && startLocation && mode) {
     generateBtn.classList.remove('hidden');
-  } else if (!isLoop && destination) {
+  } else if (!isLoop && startLocation && destination) {
     generateBtn.classList.remove('hidden');
   } else {
     generateBtn.classList.add('hidden');
