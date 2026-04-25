@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
     <title>Stride Guide</title>
 
     <!-- PWA support -->
@@ -25,13 +25,13 @@
     <div id="map"></div>
 
     <!-- Phase 1: Search -->
-    <div id="search-panel" class="panel">
+    <div id="search-panel">
+      <ul id="suggestions" class="suggestions hidden"></ul>
       <div class="search-bar">
         <input id="dest-input" class="search-input" type="text" placeholder="Where to?" />
         <button class="gps-btn" id="dest-gps-btn" title="Use my location">📍</button>
         <button class="search-btn" id="search-btn">Search</button>
       </div>
-      <ul id="suggestions" class="suggestions hidden"></ul>
     </div>
 
     <!-- Phase 2: Destination preview -->

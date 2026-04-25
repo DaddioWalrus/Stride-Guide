@@ -62,12 +62,35 @@ body {
   gap: 12px;
 }
 
-/* ─── Search Bar ──────────────────────────────────── */
+/* ─── Search Panel (transparent container, no card) ── */
+
+#search-panel {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ─── Search Bar (own card) ───────────────────────── */
 
 .search-bar {
   display: flex;
   gap: 8px;
   align-items: center;
+  background: white;
+  border-radius: 20px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── Buttons — prevent double-tap zoom ──────────── */
+
+button {
+  touch-action: manipulation;
 }
 
 .search-input {
@@ -124,13 +147,17 @@ body {
 .search-btn:active { opacity: 0.7; }
 .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ─── Suggestions List ────────────────────────────── */
+/* ─── Suggestions List (own card, above search bar) ── */
 
 .suggestions {
   list-style: none;
-  margin-top: 10px;
-  border-top: 1px solid #f0f0f0;
-  padding-top: 4px;
+  background: white;
+  border-radius: 20px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 260px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .suggestions li {

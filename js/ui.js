@@ -175,6 +175,21 @@ startBtn.addEventListener('click', function () {
   );
 });
 
+// ─── Keyboard tracking — keeps search panel above the keyboard ────────────────
+
+const searchPanel = document.getElementById('search-panel');
+
+function adjustSearchPanel() {
+  const vv = window.visualViewport;
+  const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + 30) + 'px';
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', adjustSearchPanel);
+  window.visualViewport.addEventListener('scroll', adjustSearchPanel);
+}
+
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
 stopBtn.addEventListener('click', function () {
