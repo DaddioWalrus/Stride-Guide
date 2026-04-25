@@ -158,7 +158,7 @@ function looksLikeAddress(query) {
 
 async function overpassSearch(query, lat, lng) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const overpassQuery = `[out:json][timeout:6];(nw["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
+  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
 
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, 7000);
@@ -188,7 +188,7 @@ async function overpassSearch(query, lat, lng) {
   }
 }
 
-async function nominatimSearch(query, lat, lng) {
+async function nominatimSearch(query, lat, lng, globalFallback = true) {
   const encoded = encodeURIComponent(query);
   // ~20-mile bounding box
   const dlat = 0.29;
@@ -201,7 +201,7 @@ async function nominatimSearch(query, lat, lng) {
   );
   const localData = await localResp.json();
 
-  const data = localData.length > 0 ? localData : await (async () => {
+  const data = localData.length > 0 || !globalFallback ? localData : await (async () => {
     const globalResp = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5`,
       { headers: NOMINATIM_HEADERS }
@@ -231,7 +231,7 @@ async function searchAddressSuggestions(query) {
 
   const results = await overpassSearch(query, lat, lng);
   if (results.length > 0) return results;
-  return nominatimSearch(query, lat, lng);
+  return nominatimSearch(query, lat, lng, false);
 }
 
 async function reverseGeocode(lat, lng) {
