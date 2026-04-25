@@ -186,19 +186,40 @@ const NOMINATIM_HEADERS = {
 
 async function searchAddress(query) {
   const encoded = encodeURIComponent(query);
-  const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`;
+  const centre = userLocation || map.getCenter();
+  const lat = centre.lat;
+  const lng = centre.lng;
 
-  const response = await fetch(url, { headers: NOMINATIM_HEADERS });
-  const data = await response.json();
+  // 50-mile (~80 km) bounding box: ~0.72° lat, ~1.17° lng at UK latitudes
+  const dlat = 0.72;
+  const dlng = 1.17;
+  const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
 
-  if (data.length === 0) {
+  const localUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+  const localResp = await fetch(localUrl, { headers: NOMINATIM_HEADERS });
+  const localData = await localResp.json();
+
+  if (localData.length > 0) {
+    return parseNominatimResult(localData[0]);
+  }
+
+  // Nothing nearby — fall back to global search
+  const globalUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`;
+  const globalResp = await fetch(globalUrl, { headers: NOMINATIM_HEADERS });
+  const globalData = await globalResp.json();
+
+  if (globalData.length === 0) {
     throw new Error('Location not found, try a different search');
   }
 
+  return parseNominatimResult(globalData[0]);
+}
+
+function parseNominatimResult(item) {
   return {
-    lat: parseFloat(data[0].lat),
-    lng: parseFloat(data[0].lon),
-    name: data[0].display_name.split(',').slice(0, 2).join(', '),
+    lat: parseFloat(item.lat),
+    lng: parseFloat(item.lon),
+    name: item.display_name.split(',').slice(0, 2).join(', '),
   };
 }
 
