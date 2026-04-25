@@ -1,22 +1,12 @@
 // ─── Map Setup ────────────────────────────────────────────────────────────────
 
-const map = L.map('map', {
-  zoomControl: true,
-});
+const map = L.map('map', { zoomControl: true });
 
 map.zoomControl.setPosition('topleft');
-document.addEventListener('DOMContentLoaded', function () {
-  const zoomControl = document.querySelector('.leaflet-control-zoom');
-  if (zoomControl) zoomControl.style.marginTop = '70px';
-});
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
 }).addTo(map);
-
-const style = document.createElement('style');
-style.textContent = '.leaflet-control-attribution { display: none !important; }';
-document.head.appendChild(style);
 
 // Start on Witney as fallback
 map.setView([51.7851, -1.4842], 15);
@@ -67,7 +57,7 @@ function placeStartMarker(lat, lng) {
 
 const dotIcon = L.divIcon({
   className: '',
-  html: '<div style="width:14px;height:14px;background:#e74c3c;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>',
+  html: '<div class="destination-dot"></div>',
   iconSize: [14, 14],
   iconAnchor: [7, 7],
 });
@@ -147,19 +137,18 @@ function flyToUserLocation() {
   }
 }
 
-// ─── Address Search ───────────────────────────────────────────────────────────
+// ─── Geocoding ────────────────────────────────────────────────────────────────
+
+const NOMINATIM_HEADERS = {
+  'Accept-Language': 'en',
+  'User-Agent': 'StrideGuide/1.0',
+};
 
 async function searchAddress(query) {
   const encoded = encodeURIComponent(query);
   const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`;
 
-  const response = await fetch(url, {
-    headers: {
-      'Accept-Language': 'en',
-      'User-Agent': 'StrideGuide/1.0',
-    },
-  });
-
+  const response = await fetch(url, { headers: NOMINATIM_HEADERS });
   const data = await response.json();
 
   if (data.length === 0) {
@@ -171,4 +160,17 @@ async function searchAddress(query) {
     lng: parseFloat(data[0].lon),
     name: data[0].display_name.split(',').slice(0, 2).join(', '),
   };
+}
+
+async function reverseGeocode(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+  try {
+    const response = await fetch(url, { headers: NOMINATIM_HEADERS });
+    const data = await response.json();
+    return data.display_name
+      ? data.display_name.split(',').slice(0, 2).join(', ')
+      : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
 }
