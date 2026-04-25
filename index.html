@@ -35,10 +35,24 @@
     </div>
 
     <!-- Phase 2: Destination preview -->
-    <div id="preview-panel" class="panel row-panel hidden">
-      <button class="back-btn" id="preview-back">←</button>
-      <div class="panel-dest" id="preview-dest"></div>
-      <button class="primary-btn" id="directions-btn">Get Directions</button>
+    <div id="preview-panel" class="panel hidden">
+      <div class="preview-header">
+        <button class="back-btn" id="preview-back">←</button>
+        <span class="preview-title">Directions</span>
+      </div>
+      <div class="route-setup">
+        <div class="route-field">
+          <span class="field-label">From</span>
+          <input class="field-input" id="start-input" type="text" placeholder="Getting your location..." />
+          <button class="gps-btn small-gps" id="start-gps-btn">📍</button>
+        </div>
+        <div class="route-divider"></div>
+        <div class="route-field">
+          <span class="field-label">To</span>
+          <div class="field-value" id="preview-dest"></div>
+        </div>
+      </div>
+      <button class="primary-btn full-btn" id="directions-btn">Get Directions</button>
     </div>
 
     <!-- Phase 3: Route overview -->

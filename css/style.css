@@ -200,16 +200,86 @@ button {
   flex-shrink: 0;
 }
 
-/* ─── Destination Name ────────────────────────────── */
+/* ─── Preview Panel — Directions Setup ───────────── */
 
-.panel-dest {
+#preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.route-setup {
+  border: 2px solid #e0e0e0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.route-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.field-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #333;
+  background: transparent;
+  min-width: 0;
+}
+
+.field-input::placeholder { color: #aaa; }
+.field-input:disabled { color: #aaa; }
+
+.field-value {
   flex: 1;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: #333;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.route-divider {
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.small-gps {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+}
+
+.full-btn {
+  width: 100%;
+  padding: 14px;
 }
 
 /* ─── Route Summary ───────────────────────────────── */

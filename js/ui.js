@@ -13,6 +13,8 @@ const suggestionsList = document.getElementById('suggestions');
 
 const previewBack = document.getElementById('preview-back');
 const previewDest = document.getElementById('preview-dest');
+const startInput = document.getElementById('start-input');
+const startGpsBtn = document.getElementById('start-gps-btn');
 const directionsBtn = document.getElementById('directions-btn');
 
 const routeBack = document.getElementById('route-back');
@@ -113,47 +115,99 @@ function selectDestination(result) {
   map.flyTo([result.lat, result.lng], 15, { duration: 1.5 });
   previewDest.textContent = result.name;
   showPhase('preview-panel');
+  acquireStartLocation();
 }
 
-// ─── Phase 2: Preview ─────────────────────────────────────────────────────────
+// ─── Phase 2: Start Location ──────────────────────────────────────────────────
+
+function acquireStartLocation() {
+  startLocation = null;
+  startInput.value = '';
+  startInput.placeholder = 'Getting your location...';
+  startInput.disabled = true;
+  startGpsBtn.textContent = '⏳';
+  directionsBtn.disabled = true;
+
+  requestGPS(
+    function (loc) {
+      startLocation = loc;
+      startInput.placeholder = 'My Location';
+      startInput.disabled = false;
+      startGpsBtn.textContent = '📍';
+      directionsBtn.disabled = false;
+    },
+    function () {
+      startInput.placeholder = 'Enter a start address...';
+      startInput.disabled = false;
+      startGpsBtn.textContent = '📍';
+    }
+  );
+}
+
+startGpsBtn.addEventListener('click', acquireStartLocation);
+
+startInput.addEventListener('keydown', async function (e) {
+  if (e.key !== 'Enter') return;
+  const query = startInput.value.trim();
+  if (!query) return;
+
+  startInput.disabled = true;
+  startInput.value = 'Searching...';
+
+  try {
+    const results = await searchAddressSuggestions(query);
+    if (results.length > 0) {
+      startLocation = { lat: results[0].lat, lng: results[0].lng };
+      startInput.value = results[0].name;
+      startInput.disabled = false;
+      directionsBtn.disabled = false;
+    } else {
+      showError('Start location not found — try again');
+      startInput.value = query;
+      startInput.disabled = false;
+    }
+  } catch {
+    showError('Search failed — please try again');
+    startInput.value = query;
+    startInput.disabled = false;
+  }
+});
+
+// ─── Phase 2: Get Directions ──────────────────────────────────────────────────
 
 previewBack.addEventListener('click', function () {
   clearDestination();
   destination = null;
+  startLocation = null;
   suggestionsList.classList.add('hidden');
   showPhase('search-panel');
 });
 
 directionsBtn.addEventListener('click', function () {
+  if (!startLocation) {
+    showError('Please set a start location');
+    return;
+  }
+
   directionsBtn.disabled = true;
-  directionsBtn.textContent = 'Finding you...';
+  directionsBtn.textContent = 'Routing...';
+  placeStartMarker(startLocation.lat, startLocation.lng);
 
-  requestGPS(
-    async function (loc) {
-      startLocation = loc;
-      placeStartMarker(loc.lat, loc.lng);
-      directionsBtn.textContent = 'Routing...';
-
-      try {
-        const result = await generateABRoute(loc.lat, loc.lng, destination.lat, destination.lng);
-        const km = (result.summary.distance / 1000).toFixed(1);
-        const mins = Math.round(result.summary.duration / 60);
-        routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
-        drawRoute(result.coords);
-        showPhase('route-panel');
-      } catch {
-        showError('Could not get route — check your locations and try again');
-      } finally {
-        directionsBtn.disabled = false;
-        directionsBtn.textContent = 'Get Directions';
-      }
-    },
-    function (err) {
+  generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
+    .then(function (result) {
+      const km = (result.summary.distance / 1000).toFixed(1);
+      const mins = Math.round(result.summary.duration / 60);
+      routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
+      drawRoute(result.coords);
+      showPhase('route-panel');
+    })
+    .catch(function () {
+      showError('Could not get route — check your locations and try again');
+    })
+    .finally(function () {
       directionsBtn.disabled = false;
       directionsBtn.textContent = 'Get Directions';
-      showError(err);
-    }
-  );
+    });
 });
 
 // ─── Phase 3: Route Overview ──────────────────────────────────────────────────
@@ -161,7 +215,6 @@ directionsBtn.addEventListener('click', function () {
 routeBack.addEventListener('click', function () {
   clearRoute();
   clearStartMarker();
-  startLocation = null;
   showPhase('preview-panel');
 });
 
@@ -173,6 +226,21 @@ startBtn.addEventListener('click', function () {
     function () {},
     function (err) { showError(err); }
   );
+});
+
+// ─── Phase 4: Navigation ──────────────────────────────────────────────────────
+
+stopBtn.addEventListener('click', function () {
+  stopNavigation(navWatchId);
+  navWatchId = null;
+  clearRoute();
+  clearDestination();
+  clearStartMarker();
+  destination = null;
+  startLocation = null;
+  destInput.value = '';
+  map.setZoom(15);
+  showPhase('search-panel');
 });
 
 // ─── Keyboard tracking — keeps search panel above the keyboard ────────────────
@@ -189,18 +257,3 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
   window.visualViewport.addEventListener('scroll', adjustSearchPanel);
 }
-
-// ─── Phase 4: Navigation ──────────────────────────────────────────────────────
-
-stopBtn.addEventListener('click', function () {
-  stopNavigation(navWatchId);
-  navWatchId = null;
-  clearRoute();
-  clearDestination();
-  clearStartMarker();
-  destination = null;
-  startLocation = null;
-  destInput.value = '';
-  map.setZoom(15);
-  showPhase('search-panel');
-});
