@@ -186,7 +186,7 @@ const NOMINATIM_HEADERS = {
 
 async function searchAddress(query) {
   const encoded = encodeURIComponent(query);
-  const centre = userLocation || map.getCenter();
+  const centre = startLocation || userLocation || map.getCenter();
   const lat = centre.lat;
   const lng = centre.lng;
 
