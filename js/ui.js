@@ -9,6 +9,7 @@ let loading = false;
 let navWatchId = null;
 let navStartTime = null;
 let navTotalDistKm = 0;
+let navRouteDistKm = 0;
 let navLastPos = null;
 let navTimerInterval = null;
 
@@ -284,8 +285,9 @@ function collapsePanel(summary) {
   panel.classList.add('collapsed');
   collapsedTitle.textContent = 'Route Ready 🗺️';
   if (summary) {
+    navRouteDistKm = summary.distance / 1000;
     collapsedSummary.textContent =
-      `${(summary.distance / 1000).toFixed(1)}km — ${Math.round(summary.duration / 60)} min`;
+      `${navRouteDistKm.toFixed(1)}km — ${Math.round(summary.duration / 60)} min`;
   }
 }
 
@@ -337,16 +339,18 @@ startNavBtn.addEventListener('click', function () {
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
-  navTimeEl.textContent = '00:00';
+  navTimeEl.textContent = '-- min';
   navDistEl.textContent = '0.0 km · 0.0 mi';
   navSpdEl.textContent = '0.0 km/h · 0.0 mph';
 
   navTimerInterval = setInterval(function () {
-    const elapsed = Math.floor((Date.now() - navStartTime) / 1000);
-    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
-    const secs = String(elapsed % 60).padStart(2, '0');
-    navTimeEl.textContent = `${mins}:${secs}`;
-  }, 1000);
+    const elapsedSec = (Date.now() - navStartTime) / 1000;
+    const avgSpeedKmh = elapsedSec > 10 ? navTotalDistKm / (elapsedSec / 3600) : 0;
+    if (avgSpeedKmh > 0.1 && navRouteDistKm > 0) {
+      const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
+      navTimeEl.textContent = `${Math.round(remainingKm / avgSpeedKmh * 60)} min`;
+    }
+  }, 5000);
 
   navWatchId = startNavigation(
     function (pos) {
@@ -373,6 +377,7 @@ stopBtn.addEventListener('click', function () {
   navTimerInterval = null;
   navStartTime = null;
   navTotalDistKm = 0;
+  navRouteDistKm = 0;
   navLastPos = null;
   stopNavigation(navWatchId);
   navWatchId = null;
