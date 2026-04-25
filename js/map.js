@@ -18,9 +18,21 @@ map.setView([51.7851, -1.4842], 15);
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
+let userLocation = null;
 let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
+
+// Silently acquire GPS on load so searches have location context
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function (position) {
+    userLocation = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    };
+    map.setView([userLocation.lat, userLocation.lng], 15);
+  }, function () {});
+}
 let userMarker = null;
 
 // ─── GPS — on demand only ─────────────────────────────────────────────────────
@@ -141,9 +153,28 @@ const NOMINATIM_HEADERS = {
 };
 
 async function searchAddressSuggestions(query) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
-  const response = await fetch(url, { headers: NOMINATIM_HEADERS });
-  const data = await response.json();
+  const encoded = encodeURIComponent(query);
+  const centre = startLocation || userLocation || map.getCenter();
+  const lat = centre.lat;
+  const lng = centre.lng;
+
+  // ~50-mile bounding box
+  const dlat = 0.72;
+  const dlng = 1.17;
+  const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
+
+  const localUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+  const localResp = await fetch(localUrl, { headers: NOMINATIM_HEADERS });
+  const localData = await localResp.json();
+
+  const data = localData.length > 0 ? localData : await (async () => {
+    const globalResp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5`,
+      { headers: NOMINATIM_HEADERS }
+    );
+    return globalResp.json();
+  })();
+
   return data.map(function (item) {
     const parts = item.display_name.split(',');
     return {
