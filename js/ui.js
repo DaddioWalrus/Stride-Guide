@@ -7,9 +7,10 @@ let navWatchId = null;
 // ─── Element References ───────────────────────────────────────────────────────
 
 const destInput = document.getElementById('dest-input');
-const destGpsBtn = document.getElementById('dest-gps-btn');
 const searchBtn = document.getElementById('search-btn');
 const suggestionsList = document.getElementById('suggestions');
+
+const loadingBox = document.getElementById('loading-box');
 
 const previewBack = document.getElementById('preview-back');
 const previewDest = document.getElementById('preview-dest');
@@ -88,25 +89,6 @@ async function handleSearch() {
     searchBtn.textContent = 'Search';
   }
 }
-
-destGpsBtn.addEventListener('click', function () {
-  destGpsBtn.textContent = '⏳';
-  destGpsBtn.classList.add('loading');
-
-  requestGPS(
-    async function (loc) {
-      destGpsBtn.textContent = '📍';
-      destGpsBtn.classList.remove('loading');
-      const name = await reverseGeocode(loc.lat, loc.lng);
-      selectDestination({ lat: loc.lat, lng: loc.lng, name: name, detail: 'My Location' });
-    },
-    function (err) {
-      destGpsBtn.textContent = '📍';
-      destGpsBtn.classList.remove('loading');
-      showError(err);
-    }
-  );
-});
 
 function selectDestination(result) {
   destination = { lat: result.lat, lng: result.lng, name: result.name };
@@ -190,8 +172,9 @@ directionsBtn.addEventListener('click', function () {
   }
 
   directionsBtn.disabled = true;
-  directionsBtn.textContent = 'Routing...';
+  map.flyTo([startLocation.lat, startLocation.lng], 15, { duration: 1 });
   placeStartMarker(startLocation.lat, startLocation.lng);
+  loadingBox.classList.add('visible');
 
   generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
     .then(function (result) {
@@ -205,8 +188,8 @@ directionsBtn.addEventListener('click', function () {
       showError('Could not get route — check your locations and try again');
     })
     .finally(function () {
+      loadingBox.classList.remove('visible');
       directionsBtn.disabled = false;
-      directionsBtn.textContent = 'Get Directions';
     });
 });
 

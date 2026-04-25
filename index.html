@@ -29,7 +29,6 @@
       <ul id="suggestions" class="suggestions hidden"></ul>
       <div class="search-bar">
         <input id="dest-input" class="search-input" type="text" placeholder="Where to?" />
-        <button class="gps-btn" id="dest-gps-btn" title="Use my location">📍</button>
         <button class="search-btn" id="search-btn">Search</button>
       </div>
     </div>
@@ -67,6 +66,9 @@
       <div class="nav-status" id="nav-status">Navigating...</div>
       <button class="stop-btn" id="stop-btn">Stop</button>
     </div>
+
+    <!-- Loading box (floats above panels while route is calculating) -->
+    <div id="loading-box">Planning route...</div>
 
     <!-- Error toast (floats above all panels) -->
     <div id="error-toast"></div>

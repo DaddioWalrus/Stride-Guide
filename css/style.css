@@ -344,6 +344,31 @@ button {
 
 .stop-btn:active { opacity: 0.7; }
 
+/* ─── Loading Box ─────────────────────────────────── */
+
+#loading-box {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 16px;
+  padding: 14px 22px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  z-index: 1500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#loading-box.visible {
+  opacity: 1;
+}
+
 /* ─── Error Toast ─────────────────────────────────── */
 
 #error-toast {
