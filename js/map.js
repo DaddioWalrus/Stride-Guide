@@ -11,6 +11,17 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Start on Witney as fallback
 map.setView([51.7851, -1.4842], 15);
 
+// Silently acquire GPS on load so searches have location context
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function (position) {
+    userLocation = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    };
+    map.setView([userLocation.lat, userLocation.lng], 15);
+  }, function () {});
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let userLocation = null;
