@@ -17,6 +17,22 @@ body {
   height: 100vh;
 }
 
+/* ─── Leaflet overrides ───────────────────────────── */
+
+.leaflet-control-attribution { display: none !important; }
+.leaflet-control-zoom { margin-top: 70px !important; }
+
+/* ─── Destination Pin ─────────────────────────────── */
+
+.destination-dot {
+  width: 14px;
+  height: 14px;
+  background: #e74c3c;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 /* ─── Route Panel Card ────────────────────────────── */
 
 #route-panel {

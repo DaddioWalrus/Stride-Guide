@@ -43,32 +43,13 @@ const changeBtn = document.getElementById('change-btn');
 
 // ─── Destination Callback (from map.js) ───────────────────────────────────────
 
-window.onDestinationSet = function (lat, lng) {
+window.onDestinationSet = async function (lat, lng) {
   destination = { lat, lng };
-  // Reverse geocode to get a place name instead of raw coordinates
-  reverseGeocode(lat, lng, function(name) {
-    abDestInput.value = name;
-  });
+  if (!isLoop) {
+    abDestInput.value = await reverseGeocode(lat, lng);
+  }
   updateGenerateButton();
 };
-
-// ─── Reverse Geocode (coordinates → place name) ───────────────────────────────
-
-async function reverseGeocode(lat, lng, callback) {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en', 'User-Agent': 'StrideGuide/1.0' } }
-    );
-    const data = await response.json();
-    const name = data.display_name
-      ? data.display_name.split(',').slice(0, 2).join(', ')
-      : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    callback(name);
-  } catch (e) {
-    callback(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-  }
-}
 
 // ─── Toggle Loop / A→B ────────────────────────────────────────────────────────
 
