@@ -152,19 +152,52 @@ const NOMINATIM_HEADERS = {
   'User-Agent': 'StrideGuide/1.0',
 };
 
-async function searchAddressSuggestions(query) {
-  const encoded = encodeURIComponent(query);
-  const centre = startLocation || userLocation || map.getCenter();
-  const lat = centre.lat;
-  const lng = centre.lng;
+function looksLikeAddress(query) {
+  return /\d/.test(query);
+}
 
-  // ~50-mile bounding box
-  const dlat = 0.72;
-  const dlng = 1.17;
+async function overpassSearch(query, lat, lng) {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const overpassQuery = `[out:json][timeout:5];(node["name"~"${escaped}",i](around:32187,${lat},${lng});way["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, 5000);
+
+  try {
+    const resp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: overpassQuery,
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    const data = await resp.json();
+
+    return data.elements.map(function (el) {
+      const elLat = el.lat ?? el.center?.lat;
+      const elLng = el.lon ?? el.center?.lon;
+      const name = el.tags?.name || query;
+      const street = el.tags?.['addr:street'] || '';
+      const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
+      const detail = [street, city].filter(Boolean).join(', ');
+      return { lat: elLat, lng: elLng, name, detail };
+    }).filter(function (el) { return el.lat && el.lng; });
+  } catch {
+    clearTimeout(timer);
+    return [];
+  }
+}
+
+async function nominatimSearch(query, lat, lng) {
+  const encoded = encodeURIComponent(query);
+  // ~20-mile bounding box
+  const dlat = 0.29;
+  const dlng = 0.47;
   const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
 
-  const localUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
-  const localResp = await fetch(localUrl, { headers: NOMINATIM_HEADERS });
+  const localResp = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&viewbox=${viewbox}&bounded=1`,
+    { headers: NOMINATIM_HEADERS }
+  );
   const localData = await localResp.json();
 
   const data = localData.length > 0 ? localData : await (async () => {
@@ -184,6 +217,20 @@ async function searchAddressSuggestions(query) {
       detail: parts.slice(1, 3).join(',').trim(),
     };
   });
+}
+
+async function searchAddressSuggestions(query) {
+  const centre = startLocation || userLocation || map.getCenter();
+  const lat = centre.lat;
+  const lng = centre.lng;
+
+  if (looksLikeAddress(query)) {
+    return nominatimSearch(query, lat, lng);
+  }
+
+  const results = await overpassSearch(query, lat, lng);
+  if (results.length > 0) return results;
+  return nominatimSearch(query, lat, lng);
 }
 
 async function reverseGeocode(lat, lng) {
