@@ -17,6 +17,7 @@ let userLocation = null;
 let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
+let userMarker = null;
 
 // ─── GPS — on demand only ─────────────────────────────────────────────────────
 
@@ -135,6 +136,45 @@ function flyToUserLocation() {
   if (userLocation) {
     map.flyTo([userLocation.lat, userLocation.lng], 15, { duration: 1.5 });
   }
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+
+const userIcon = L.divIcon({
+  className: '',
+  html: '<div class="user-dot"></div>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
+function startNavigation(onPosition, onError) {
+  if (!navigator.geolocation) {
+    onError('GPS not available on this device');
+    return null;
+  }
+
+  return navigator.geolocation.watchPosition(
+    function (position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      if (!userMarker) {
+        userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+      } else {
+        userMarker.setLatLng([lat, lng]);
+      }
+
+      map.setView([lat, lng], map.getZoom(), { animate: true });
+      onPosition({ lat, lng, speed: position.coords.speed });
+    },
+    function () { onError('Lost GPS signal'); },
+    { enableHighAccuracy: true, maximumAge: 1000 }
+  );
+}
+
+function stopNavigation(watchId) {
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  if (userMarker) { userMarker.remove(); userMarker = null; }
 }
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────

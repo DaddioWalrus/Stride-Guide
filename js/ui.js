@@ -6,6 +6,11 @@ let value = 30;
 let startLocation = null;
 let destination = null;
 let loading = false;
+let navWatchId = null;
+let navStartTime = null;
+let navTotalDistKm = 0;
+let navLastPos = null;
+let navTimerInterval = null;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -40,6 +45,13 @@ const errorEl = document.getElementById('error-text');
 const collapsedTitle = document.getElementById('collapsed-title');
 const collapsedSummary = document.getElementById('collapsed-summary');
 const changeBtn = document.getElementById('change-btn');
+const startNavBtn = document.getElementById('start-nav-btn');
+
+const navPanel = document.getElementById('nav-panel');
+const navTimeEl = document.getElementById('nav-time');
+const navDistEl = document.getElementById('nav-dist');
+const navSpdEl = document.getElementById('nav-spd');
+const stopBtn = document.getElementById('stop-btn');
 
 // ─── Destination Callback (from map.js) ───────────────────────────────────────
 
@@ -305,3 +317,66 @@ function clearError() {
   errorEl.textContent = '';
   errorEl.classList.add('hidden');
 }
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+startNavBtn.addEventListener('click', function () {
+  panel.classList.add('hidden');
+  navPanel.classList.remove('hidden');
+  map.setZoom(18);
+
+  navStartTime = Date.now();
+  navTotalDistKm = 0;
+  navLastPos = null;
+  navTimeEl.textContent = '00:00';
+  navDistEl.textContent = '0.0 km · 0.0 mi';
+  navSpdEl.textContent = '0.0 km/h · 0.0 mph';
+
+  navTimerInterval = setInterval(function () {
+    const elapsed = Math.floor((Date.now() - navStartTime) / 1000);
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(elapsed % 60).padStart(2, '0');
+    navTimeEl.textContent = `${mins}:${secs}`;
+  }, 1000);
+
+  navWatchId = startNavigation(
+    function (pos) {
+      if (navLastPos) {
+        navTotalDistKm += haversineKm(navLastPos.lat, navLastPos.lng, pos.lat, pos.lng);
+      }
+      navLastPos = pos;
+
+      const mi = navTotalDistKm * 0.621371;
+      navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km · ${mi.toFixed(2)} mi`;
+
+      if (pos.speed !== null && pos.speed >= 0) {
+        const kmh = pos.speed * 3.6;
+        const mph = pos.speed * 2.23694;
+        navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
+      }
+    },
+    function (err) { showError(err); }
+  );
+});
+
+stopBtn.addEventListener('click', function () {
+  clearInterval(navTimerInterval);
+  navTimerInterval = null;
+  navStartTime = null;
+  navTotalDistKm = 0;
+  navLastPos = null;
+  stopNavigation(navWatchId);
+  navWatchId = null;
+  navPanel.classList.add('hidden');
+  panel.classList.remove('hidden');
+  map.setZoom(15);
+});

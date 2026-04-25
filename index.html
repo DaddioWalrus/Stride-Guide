@@ -35,7 +35,10 @@
           <div class="collapsed-title" id="collapsed-title">Route Ready 🗺️</div>
           <div class="collapsed-summary" id="collapsed-summary"></div>
         </div>
-        <button class="change-btn" id="change-btn">Change</button>
+        <div class="collapsed-actions">
+          <button class="change-btn" id="change-btn">Change</button>
+          <button class="start-nav-btn" id="start-nav-btn">Start</button>
+        </div>
       </div>
 
       <!-- Full panel -->
@@ -102,6 +105,16 @@
         <button class="generate-btn hidden" id="generate-btn">Generate Route</button>
 
       </div>
+    </div>
+
+    <!-- Nav Panel -->
+    <div id="nav-panel" class="hidden">
+      <div class="nav-stats">
+        <div id="nav-time">00:00</div>
+        <div id="nav-dist">0.0 km · 0.0 mi</div>
+        <div id="nav-spd">0.0 km/h · 0.0 mph</div>
+      </div>
+      <button class="stop-btn" id="stop-btn">Stop</button>
     </div>
 
     <!-- Scripts — order matters! -->
