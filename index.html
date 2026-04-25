@@ -13,96 +13,49 @@
     <meta name="apple-mobile-web-app-title" content="Stride Guide" />
     <meta name="theme-color" content="#4A90D9" />
 
-    <!-- Leaflet map library -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-rotate/dist/leaflet-rotate-src.js"></script>
 
-    <!-- Stride Guide styles -->
     <link rel="stylesheet" href="/css/style.css" />
   </head>
-
   <body>
 
-    <!-- Map -->
     <div id="map"></div>
 
-    <!-- Route Panel -->
-    <div id="route-panel">
-
-      <!-- Collapsed view — shows after route is generated -->
-      <div class="panel-collapsed">
-        <div>
-          <div class="collapsed-title" id="collapsed-title">Route Ready 🗺️</div>
-          <div class="collapsed-summary" id="collapsed-summary"></div>
-        </div>
-        <button class="change-btn" id="change-btn">Change</button>
+    <!-- Phase 1: Search -->
+    <div id="search-panel" class="panel">
+      <div class="search-bar">
+        <input id="dest-input" class="search-input" type="text" placeholder="Where to?" />
+        <button class="gps-btn" id="dest-gps-btn" title="Use my location">📍</button>
+        <button class="search-btn" id="search-btn">Search</button>
       </div>
-
-      <!-- Full panel -->
-      <div class="panel-full">
-
-        <!-- Loop / A→B Toggle -->
-        <div class="toggle-container">
-          <button class="toggle-btn" id="ab-btn">A→B</button>
-          <button class="toggle-btn active" id="loop-btn">Loop</button>
-        </div>
-
-        <!-- Loop start location -->
-        <div class="location-row" id="loop-location-row">
-          <div class="location-input-wrap">
-            <input
-              class="location-input"
-              id="loop-start-input"
-              type="text"
-              placeholder="Start location..."
-            />
-            <button class="gps-btn" id="loop-gps-btn" title="Use my location">📍</button>
-          </div>
-        </div>
-
-        <!-- A→B start and destination locations -->
-        <div class="location-rows hidden" id="ab-location-rows">
-          <div class="location-input-wrap">
-            <input
-              class="location-input"
-              id="ab-start-input"
-              type="text"
-              placeholder="Start location..."
-            />
-            <button class="gps-btn" id="ab-start-gps-btn" title="Use my location">📍</button>
-          </div>
-          <div class="location-input-wrap">
-            <input
-              class="location-input"
-              id="ab-dest-input"
-              type="text"
-              placeholder="Destination..."
-            />
-            <button class="gps-btn" id="ab-dest-gps-btn" title="Use my location">📍</button>
-          </div>
-        </div>
-
-        <!-- Time / Distance selector — Loop only -->
-        <div class="mode-row hidden" id="mode-row">
-          <button class="mode-btn" id="time-btn">⏱ Time</button>
-          <button class="mode-btn" id="distance-btn">📏 Distance</button>
-        </div>
-
-        <!-- +/- value input -->
-        <div class="step-row hidden" id="step-row">
-          <button class="step-btn" id="step-down">−</button>
-          <div class="step-value" id="step-value">30 min</div>
-          <button class="step-btn" id="step-up">+</button>
-        </div>
-
-        <!-- Error message -->
-        <div class="error-text hidden" id="error-text"></div>
-
-        <!-- Generate button -->
-        <button class="generate-btn hidden" id="generate-btn">Generate Route</button>
-
-      </div>
+      <ul id="suggestions" class="suggestions hidden"></ul>
     </div>
+
+    <!-- Phase 2: Destination preview -->
+    <div id="preview-panel" class="panel row-panel hidden">
+      <button class="back-btn" id="preview-back">←</button>
+      <div class="panel-dest" id="preview-dest"></div>
+      <button class="primary-btn" id="directions-btn">Get Directions</button>
+    </div>
+
+    <!-- Phase 3: Route overview -->
+    <div id="route-panel" class="panel row-panel hidden">
+      <button class="back-btn" id="route-back">←</button>
+      <div class="route-summary" id="route-summary"></div>
+      <button class="primary-btn green-btn" id="start-btn">Start</button>
+    </div>
+
+    <!-- Phase 4: Navigation -->
+    <div id="nav-panel" class="panel row-panel hidden">
+      <div class="nav-status" id="nav-status">Navigating...</div>
+      <button class="stop-btn" id="stop-btn">Stop</button>
+    </div>
+
+    <!-- Error toast (floats above all panels) -->
+    <div id="error-toast"></div>
 
     <!-- Scripts — order matters! -->
     <script src="/js/map.js"></script>

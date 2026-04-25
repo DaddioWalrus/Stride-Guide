@@ -1,307 +1,191 @@
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let isLoop = true;
-let mode = null;
-let value = 30;
-let startLocation = null;
 let destination = null;
-let loading = false;
+let startLocation = null;
+let navWatchId = null;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
-const panel = document.getElementById('route-panel');
+const destInput = document.getElementById('dest-input');
+const destGpsBtn = document.getElementById('dest-gps-btn');
+const searchBtn = document.getElementById('search-btn');
+const suggestionsList = document.getElementById('suggestions');
 
-const loopBtn = document.getElementById('loop-btn');
-const abBtn = document.getElementById('ab-btn');
+const previewBack = document.getElementById('preview-back');
+const previewDest = document.getElementById('preview-dest');
+const directionsBtn = document.getElementById('directions-btn');
 
-const loopLocationRow = document.getElementById('loop-location-row');
-const abLocationRows = document.getElementById('ab-location-rows');
+const routeBack = document.getElementById('route-back');
+const routeSummary = document.getElementById('route-summary');
+const startBtn = document.getElementById('start-btn');
 
-const loopStartInput = document.getElementById('loop-start-input');
-const loopGpsBtn = document.getElementById('loop-gps-btn');
+const navStatus = document.getElementById('nav-status');
+const stopBtn = document.getElementById('stop-btn');
 
-const abStartInput = document.getElementById('ab-start-input');
-const abStartGpsBtn = document.getElementById('ab-start-gps-btn');
-const abDestInput = document.getElementById('ab-dest-input');
-const abDestGpsBtn = document.getElementById('ab-dest-gps-btn');
+const errorToast = document.getElementById('error-toast');
 
-const modeRow = document.getElementById('mode-row');
-const timeBtn = document.getElementById('time-btn');
-const distanceBtn = document.getElementById('distance-btn');
+// ─── Phase Navigation ─────────────────────────────────────────────────────────
 
-const stepRow = document.getElementById('step-row');
-const stepDown = document.getElementById('step-down');
-const stepUp = document.getElementById('step-up');
-const stepValueEl = document.getElementById('step-value');
+const phases = ['search-panel', 'preview-panel', 'route-panel', 'nav-panel'];
 
-const generateBtn = document.getElementById('generate-btn');
-const errorEl = document.getElementById('error-text');
-
-const collapsedTitle = document.getElementById('collapsed-title');
-const collapsedSummary = document.getElementById('collapsed-summary');
-const changeBtn = document.getElementById('change-btn');
-
-// ─── Destination Callback (from map.js) ───────────────────────────────────────
-
-window.onDestinationSet = async function (lat, lng) {
-  destination = { lat, lng };
-  if (!isLoop) {
-    abDestInput.value = await reverseGeocode(lat, lng);
-  }
-  updateGenerateButton();
-};
-
-// ─── Toggle Loop / A→B ────────────────────────────────────────────────────────
-
-loopBtn.addEventListener('click', function () {
-  isLoop = true;
-  loopBtn.classList.add('active');
-  abBtn.classList.remove('active');
-  loopLocationRow.classList.remove('hidden');
-  abLocationRows.classList.add('hidden');
-  modeRow.classList.remove('hidden');
-  destination = null;
-  clearDestination();
-  clearRoute();
-  updateGenerateButton();
-});
-
-abBtn.addEventListener('click', function () {
-  isLoop = false;
-  abBtn.classList.add('active');
-  loopBtn.classList.remove('active');
-  abLocationRows.classList.remove('hidden');
-  loopLocationRow.classList.add('hidden');
-  modeRow.classList.add('hidden');
-  stepRow.classList.add('hidden');
-  mode = null;
-  clearRoute();
-  updateGenerateButton();
-});
-
-// ─── GPS Buttons ──────────────────────────────────────────────────────────────
-
-loopGpsBtn.addEventListener('click', function () {
-  handleGPS(loopGpsBtn, function (loc) {
-    startLocation = loc;
-    loopStartInput.value = 'My Location';
-    placeStartMarker(loc.lat, loc.lng);
-    modeRow.classList.remove('hidden');
-    updateGenerateButton();
+function showPhase(id) {
+  phases.forEach(function (p) {
+    document.getElementById(p).classList.add('hidden');
   });
-});
-
-abStartGpsBtn.addEventListener('click', function () {
-  handleGPS(abStartGpsBtn, function (loc) {
-    startLocation = loc;
-    abStartInput.value = 'My Location';
-    placeStartMarker(loc.lat, loc.lng);
-    updateGenerateButton();
-  });
-});
-
-abDestGpsBtn.addEventListener('click', function () {
-  handleGPS(abDestGpsBtn, function (loc) {
-    destination = loc;
-    abDestInput.value = 'My Location';
-    placeDestinationPin(loc.lat, loc.lng);
-    updateGenerateButton();
-  });
-});
-
-function handleGPS(btn, onSuccess) {
-  btn.classList.add('loading');
-  btn.textContent = '⏳';
-  clearError();
-
-  requestGPS(
-    function (loc) {
-      btn.classList.remove('loading');
-      btn.textContent = '📍';
-      onSuccess(loc);
-    },
-    function (errMsg) {
-      btn.classList.remove('loading');
-      btn.textContent = '📍';
-      showError(errMsg);
-    }
-  );
+  document.getElementById(id).classList.remove('hidden');
 }
 
-// ─── Address Search on Input ──────────────────────────────────────────────────
+// ─── Error Toast ──────────────────────────────────────────────────────────────
 
-loopStartInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') handleAddressSearch(loopStartInput, 'start');
-});
-
-abStartInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') handleAddressSearch(abStartInput, 'start');
-});
-
-abDestInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') handleAddressSearch(abDestInput, 'destination');
-});
-
-async function handleAddressSearch(input, type) {
-  const query = input.value.trim();
-  if (!query) return;
-  clearError();
-
-  input.disabled = true;
-  input.value = 'Searching...';
-
-  try {
-    const result = await searchAddress(query);
-
-    input.disabled = false;
-    input.value = result.name;
-
-    if (type === 'start') {
-      startLocation = { lat: result.lat, lng: result.lng };
-      placeStartMarker(result.lat, result.lng);
-      if (isLoop) modeRow.classList.remove('hidden');
-    } else {
-      destination = { lat: result.lat, lng: result.lng };
-      placeDestinationPin(result.lat, result.lng);
-    }
-    updateGenerateButton();
-  } catch (e) {
-    input.disabled = false;
-    input.value = query;
-    showError(e.message);
-  }
-}
-
-// ─── Mode Buttons ─────────────────────────────────────────────────────────────
-
-timeBtn.addEventListener('click', function () {
-  mode = 'time';
-  value = 30;
-  timeBtn.classList.add('active');
-  distanceBtn.classList.remove('active');
-  stepRow.classList.remove('hidden');
-  updateStepValue();
-  updateGenerateButton();
-});
-
-distanceBtn.addEventListener('click', function () {
-  mode = 'distance';
-  value = 0.5;
-  distanceBtn.classList.add('active');
-  timeBtn.classList.remove('active');
-  stepRow.classList.remove('hidden');
-  updateStepValue();
-  updateGenerateButton();
-});
-
-// ─── Step Buttons ─────────────────────────────────────────────────────────────
-
-stepDown.addEventListener('click', function () {
-  const min = mode === 'time' ? 5 : 0.5;
-  const step = mode === 'time' ? 5 : 0.5;
-  value = Math.max(min, value - step);
-  updateStepValue();
-});
-
-stepUp.addEventListener('click', function () {
-  const step = mode === 'time' ? 5 : 0.5;
-  value = value + step;
-  updateStepValue();
-});
-
-function updateStepValue() {
-  stepValueEl.textContent = mode === 'time' ? `${value} min` : `${value} km`;
-}
-
-// ─── Generate Route ───────────────────────────────────────────────────────────
-
-generateBtn.addEventListener('click', handleGenerateRoute);
-
-async function handleGenerateRoute() {
-  if (loading) return;
-
-  if (!startLocation) {
-    showError('Please set a start location first');
-    return;
-  }
-
-  if (!isLoop && !destination) {
-    showError('Please set a destination');
-    return;
-  }
-
-  loading = true;
-  generateBtn.disabled = true;
-  generateBtn.textContent = 'Generating...';
-  clearError();
-
-  try {
-    const distanceKm = mode === 'time' ? (value / 60) * 5 : value;
-    let result;
-
-    if (isLoop) {
-      result = await generateLoopRoute(
-        startLocation.lat,
-        startLocation.lng,
-        distanceKm
-      );
-    } else {
-      result = await generateABRoute(
-        startLocation.lat,
-        startLocation.lng,
-        destination.lat,
-        destination.lng
-      );
-    }
-
-    drawRoute(result.coords);
-    collapsePanel(result.summary);
-
-  } catch (e) {
-    showError('Could not generate route — please check your locations and try again');
-  }
-
-  loading = false;
-  generateBtn.disabled = false;
-  generateBtn.textContent = 'Generate Route';
-}
-
-// ─── Panel Collapse ───────────────────────────────────────────────────────────
-
-function collapsePanel(summary) {
-  panel.classList.add('collapsed');
-  collapsedTitle.textContent = 'Route Ready 🗺️';
-  if (summary) {
-    collapsedSummary.textContent =
-      `${(summary.distance / 1000).toFixed(1)}km — ${Math.round(summary.duration / 60)} min`;
-  }
-}
-
-changeBtn.addEventListener('click', function () {
-  panel.classList.remove('collapsed');
-  clearError();
-});
-
-// ─── Generate Button Visibility ───────────────────────────────────────────────
-
-function updateGenerateButton() {
-  if (isLoop && startLocation && mode) {
-    generateBtn.classList.remove('hidden');
-  } else if (!isLoop && startLocation && destination) {
-    generateBtn.classList.remove('hidden');
-  } else {
-    generateBtn.classList.add('hidden');
-  }
-}
-
-// ─── Error Handling ───────────────────────────────────────────────────────────
+let errorTimer = null;
 
 function showError(msg) {
-  errorEl.textContent = msg;
-  errorEl.classList.remove('hidden');
+  errorToast.textContent = msg;
+  errorToast.classList.add('visible');
+  clearTimeout(errorTimer);
+  errorTimer = setTimeout(function () {
+    errorToast.classList.remove('visible');
+  }, 3000);
 }
 
-function clearError() {
-  errorEl.textContent = '';
-  errorEl.classList.add('hidden');
+// ─── Phase 1: Search ──────────────────────────────────────────────────────────
+
+searchBtn.addEventListener('click', handleSearch);
+
+destInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleSearch();
+});
+
+async function handleSearch() {
+  const query = destInput.value.trim();
+  if (!query) return;
+
+  searchBtn.disabled = true;
+  searchBtn.textContent = '...';
+
+  try {
+    const results = await searchAddressSuggestions(query);
+
+    if (results.length === 0) {
+      showError('No places found — try a different search');
+      return;
+    }
+
+    suggestionsList.innerHTML = '';
+    results.forEach(function (result) {
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="place-name">${result.name}</div><div class="place-detail">${result.detail}</div>`;
+      li.addEventListener('click', function () { selectDestination(result); });
+      suggestionsList.appendChild(li);
+    });
+    suggestionsList.classList.remove('hidden');
+  } catch {
+    showError('Search failed — please try again');
+  } finally {
+    searchBtn.disabled = false;
+    searchBtn.textContent = 'Search';
+  }
 }
+
+destGpsBtn.addEventListener('click', function () {
+  destGpsBtn.textContent = '⏳';
+  destGpsBtn.classList.add('loading');
+
+  requestGPS(
+    async function (loc) {
+      destGpsBtn.textContent = '📍';
+      destGpsBtn.classList.remove('loading');
+      const name = await reverseGeocode(loc.lat, loc.lng);
+      selectDestination({ lat: loc.lat, lng: loc.lng, name: name, detail: 'My Location' });
+    },
+    function (err) {
+      destGpsBtn.textContent = '📍';
+      destGpsBtn.classList.remove('loading');
+      showError(err);
+    }
+  );
+});
+
+function selectDestination(result) {
+  destination = { lat: result.lat, lng: result.lng, name: result.name };
+  suggestionsList.classList.add('hidden');
+  placeDestinationPin(result.lat, result.lng);
+  map.flyTo([result.lat, result.lng], 15, { duration: 1.5 });
+  previewDest.textContent = result.name;
+  showPhase('preview-panel');
+}
+
+// ─── Phase 2: Preview ─────────────────────────────────────────────────────────
+
+previewBack.addEventListener('click', function () {
+  clearDestination();
+  destination = null;
+  suggestionsList.classList.add('hidden');
+  showPhase('search-panel');
+});
+
+directionsBtn.addEventListener('click', function () {
+  directionsBtn.disabled = true;
+  directionsBtn.textContent = 'Finding you...';
+
+  requestGPS(
+    async function (loc) {
+      startLocation = loc;
+      placeStartMarker(loc.lat, loc.lng);
+      directionsBtn.textContent = 'Routing...';
+
+      try {
+        const result = await generateABRoute(loc.lat, loc.lng, destination.lat, destination.lng);
+        const km = (result.summary.distance / 1000).toFixed(1);
+        const mins = Math.round(result.summary.duration / 60);
+        routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
+        drawRoute(result.coords);
+        showPhase('route-panel');
+      } catch {
+        showError('Could not get route — check your locations and try again');
+      } finally {
+        directionsBtn.disabled = false;
+        directionsBtn.textContent = 'Get Directions';
+      }
+    },
+    function (err) {
+      directionsBtn.disabled = false;
+      directionsBtn.textContent = 'Get Directions';
+      showError(err);
+    }
+  );
+});
+
+// ─── Phase 3: Route Overview ──────────────────────────────────────────────────
+
+routeBack.addEventListener('click', function () {
+  clearRoute();
+  clearStartMarker();
+  startLocation = null;
+  showPhase('preview-panel');
+});
+
+startBtn.addEventListener('click', function () {
+  showPhase('nav-panel');
+  map.setZoom(18);
+
+  navWatchId = startNavigation(
+    function () {},
+    function (err) { showError(err); }
+  );
+});
+
+// ─── Phase 4: Navigation ──────────────────────────────────────────────────────
+
+stopBtn.addEventListener('click', function () {
+  stopNavigation(navWatchId);
+  navWatchId = null;
+  clearRoute();
+  clearDestination();
+  clearStartMarker();
+  destination = null;
+  startLocation = null;
+  destInput.value = '';
+  map.setZoom(15);
+  showPhase('search-panel');
+});

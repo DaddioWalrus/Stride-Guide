@@ -22,7 +22,7 @@ body {
 .leaflet-control-attribution { display: none !important; }
 .leaflet-control-zoom { margin-top: 70px !important; }
 
-/* ─── Destination Pin ─────────────────────────────── */
+/* ─── Map Markers ─────────────────────────────────── */
 
 .destination-dot {
   width: 14px;
@@ -33,109 +33,59 @@ body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* ─── Route Panel Card ────────────────────────────── */
+.user-dot {
+  width: 20px;
+  height: 20px;
+  background: #4A90D9;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
 
-#route-panel {
+/* ─── Panel Base ──────────────────────────────────── */
+
+.panel {
   position: fixed;
   bottom: 30px;
   left: 20px;
   right: 20px;
   background: white;
   border-radius: 20px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
   z-index: 1000;
 }
 
-/* ─── Collapsed Bar ───────────────────────────────── */
-
-#route-panel.collapsed {
-  flex-direction: row;
+.row-panel {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
+  gap: 12px;
 }
 
-#route-panel.collapsed .panel-full {
-  display: none;
-}
+/* ─── Search Bar ──────────────────────────────────── */
 
-#route-panel:not(.collapsed) .panel-collapsed {
-  display: none;
-}
-
-.collapsed-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #333;
-}
-
-.collapsed-summary {
-  font-size: 13px;
-  color: #666;
-  margin-top: 2px;
-}
-
-/* ─── Toggle (Loop / A→B) ─────────────────────────── */
-
-.toggle-container {
-  display: flex;
-  background: #EBF4FF;
-  border-radius: 12px;
-  padding: 4px;
-  gap: 4px;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 8px;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #4A90D9;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-btn.active {
-  background: #4A90D9;
-  color: white;
-}
-
-/* ─── Location Input Row ──────────────────────────── */
-
-.location-row,
-.location-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.location-input-wrap {
+.search-bar {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.location-input {
+.search-input {
   flex: 1;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 15px;
   color: #333;
   outline: none;
   transition: border-color 0.2s;
 }
 
-.location-input:focus {
+.search-input:focus {
   border-color: #4A90D9;
 }
+
+/* ─── GPS Button ──────────────────────────────────── */
 
 .gps-btn {
   width: 44px;
@@ -148,127 +98,179 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
   flex-shrink: 0;
+  transition: background 0.2s;
 }
 
-.gps-btn:active {
+.gps-btn:active { background: #d0e8ff; }
+.gps-btn.loading { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Search Button ───────────────────────────────── */
+
+.search-btn {
+  height: 44px;
+  padding: 0 18px;
   background: #4A90D9;
-}
-
-.gps-btn.loading {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ─── Mode Buttons (Time / Distance) ─────────────── */
-
-.mode-row {
-  display: flex;
-  gap: 10px;
-}
-
-.mode-btn {
-  flex: 1;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
+  color: white;
+  border: none;
   border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.search-btn:active { opacity: 0.7; }
+.search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Suggestions List ────────────────────────────── */
+
+.suggestions {
+  list-style: none;
+  margin-top: 10px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 4px;
+}
+
+.suggestions li {
+  padding: 10px 4px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.suggestions li:last-child { border-bottom: none; }
+.suggestions li:active { background: #f5f9ff; }
+
+.place-name {
   font-size: 14px;
   font-weight: 600;
-  color: #999;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
+  color: #222;
 }
 
-.mode-btn.active {
-  border-color: #4A90D9;
-  background: #EBF4FF;
-  color: #4A90D9;
+.place-detail {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
 }
 
-/* ─── Step Buttons (+/-) ──────────────────────────── */
+/* ─── Back Button ─────────────────────────────────── */
 
-.step-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.step-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: #4A90D9;
-  color: white;
-  font-size: 22px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s;
-}
-
-.step-btn:active {
-  opacity: 0.7;
-}
-
-.step-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #333;
-  min-width: 100px;
-  text-align: center;
-}
-
-/* ─── Generate Button ─────────────────────────────── */
-
-.generate-btn {
-  width: 100%;
-  padding: 14px;
-  background: #4A90D9;
-  color: white;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.generate-btn:active {
-  opacity: 0.7;
-}
-
-.generate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ─── Change Button ───────────────────────────────── */
-
-.change-btn {
+.back-btn {
+  width: 36px;
+  height: 36px;
   background: #EBF4FF;
   color: #4A90D9;
   border: none;
   border-radius: 10px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-/* ─── Error Message ───────────────────────────────── */
+/* ─── Destination Name ────────────────────────────── */
 
-.error-text {
-  color: red;
-  font-size: 13px;
-  text-align: center;
+.panel-dest {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-/* ─── Hidden utility ──────────────────────────────── */
+/* ─── Route Summary ───────────────────────────────── */
+
+.route-summary {
+  flex: 1;
+  font-size: 14px;
+  color: #555;
+}
+
+.route-dist {
+  font-size: 17px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* ─── Primary Button ──────────────────────────────── */
+
+.primary-btn {
+  height: 44px;
+  padding: 0 18px;
+  background: #4A90D9;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.primary-btn:active { opacity: 0.7; }
+.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.green-btn { background: #27ae60; }
+
+/* ─── Navigation Panel ────────────────────────────── */
+
+.nav-status {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* ─── Stop Button ─────────────────────────────────── */
+
+.stop-btn {
+  height: 44px;
+  padding: 0 20px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.stop-btn:active { opacity: 0.7; }
+
+/* ─── Error Toast ─────────────────────────────────── */
+
+#error-toast {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#error-toast.visible {
+  opacity: 1;
+}
+
+/* ─── Hidden Utility ──────────────────────────────── */
 
 .hidden {
   display: none !important;
