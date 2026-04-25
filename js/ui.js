@@ -339,18 +339,23 @@ startNavBtn.addEventListener('click', function () {
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
-  navTimeEl.textContent = '-- min';
   navDistEl.textContent = '0.0 km · 0.0 mi';
   navSpdEl.textContent = '0.0 km/h · 0.0 mph';
 
-  navTimerInterval = setInterval(function () {
+  const DEFAULT_WALK_KMH = 5;
+
+  function updateEta() {
     const elapsedSec = (Date.now() - navStartTime) / 1000;
-    const avgSpeedKmh = elapsedSec > 10 ? navTotalDistKm / (elapsedSec / 3600) : 0;
-    if (avgSpeedKmh > 0.1 && navRouteDistKm > 0) {
-      const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
-      navTimeEl.textContent = `${Math.round(remainingKm / avgSpeedKmh * 60)} min`;
-    }
-  }, 5000);
+    const actualAvg = elapsedSec > 10 && navTotalDistKm > 0.01
+      ? navTotalDistKm / (elapsedSec / 3600)
+      : 0;
+    const speedKmh = actualAvg > 0.5 ? actualAvg : DEFAULT_WALK_KMH;
+    const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
+    navTimeEl.textContent = `${Math.round(remainingKm / speedKmh * 60)} min`;
+  }
+
+  updateEta();
+  navTimerInterval = setInterval(updateEta, 10000);
 
   navWatchId = startNavigation(
     function (pos) {
