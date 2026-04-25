@@ -1,16 +1,9 @@
 // ─── Route Generation ─────────────────────────────────────────────────────────
 
-// API key is injected by Vercel from environment variables — never hardcoded here
-const ORS_API_KEY = window.ORS_API_KEY;
-const ORS_URL = 'https://api.openrouteservice.org/v2/directions/foot-walking/geojson';
-
 async function callORS(body) {
-  const response = await fetch(ORS_URL, {
+  const response = await fetch('/api/route', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': ORS_API_KEY,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
