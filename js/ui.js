@@ -3,6 +3,11 @@
 let destination = null;
 let startLocation = null;
 let navWatchId = null;
+let navRouteDistKm = 0;
+let navTotalDistKm = 0;
+let navStartTime = null;
+let navLastPos = null;
+let navTimerInterval = null;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -22,7 +27,9 @@ const routeBack = document.getElementById('route-back');
 const routeSummary = document.getElementById('route-summary');
 const startBtn = document.getElementById('start-btn');
 
-const navStatus = document.getElementById('nav-status');
+const navTimeEl = document.getElementById('nav-time');
+const navDistEl = document.getElementById('nav-dist');
+const navSpdEl = document.getElementById('nav-spd');
 const stopBtn = document.getElementById('stop-btn');
 
 const errorToast = document.getElementById('error-toast');
@@ -178,7 +185,8 @@ directionsBtn.addEventListener('click', function () {
 
   generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
     .then(function (result) {
-      const km = (result.summary.distance / 1000).toFixed(1);
+      navRouteDistKm = result.summary.distance / 1000;
+      const km = navRouteDistKm.toFixed(1);
       const mins = Math.round(result.summary.duration / 60);
       routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
       drawRoute(result.coords);
@@ -201,12 +209,56 @@ routeBack.addEventListener('click', function () {
   showPhase('preview-panel');
 });
 
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
 startBtn.addEventListener('click', function () {
   showPhase('nav-panel');
   map.setZoom(18);
 
+  navStartTime = Date.now();
+  navTotalDistKm = 0;
+  navLastPos = null;
+  navDistEl.textContent = '0.0 km · 0.0 mi';
+  navSpdEl.textContent = '0.0 km/h · 0.0 mph';
+
+  const DEFAULT_WALK_KMH = 5;
+
+  function updateEta() {
+    const elapsedSec = (Date.now() - navStartTime) / 1000;
+    const actualAvg = elapsedSec > 10 && navTotalDistKm > 0.01
+      ? navTotalDistKm / (elapsedSec / 3600)
+      : 0;
+    const speedKmh = actualAvg > 0.5 ? actualAvg : DEFAULT_WALK_KMH;
+    const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
+    navTimeEl.textContent = `${Math.round(remainingKm / speedKmh * 60)} min`;
+  }
+
+  updateEta();
+  navTimerInterval = setInterval(updateEta, 10000);
+
   navWatchId = startNavigation(
-    function () {},
+    function (pos) {
+      if (navLastPos) {
+        navTotalDistKm += haversineKm(navLastPos.lat, navLastPos.lng, pos.lat, pos.lng);
+      }
+      navLastPos = pos;
+
+      const mi = navTotalDistKm * 0.621371;
+      navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km · ${mi.toFixed(2)} mi`;
+
+      if (pos.speed !== null && pos.speed >= 0) {
+        const kmh = pos.speed * 3.6;
+        const mph = pos.speed * 2.23694;
+        navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
+      }
+    },
     function (err) { showError(err); }
   );
 });
@@ -214,6 +266,12 @@ startBtn.addEventListener('click', function () {
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
 stopBtn.addEventListener('click', function () {
+  clearInterval(navTimerInterval);
+  navTimerInterval = null;
+  navStartTime = null;
+  navTotalDistKm = 0;
+  navRouteDistKm = 0;
+  navLastPos = null;
   stopNavigation(navWatchId);
   navWatchId = null;
   clearRoute();

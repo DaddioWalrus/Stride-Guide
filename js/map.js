@@ -120,7 +120,7 @@ function startNavigation(onPosition, onError) {
         map.setBearing(heading);
       }
 
-      onPosition({ lat, lng, heading });
+      onPosition({ lat, lng, heading, speed: position.coords.speed });
     },
     function () { onError('Lost GPS signal'); },
     { enableHighAccuracy: true, maximumAge: 1000 }
