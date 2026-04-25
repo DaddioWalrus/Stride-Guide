@@ -66,6 +66,10 @@ destInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleSearch();
 });
 
+map.on('click', function () {
+  suggestionsList.classList.add('hidden');
+});
+
 async function handleSearch() {
   const query = destInput.value.trim();
   if (!query) return;

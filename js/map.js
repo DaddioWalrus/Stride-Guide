@@ -158,15 +158,16 @@ function looksLikeAddress(query) {
 
 async function overpassSearch(query, lat, lng) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const overpassQuery = `[out:json][timeout:5];(node["name"~"${escaped}",i](around:32187,${lat},${lng});way["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
+  const overpassQuery = `[out:json][timeout:6];(nw["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
 
   const controller = new AbortController();
-  const timer = setTimeout(function () { controller.abort(); }, 5000);
+  const timer = setTimeout(function () { controller.abort(); }, 7000);
 
   try {
     const resp = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      body: overpassQuery,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(overpassQuery),
       signal: controller.signal,
     });
     clearTimeout(timer);
