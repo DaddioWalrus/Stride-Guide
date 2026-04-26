@@ -156,9 +156,19 @@ function looksLikeAddress(query) {
   return /\d/.test(query);
 }
 
+function distKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
 async function overpassSearch(query, lat, lng) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng}););out center 5;`;
+  // Search name and brand, no limit — sort by distance in JS so nearest appear first
+  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out center;`;
 
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, 7000);
@@ -173,15 +183,21 @@ async function overpassSearch(query, lat, lng) {
     clearTimeout(timer);
     const data = await resp.json();
 
-    return data.elements.map(function (el) {
-      const elLat = el.lat ?? el.center?.lat;
-      const elLng = el.lon ?? el.center?.lon;
-      const name = el.tags?.name || query;
-      const street = el.tags?.['addr:street'] || '';
-      const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
-      const detail = [street, city].filter(Boolean).join(', ');
-      return { lat: elLat, lng: elLng, name, detail };
-    }).filter(function (el) { return el.lat && el.lng; });
+    return data.elements
+      .map(function (el) {
+        const elLat = el.lat ?? el.center?.lat;
+        const elLng = el.lon ?? el.center?.lon;
+        const name = el.tags?.name || el.tags?.brand || query;
+        const street = el.tags?.['addr:street'] || '';
+        const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
+        const detail = [street, city].filter(Boolean).join(', ');
+        return { lat: elLat, lng: elLng, name, detail };
+      })
+      .filter(function (el) { return el.lat && el.lng; })
+      .sort(function (a, b) {
+        return distKm(lat, lng, a.lat, a.lng) - distKm(lat, lng, b.lat, b.lng);
+      })
+      .slice(0, 5);
   } catch {
     clearTimeout(timer);
     return [];
