@@ -254,14 +254,14 @@ async function nominatimSearch(query, lat, lng, globalFallback = true) {
   const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
 
   const localResp = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&viewbox=${viewbox}&bounded=1`,
+    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=10&viewbox=${viewbox}&bounded=1`,
     { headers: NOMINATIM_HEADERS }
   );
   const localData = await localResp.json();
 
   const data = localData.length > 0 || !globalFallback ? localData : await (async () => {
     const globalResp = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5`,
+      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=10`,
       { headers: NOMINATIM_HEADERS }
     );
     return globalResp.json();
@@ -275,7 +275,9 @@ async function nominatimSearch(query, lat, lng, globalFallback = true) {
       name: parts[0].trim(),
       detail: parts.slice(1, 3).join(',').trim(),
     };
-  });
+  }).sort(function (a, b) {
+    return distKm(lat, lng, a.lat, a.lng) - distKm(lat, lng, b.lat, b.lng);
+  }).slice(0, 5);
 }
 
 async function searchAddressSuggestions(query) {
