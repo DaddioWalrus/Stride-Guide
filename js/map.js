@@ -175,16 +175,12 @@ async function overpassSearch(query, lat, lng) {
   const timer = setTimeout(function () { controller.abort(); }, 7000);
 
   try {
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(overpassQuery),
-      signal: controller.signal,
-    });
+    const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+    const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     const data = await resp.json();
 
-    return data.elements
+    return (data.elements || [])
       .map(function (el) {
         let elLat, elLng;
         if (el.lat !== undefined) {
