@@ -326,12 +326,25 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 3px;
+}
+
+#nav-center {
+  flex: 0 0 auto;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.nav-center:active { opacity: 0.6; }
+#nav-center:active { opacity: 0.6; }
+
+/* Equal-width sides so nav-centre is truly centred */
+#nav-panel .nav-eta   { flex: 1; }
+#nav-panel .nav-controls {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
 
 #nav-dist,
 #route-dist {
@@ -360,14 +373,14 @@ body {
 
 #instruction-pill {
   position: fixed;
-  bottom: 122px;
+  bottom: 124px;
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: white;
-  border-radius: 100px;
+  border-radius: 20px;
   padding: 14px 20px;
   display: flex;
   align-items: center;
