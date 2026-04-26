@@ -166,6 +166,26 @@ function looksLikeAddress(query) {
   return /\d/.test(query);
 }
 
+const BRAND_ALIASES = {
+  'coop': 'co-op',
+  'co op': 'co-op',
+  'cooperative': 'co-operative',
+  'the cooperative': 'co-operative',
+  'mcdonalds': "mcdonald's",
+  'mc donalds': "mcdonald's",
+  'sainsburys': "sainsbury's",
+  'sainsbury': "sainsbury's",
+  'marks and spencer': 'marks & spencer',
+  'm and s': 'marks & spencer',
+  'ms': 'marks & spencer',
+  'greggs': 'greggs',
+  'primark': 'primark',
+};
+
+function normaliseQuery(q) {
+  return BRAND_ALIASES[q.toLowerCase().trim()] || q;
+}
+
 function distKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -247,14 +267,15 @@ async function searchAddressSuggestions(query) {
   const centre = startLocation || userLocation || map.getCenter();
   const lat = centre.lat;
   const lng = centre.lng;
+  const normalised = normaliseQuery(query);
 
-  if (looksLikeAddress(query)) {
-    return nominatimSearch(query, lat, lng);
+  if (looksLikeAddress(normalised)) {
+    return nominatimSearch(normalised, lat, lng);
   }
 
-  const results = await photonSearch(query, lat, lng);
+  const results = await photonSearch(normalised, lat, lng);
   if (results.length > 0) return results;
-  return nominatimSearch(query, lat, lng, false);
+  return nominatimSearch(normalised, lat, lng, false);
 }
 
 async function reverseGeocode(lat, lng) {
