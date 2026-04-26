@@ -168,7 +168,8 @@ function distKm(lat1, lng1, lat2, lng2) {
 async function overpassSearch(query, lat, lng) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Search name and brand, no limit — sort by distance in JS so nearest appear first
-  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out center;`;
+  // out bb instead of out center: bounding box always has coords even for complex relations
+  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out bb;`;
 
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, 7000);
@@ -185,8 +186,13 @@ async function overpassSearch(query, lat, lng) {
 
     return data.elements
       .map(function (el) {
-        const elLat = el.lat ?? el.center?.lat;
-        const elLng = el.lon ?? el.center?.lon;
+        let elLat, elLng;
+        if (el.lat !== undefined) {
+          elLat = el.lat; elLng = el.lon;                          // node
+        } else if (el.bounds) {
+          elLat = (el.bounds.minlat + el.bounds.maxlat) / 2;      // way / relation
+          elLng = (el.bounds.minlon + el.bounds.maxlon) / 2;
+        }
         const name = el.tags?.name || el.tags?.brand || query;
         const street = el.tags?.['addr:street'] || '';
         const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
