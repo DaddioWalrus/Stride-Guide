@@ -282,20 +282,6 @@ button {
   padding: 14px;
 }
 
-/* ─── Route Summary ───────────────────────────────── */
-
-.route-summary {
-  flex: 1;
-  font-size: 14px;
-  color: #555;
-}
-
-.route-dist {
-  font-size: 17px;
-  font-weight: 700;
-  color: #333;
-}
-
 /* ─── Primary Button ──────────────────────────────── */
 
 .primary-btn {
@@ -323,7 +309,8 @@ button {
   flex-shrink: 0;
 }
 
-#nav-time {
+#nav-time,
+#route-time {
   font-size: 26px;
   font-weight: 700;
   color: #333;
@@ -338,7 +325,8 @@ button {
   gap: 3px;
 }
 
-#nav-dist {
+#nav-dist,
+#route-dist {
   font-size: 16px;
   font-weight: 700;
   color: #333;
@@ -403,7 +391,7 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  z-index: 1001;
+  z-index: 1100;
 }
 
 #instruction-arrow {

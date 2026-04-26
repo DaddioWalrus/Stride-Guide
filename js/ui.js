@@ -29,7 +29,8 @@ const startGpsBtn = document.getElementById('start-gps-btn');
 const directionsBtn = document.getElementById('directions-btn');
 
 const routeBack = document.getElementById('route-back');
-const routeSummary = document.getElementById('route-summary');
+const routeTimeEl = document.getElementById('route-time');
+const routeDistEl = document.getElementById('route-dist');
 const startBtn = document.getElementById('start-btn');
 
 const navTimeEl = document.getElementById('nav-time');
@@ -153,7 +154,7 @@ function updateNavDisplay() {
 
 unitBtn.addEventListener('click', function () {
   useMetric = !useMetric;
-  unitBtn.textContent = useMetric ? 'km/h' : 'mph';
+  unitBtn.textContent = useMetric ? 'IMP' : 'MET';
   updateNavDisplay();
   updateInstruction();
 });
@@ -290,9 +291,11 @@ directionsBtn.addEventListener('click', function () {
   generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
     .then(function (result) {
       navRouteDistKm = result.summary.distance / 1000;
-      const km = navRouteDistKm.toFixed(1);
       const mins = Math.round(result.summary.duration / 60);
-      routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
+      routeTimeEl.textContent = `${mins} min`;
+      routeDistEl.textContent = useMetric
+        ? `${navRouteDistKm.toFixed(1)} km`
+        : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
       initSteps(result.steps || []);
       drawRoute(result.coords);
       showPhase('route-panel');
