@@ -11,6 +11,8 @@ let navTimerInterval = null;
 let navArrived = false;
 let navSteps = [];
 let navCurrentStep = 0;
+let navCurrentSpeedMs = 0;
+let useMetric = true;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -32,8 +34,9 @@ const startBtn = document.getElementById('start-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
-const navSpdEl = document.getElementById('nav-spd');
+const navPaceEl = document.getElementById('nav-pace');
 const stopBtn = document.getElementById('stop-btn');
+const unitBtn = document.getElementById('unit-btn');
 
 const errorToast = document.getElementById('error-toast');
 const arrivalToast = document.getElementById('arrival-toast');
@@ -97,16 +100,28 @@ function initSteps(steps) {
   navCurrentStep = Math.min(1, navSteps.length - 1);
 }
 
+const PREP_RE = /\b(onto|on|into|via|along|through|towards?|at|then|and|to|for|from|by|with|the|a|an|of|in|off|over|past|ahead)\b/gi;
+
+function formatInstruction(text) {
+  const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return safe.replace(PREP_RE, '<span class="instr-prep">$1</span>');
+}
+
+function stepDistLabel(distKm) {
+  if (useMetric) {
+    return distKm < 0.1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`;
+  }
+  const mi = distKm * 0.621371;
+  return mi < 0.1 ? `${Math.round(distKm * 3280.84)}ft` : `${mi.toFixed(1)}mi`;
+}
+
 function updateInstruction() {
   if (!navSteps.length || navCurrentStep >= navSteps.length) return;
   const step = navSteps[navCurrentStep];
   const distKm = Math.max(0, step.triggerKm - navTotalDistKm);
-  const distLabel = distKm < 0.1
-    ? `${Math.round(distKm * 1000)}m`
-    : `${distKm.toFixed(1)}km`;
   instructionArrowEl.textContent = STEP_ARROWS[step.type] ?? '↑';
-  instructionTextEl.textContent = step.instruction;
-  instructionDistEl.textContent = distLabel;
+  instructionTextEl.innerHTML = formatInstruction(step.instruction);
+  instructionDistEl.textContent = stepDistLabel(distKm);
 }
 
 function advanceStep() {
@@ -117,6 +132,31 @@ function advanceStep() {
     navCurrentStep++;
   }
 }
+
+function updateNavDisplay() {
+  if (!navStartTime) return;
+  if (useMetric) {
+    navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km`;
+  } else {
+    navDistEl.textContent = `${(navTotalDistKm * 0.621371).toFixed(2)} mi`;
+  }
+  const elapsedHr = (Date.now() - navStartTime) / 3600000;
+  const avgKmh = navTotalDistKm > 0.05 && elapsedHr > 0.001
+    ? navTotalDistKm / elapsedHr
+    : navCurrentSpeedMs * 3.6;
+  if (useMetric) {
+    navPaceEl.textContent = `${avgKmh.toFixed(1)} km/h`;
+  } else {
+    navPaceEl.textContent = `${(avgKmh * 0.621371).toFixed(1)} mph`;
+  }
+}
+
+unitBtn.addEventListener('click', function () {
+  useMetric = !useMetric;
+  unitBtn.textContent = useMetric ? 'km/h' : 'mph';
+  updateNavDisplay();
+  updateInstruction();
+});
 
 // ─── Phase 1: Search ──────────────────────────────────────────────────────────
 
@@ -290,10 +330,10 @@ startBtn.addEventListener('click', function () {
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
+  navCurrentSpeedMs = 0;
   navArrived = false;
   hideArrival();
-  navDistEl.textContent = '0.0 km · 0.0 mi';
-  navSpdEl.textContent = '0.0 km/h · 0.0 mph';
+  updateNavDisplay();
 
   const DEFAULT_WALK_KMH = 5;
 
@@ -322,14 +362,8 @@ startBtn.addEventListener('click', function () {
       }
       navLastPos = pos;
 
-      const mi = navTotalDistKm * 0.621371;
-      navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km · ${mi.toFixed(2)} mi`;
-
-      if (pos.speed !== null && pos.speed >= 0) {
-        const kmh = pos.speed * 3.6;
-        const mph = pos.speed * 2.23694;
-        navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
-      }
+      if (pos.speed !== null && pos.speed >= 0) navCurrentSpeedMs = pos.speed;
+      updateNavDisplay();
 
       advanceStep();
       updateInstruction();
@@ -359,6 +393,7 @@ stopBtn.addEventListener('click', function () {
   navArrived = false;
   navSteps = [];
   navCurrentStep = 0;
+  navCurrentSpeedMs = 0;
   hideArrival();
   instructionPill.classList.add('hidden');
   stopNavigation(navWatchId);
