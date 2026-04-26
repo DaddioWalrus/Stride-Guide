@@ -19,18 +19,28 @@ map.setView([51.7851, -1.4842], 15);
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let userLocation = null;
+let userLocality = '';
 let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
 
-// Silently acquire GPS on load so searches have location context
+// Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(function (position) {
+  navigator.geolocation.getCurrentPosition(async function (position) {
     userLocation = {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
     };
     map.setView([userLocation.lat, userLocation.lng], 15);
+    try {
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json&zoom=10`,
+        { headers: NOMINATIM_HEADERS }
+      );
+      const data = await resp.json();
+      userLocality = data.address?.town || data.address?.city ||
+                     data.address?.village || data.address?.suburb || '';
+    } catch {}
   }, function () {});
 }
 let userMarker = null;
@@ -249,7 +259,10 @@ async function searchAddressSuggestions(query) {
 
   const results = await overpassSearch(query, lat, lng);
   if (results.length > 0) return results;
-  return nominatimSearch(query, lat, lng, false);
+
+  // Append locality so Nominatim finds nearby stores rather than ranking by city size
+  const localQuery = userLocality ? `${query} ${userLocality}` : query;
+  return nominatimSearch(localQuery, lat, lng, !userLocality);
 }
 
 async function reverseGeocode(lat, lng) {
