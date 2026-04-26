@@ -357,6 +357,46 @@ button {
 
 .stop-btn:active { opacity: 0.7; }
 
+/* ─── Instruction Pill ────────────────────────────── */
+
+#instruction-pill {
+  position: fixed;
+  bottom: 122px;
+  left: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: white;
+  border-radius: 100px;
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1001;
+}
+
+#instruction-arrow {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+#instruction-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+#instruction-dist {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 1;
+}
+
 /* ─── Loading Box ─────────────────────────────────── */
 
 #loading-box {

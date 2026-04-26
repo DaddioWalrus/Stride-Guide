@@ -9,6 +9,8 @@ let navStartTime = null;
 let navLastPos = null;
 let navTimerInterval = null;
 let navArrived = false;
+let navSteps = [];
+let navCurrentStep = 0;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -35,6 +37,10 @@ const stopBtn = document.getElementById('stop-btn');
 
 const errorToast = document.getElementById('error-toast');
 const arrivalToast = document.getElementById('arrival-toast');
+const instructionPill = document.getElementById('instruction-pill');
+const instructionArrowEl = document.getElementById('instruction-arrow');
+const instructionTextEl = document.getElementById('instruction-text');
+const instructionDistEl = document.getElementById('instruction-dist');
 
 // ─── Phase Navigation ─────────────────────────────────────────────────────────
 
@@ -70,6 +76,46 @@ function showArrival(name) {
 
 function hideArrival() {
   arrivalToast.classList.remove('visible');
+}
+
+// ─── Turn-by-Turn ─────────────────────────────────────────────────────────────
+
+const STEP_ARROWS = {
+  0: '↰', 1: '↱', 2: '↰', 3: '↱',
+  4: '↖', 5: '↗', 6: '↑',
+  7: '↻', 8: '↱', 9: '↩',
+  10: '●', 11: '↑', 12: '↖', 13: '↗',
+};
+
+function initSteps(steps) {
+  let cumKm = 0;
+  navSteps = steps.map(function (s) {
+    const step = { instruction: s.instruction, type: s.type, triggerKm: cumKm };
+    cumKm += s.distance / 1000;
+    return step;
+  });
+  navCurrentStep = Math.min(1, navSteps.length - 1);
+}
+
+function updateInstruction() {
+  if (!navSteps.length || navCurrentStep >= navSteps.length) return;
+  const step = navSteps[navCurrentStep];
+  const distKm = Math.max(0, step.triggerKm - navTotalDistKm);
+  const distLabel = distKm < 0.1
+    ? `${Math.round(distKm * 1000)}m`
+    : `${distKm.toFixed(1)}km`;
+  instructionArrowEl.textContent = STEP_ARROWS[step.type] ?? '↑';
+  instructionTextEl.textContent = step.instruction;
+  instructionDistEl.textContent = distLabel;
+}
+
+function advanceStep() {
+  while (
+    navCurrentStep < navSteps.length - 1 &&
+    navTotalDistKm >= navSteps[navCurrentStep].triggerKm
+  ) {
+    navCurrentStep++;
+  }
 }
 
 // ─── Phase 1: Search ──────────────────────────────────────────────────────────
@@ -207,6 +253,7 @@ directionsBtn.addEventListener('click', function () {
       const km = navRouteDistKm.toFixed(1);
       const mins = Math.round(result.summary.duration / 60);
       routeSummary.innerHTML = `<span class="route-dist">${km} km</span> · ${mins} min`;
+      initSteps(result.steps || []);
       drawRoute(result.coords);
       showPhase('route-panel');
     })
@@ -260,6 +307,11 @@ startBtn.addEventListener('click', function () {
     navTimeEl.textContent = `${Math.round(remainingKm / speedKmh * 60)} min`;
   }
 
+  if (navSteps.length) {
+    updateInstruction();
+    instructionPill.classList.remove('hidden');
+  }
+
   updateEta();
   navTimerInterval = setInterval(updateEta, 10000);
 
@@ -279,10 +331,14 @@ startBtn.addEventListener('click', function () {
         navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
       }
 
+      advanceStep();
+      updateInstruction();
+
       if (!navArrived && destination) {
         const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
         if (distToDest < 0.05) {
           navArrived = true;
+          instructionPill.classList.add('hidden');
           showArrival(destination.name);
         }
       }
@@ -301,7 +357,10 @@ stopBtn.addEventListener('click', function () {
   navRouteDistKm = 0;
   navLastPos = null;
   navArrived = false;
+  navSteps = [];
+  navCurrentStep = 0;
   hideArrival();
+  instructionPill.classList.add('hidden');
   stopNavigation(navWatchId);
   navWatchId = null;
   clearRoute();
