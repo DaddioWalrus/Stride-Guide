@@ -12,6 +12,7 @@ let navTotalDistKm = 0;
 let navRouteDistKm = 0;
 let navLastPos = null;
 let navTimerInterval = null;
+let navArrived = false;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -308,6 +309,20 @@ function updateGenerateButton() {
   }
 }
 
+// ─── Arrival Toast ────────────────────────────────────────────────────────────
+
+const arrivalToast = document.getElementById('arrival-toast');
+
+function showArrival(name) {
+  arrivalToast.textContent = `You've arrived at ${name}`;
+  arrivalToast.classList.add('visible');
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
+function hideArrival() {
+  arrivalToast.classList.remove('visible');
+}
+
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
 function showError(msg) {
@@ -339,6 +354,8 @@ startNavBtn.addEventListener('click', function () {
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
+  navArrived = false;
+  hideArrival();
   navDistEl.textContent = '0.0 km · 0.0 mi';
   navSpdEl.textContent = '0.0 km/h · 0.0 mph';
 
@@ -372,6 +389,14 @@ startNavBtn.addEventListener('click', function () {
         const mph = pos.speed * 2.23694;
         navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
       }
+
+      if (!navArrived && destination) {
+        const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
+        if (distToDest < 0.05) {
+          navArrived = true;
+          showArrival(destination.name || 'your destination');
+        }
+      }
     },
     function (err) { showError(err); }
   );
@@ -384,6 +409,8 @@ stopBtn.addEventListener('click', function () {
   navTotalDistKm = 0;
   navRouteDistKm = 0;
   navLastPos = null;
+  navArrived = false;
+  hideArrival();
   stopNavigation(navWatchId);
   navWatchId = null;
   navPanel.classList.add('hidden');
