@@ -13,6 +13,10 @@ let navRouteDistKm = 0;
 let navLastPos = null;
 let navTimerInterval = null;
 let navArrived = false;
+let navSteps = [];
+let navCurrentStep = 0;
+let navCurrentSpeedMs = 0;
+let useMetric = true;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -44,16 +48,100 @@ const stepValueEl = document.getElementById('step-value');
 const generateBtn = document.getElementById('generate-btn');
 const errorEl = document.getElementById('error-text');
 
-const collapsedTitle = document.getElementById('collapsed-title');
-const collapsedSummary = document.getElementById('collapsed-summary');
 const changeBtn = document.getElementById('change-btn');
 const startNavBtn = document.getElementById('start-nav-btn');
+
+const routeTimeEl = document.getElementById('route-time');
+const routeDistEl = document.getElementById('route-dist');
 
 const navPanel = document.getElementById('nav-panel');
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
-const navSpdEl = document.getElementById('nav-spd');
+const navPaceEl = document.getElementById('nav-pace');
 const stopBtn = document.getElementById('stop-btn');
+const unitBtn = document.getElementById('unit-btn');
+
+const instructionPill = document.getElementById('instruction-pill');
+const instructionArrowEl = document.getElementById('instruction-arrow');
+const instructionTextEl = document.getElementById('instruction-text');
+const instructionDistEl = document.getElementById('instruction-dist');
+
+// ─── Turn-by-Turn ─────────────────────────────────────────────────────────────
+
+const STEP_ARROWS = {
+  0: '↰', 1: '↱', 2: '↰', 3: '↱',
+  4: '↖', 5: '↗', 6: '↑',
+  7: '↻', 8: '↱', 9: '↩',
+  10: '●', 11: '↑', 12: '↖', 13: '↗',
+};
+
+function initSteps(steps) {
+  let cumKm = 0;
+  navSteps = steps.map(function (s) {
+    const step = { instruction: s.instruction, type: s.type, triggerKm: cumKm };
+    cumKm += s.distance / 1000;
+    return step;
+  });
+  navCurrentStep = Math.min(1, navSteps.length - 1);
+}
+
+const PREP_RE = /\b(onto|on|into|via|along|through|towards?|at|then|and|to|for|from|by|with|the|a|an|of|in|off|over|past|ahead)\b/gi;
+
+function formatInstruction(text) {
+  const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return safe.replace(PREP_RE, '<span class="instr-prep">$1</span>');
+}
+
+function stepDistLabel(distKm) {
+  if (useMetric) {
+    return distKm < 0.1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`;
+  }
+  const mi = distKm * 0.621371;
+  return mi < 0.1 ? `${Math.round(distKm * 3280.84)}ft` : `${mi.toFixed(1)}mi`;
+}
+
+function updateInstruction() {
+  if (!navSteps.length || navCurrentStep >= navSteps.length) return;
+  const step = navSteps[navCurrentStep];
+  const distKm = Math.max(0, step.triggerKm - navTotalDistKm);
+  instructionArrowEl.textContent = STEP_ARROWS[step.type] ?? '↑';
+  instructionTextEl.innerHTML = formatInstruction(step.instruction);
+  instructionDistEl.textContent = stepDistLabel(distKm);
+}
+
+function advanceStep() {
+  while (
+    navCurrentStep < navSteps.length - 1 &&
+    navTotalDistKm >= navSteps[navCurrentStep].triggerKm
+  ) {
+    navCurrentStep++;
+  }
+}
+
+function updateNavDisplay() {
+  if (!navStartTime) return;
+  if (useMetric) {
+    navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km`;
+  } else {
+    navDistEl.textContent = `${(navTotalDistKm * 0.621371).toFixed(2)} mi`;
+  }
+  const elapsedHr = (Date.now() - navStartTime) / 3600000;
+  const avgKmh = navTotalDistKm > 0.05 && elapsedHr > 0.001
+    ? navTotalDistKm / elapsedHr
+    : navCurrentSpeedMs * 3.6;
+  if (useMetric) {
+    navPaceEl.textContent = `${avgKmh.toFixed(1)} km/h`;
+  } else {
+    navPaceEl.textContent = `${(avgKmh * 0.621371).toFixed(1)} mph`;
+  }
+}
+
+unitBtn.addEventListener('click', function () {
+  useMetric = !useMetric;
+  unitBtn.textContent = useMetric ? 'IMP' : 'MET';
+  updateNavDisplay();
+  updateInstruction();
+});
 
 // ─── Destination Callback (from map.js) ───────────────────────────────────────
 
@@ -269,7 +357,7 @@ async function handleGenerateRoute() {
     }
 
     drawRoute(result.coords);
-    collapsePanel(result.summary);
+    collapsePanel(result.summary, result.steps);
 
   } catch (e) {
     showError('Could not generate route — please check your locations and try again');
@@ -282,14 +370,17 @@ async function handleGenerateRoute() {
 
 // ─── Panel Collapse ───────────────────────────────────────────────────────────
 
-function collapsePanel(summary) {
+function collapsePanel(summary, steps) {
   panel.classList.add('collapsed');
-  collapsedTitle.textContent = 'Route Ready 🗺️';
   if (summary) {
     navRouteDistKm = summary.distance / 1000;
-    collapsedSummary.textContent =
-      `${navRouteDistKm.toFixed(1)}km — ${Math.round(summary.duration / 60)} min`;
+    const mins = Math.round(summary.duration / 60);
+    routeTimeEl.textContent = `${mins} min`;
+    routeDistEl.textContent = useMetric
+      ? `${navRouteDistKm.toFixed(1)} km`
+      : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
   }
+  initSteps(steps || []);
 }
 
 changeBtn.addEventListener('click', function () {
@@ -354,10 +445,10 @@ startNavBtn.addEventListener('click', function () {
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
+  navCurrentSpeedMs = 0;
   navArrived = false;
   hideArrival();
-  navDistEl.textContent = '0.0 km · 0.0 mi';
-  navSpdEl.textContent = '0.0 km/h · 0.0 mph';
+  updateNavDisplay();
 
   const DEFAULT_WALK_KMH = 5;
 
@@ -371,6 +462,11 @@ startNavBtn.addEventListener('click', function () {
     navTimeEl.textContent = `${Math.round(remainingKm / speedKmh * 60)} min`;
   }
 
+  if (navSteps.length) {
+    updateInstruction();
+    instructionPill.classList.remove('hidden');
+  }
+
   updateEta();
   navTimerInterval = setInterval(updateEta, 10000);
 
@@ -381,19 +477,17 @@ startNavBtn.addEventListener('click', function () {
       }
       navLastPos = pos;
 
-      const mi = navTotalDistKm * 0.621371;
-      navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km · ${mi.toFixed(2)} mi`;
+      if (pos.speed !== null && pos.speed >= 0) navCurrentSpeedMs = pos.speed;
+      updateNavDisplay();
 
-      if (pos.speed !== null && pos.speed >= 0) {
-        const kmh = pos.speed * 3.6;
-        const mph = pos.speed * 2.23694;
-        navSpdEl.textContent = `${kmh.toFixed(1)} km/h · ${mph.toFixed(1)} mph`;
-      }
+      advanceStep();
+      updateInstruction();
 
       if (!navArrived && destination) {
         const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
         if (distToDest < 0.05) {
           navArrived = true;
+          instructionPill.classList.add('hidden');
           showArrival(destination.name || 'your destination');
         }
       }
@@ -409,11 +503,17 @@ stopBtn.addEventListener('click', function () {
   navTotalDistKm = 0;
   navRouteDistKm = 0;
   navLastPos = null;
+  navCurrentSpeedMs = 0;
   navArrived = false;
+  navSteps = [];
+  navCurrentStep = 0;
   hideArrival();
+  instructionPill.classList.add('hidden');
   stopNavigation(navWatchId);
   navWatchId = null;
   navPanel.classList.add('hidden');
+  panel.classList.remove('collapsed');
   panel.classList.remove('hidden');
+  clearRoute();
   map.setZoom(15);
 });

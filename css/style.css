@@ -55,7 +55,7 @@ body {
 #route-panel.collapsed {
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 14px 20px;
 }
 
@@ -65,18 +65,6 @@ body {
 
 #route-panel:not(.collapsed) .panel-collapsed {
   display: none;
-}
-
-.collapsed-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #333;
-}
-
-.collapsed-summary {
-  font-size: 13px;
-  color: #666;
-  margin-top: 2px;
 }
 
 /* ─── Toggle (Loop / A→B) ─────────────────────────── */
@@ -320,24 +308,100 @@ body {
   gap: 12px;
 }
 
-.nav-stats {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.nav-eta {
+  flex-shrink: 0;
 }
 
-#nav-time {
-  font-size: 22px;
+#nav-time,
+#route-time {
+  font-size: 26px;
   font-weight: 700;
   color: #333;
   font-variant-numeric: tabular-nums;
 }
 
+.nav-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
 #nav-dist,
-#nav-spd {
+#route-dist {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+#nav-pace {
   font-size: 13px;
   color: #555;
+}
+
+.nav-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.unit-btn {
+  background: #EBF4FF;
+  color: #4A90D9;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* ─── Instruction Pill ────────────────────────────── */
+
+#instruction-pill {
+  position: fixed;
+  bottom: 122px;
+  left: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: white;
+  border-radius: 100px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 1100;
+}
+
+#instruction-arrow {
+  font-size: 30px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+#instruction-text {
+  flex: 1;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.instr-prep {
+  font-weight: 400;
+}
+
+#instruction-dist {
+  font-size: 21px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 /* ─── Stop Button ─────────────────────────────────── */

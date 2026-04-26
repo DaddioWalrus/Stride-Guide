@@ -31,9 +31,11 @@
 
       <!-- Collapsed view — shows after route is generated -->
       <div class="panel-collapsed">
-        <div>
-          <div class="collapsed-title" id="collapsed-title">Route Ready 🗺️</div>
-          <div class="collapsed-summary" id="collapsed-summary"></div>
+        <div class="nav-eta">
+          <div id="route-time">-- min</div>
+        </div>
+        <div class="nav-center">
+          <div id="route-dist">0.0 km</div>
         </div>
         <div class="collapsed-actions">
           <button class="change-btn" id="change-btn">Change</button>
@@ -109,12 +111,24 @@
 
     <!-- Nav Panel -->
     <div id="nav-panel" class="hidden">
-      <div class="nav-stats">
-        <div id="nav-time">00:00</div>
-        <div id="nav-dist">0.0 km · 0.0 mi</div>
-        <div id="nav-spd">0.0 km/h · 0.0 mph</div>
+      <div class="nav-eta">
+        <div id="nav-time">-- min</div>
       </div>
-      <button class="stop-btn" id="stop-btn">Stop</button>
+      <div class="nav-center">
+        <div id="nav-dist">0.00 km</div>
+        <div id="nav-pace">0.0 km/h</div>
+      </div>
+      <div class="nav-controls">
+        <button class="stop-btn" id="stop-btn">Stop</button>
+        <button class="unit-btn" id="unit-btn">IMP</button>
+      </div>
+    </div>
+
+    <!-- Turn-by-turn instruction pill -->
+    <div id="instruction-pill" class="hidden">
+      <span id="instruction-arrow">↑</span>
+      <span id="instruction-text"></span>
+      <span id="instruction-dist"></span>
     </div>
 
     <!-- Arrival toast -->

@@ -26,8 +26,11 @@ async function callORS(body) {
 
   const coords = data.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
   const summary = data.features[0].properties.summary;
+  const steps = (data.features[0].properties.segments || [])
+    .flatMap(seg => seg.steps || [])
+    .map(s => ({ instruction: s.instruction, type: s.type, distance: s.distance }));
 
-  return { coords, summary };
+  return { coords, summary, steps };
 }
 
 // ─── Loop Route ───────────────────────────────────────────────────────────────
