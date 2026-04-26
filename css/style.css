@@ -323,7 +323,12 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.nav-center:active { opacity: 0.6; }
 
 #nav-dist,
 #route-dist {
@@ -332,29 +337,20 @@ button {
   color: #333;
 }
 
+#nav-unit {
+  font-size: 11px;
+  color: #bbb;
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+}
+
 #nav-pace {
   font-size: 13px;
   color: #555;
 }
 
 .nav-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
   flex-shrink: 0;
-}
-
-.unit-btn {
-  background: #EBF4FF;
-  color: #4A90D9;
-  border: none;
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 /* ─── Stop Button ─────────────────────────────────── */
