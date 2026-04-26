@@ -57,9 +57,10 @@ const routeDistEl = document.getElementById('route-dist');
 const navPanel = document.getElementById('nav-panel');
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
+const navUnitEl = document.getElementById('nav-unit');
 const navPaceEl = document.getElementById('nav-pace');
+const navCenterEl = document.getElementById('nav-center');
 const stopBtn = document.getElementById('stop-btn');
-const unitBtn = document.getElementById('unit-btn');
 
 const instructionPill = document.getElementById('instruction-pill');
 const instructionArrowEl = document.getElementById('instruction-arrow');
@@ -120,25 +121,22 @@ function advanceStep() {
 
 function updateNavDisplay() {
   if (!navStartTime) return;
-  if (useMetric) {
-    navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km`;
-  } else {
-    navDistEl.textContent = `${(navTotalDistKm * 0.621371).toFixed(2)} mi`;
-  }
   const elapsedHr = (Date.now() - navStartTime) / 3600000;
   const avgKmh = navTotalDistKm > 0.05 && elapsedHr > 0.001
     ? navTotalDistKm / elapsedHr
     : navCurrentSpeedMs * 3.6;
   if (useMetric) {
+    navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km`;
     navPaceEl.textContent = `${avgKmh.toFixed(1)} km/h`;
   } else {
+    navDistEl.textContent = `${(navTotalDistKm * 0.621371).toFixed(2)} mi`;
     navPaceEl.textContent = `${(avgKmh * 0.621371).toFixed(1)} mph`;
   }
+  navUnitEl.textContent = useMetric ? 'metric' : 'imperial';
 }
 
-unitBtn.addEventListener('click', function () {
+navCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
-  unitBtn.textContent = useMetric ? 'IMP' : 'MET';
   updateNavDisplay();
   updateInstruction();
 });
