@@ -175,41 +175,34 @@ function distKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-async function overpassSearch(query, lat, lng) {
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // Search name and brand, no limit — sort by distance in JS so nearest appear first
-  // out bb instead of out center: bounding box always has coords even for complex relations
-  const overpassQuery = `[out:json][timeout:10];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out bb;`;
+async function photonSearch(query, lat, lng) {
+  const encoded = encodeURIComponent(query);
+  const bbox = `${lng - 0.47},${lat - 0.29},${lng + 0.47},${lat + 0.29}`;
+  const url = `https://photon.komoot.io/api/?q=${encoded}&lat=${lat}&lon=${lng}&limit=5&lang=en&bbox=${bbox}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(function () { controller.abort(); }, 12000);
+  const timer = setTimeout(function () { controller.abort(); }, 8000);
 
   try {
-    const url = 'https://overpass.kumi.systems/api/interpreter?data=' + encodeURIComponent(overpassQuery);
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     const data = await resp.json();
 
-    return (data.elements || [])
-      .map(function (el) {
-        let elLat, elLng;
-        if (el.lat !== undefined) {
-          elLat = el.lat; elLng = el.lon;                          // node
-        } else if (el.bounds) {
-          elLat = (el.bounds.minlat + el.bounds.maxlat) / 2;      // way / relation
-          elLng = (el.bounds.minlon + el.bounds.maxlon) / 2;
-        }
-        const name = el.tags?.name || el.tags?.brand || query;
-        const street = el.tags?.['addr:street'] || '';
-        const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
-        const detail = [street, city].filter(Boolean).join(', ');
-        return { lat: elLat, lng: elLng, name, detail };
+    return (data.features || [])
+      .filter(function (f) { return f.properties.name; })
+      .map(function (f) {
+        const p = f.properties;
+        const detail = [p.street, p.city || p.town || p.village].filter(Boolean).join(', ');
+        return {
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          name: p.name,
+          detail,
+        };
       })
-      .filter(function (el) { return el.lat && el.lng; })
       .sort(function (a, b) {
         return distKm(lat, lng, a.lat, a.lng) - distKm(lat, lng, b.lat, b.lng);
-      })
-      .slice(0, 5);
+      });
   } catch {
     clearTimeout(timer);
     return [];
@@ -259,7 +252,7 @@ async function searchAddressSuggestions(query) {
     return nominatimSearch(query, lat, lng);
   }
 
-  const results = await overpassSearch(query, lat, lng);
+  const results = await photonSearch(query, lat, lng);
   if (results.length > 0) return results;
   return nominatimSearch(query, lat, lng, false);
 }
