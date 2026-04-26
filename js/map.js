@@ -179,13 +179,13 @@ async function overpassSearch(query, lat, lng) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Search name and brand, no limit — sort by distance in JS so nearest appear first
   // out bb instead of out center: bounding box always has coords even for complex relations
-  const overpassQuery = `[out:json][timeout:6];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out bb;`;
+  const overpassQuery = `[out:json][timeout:10];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out bb;`;
 
   const controller = new AbortController();
-  const timer = setTimeout(function () { controller.abort(); }, 7000);
+  const timer = setTimeout(function () { controller.abort(); }, 12000);
 
   try {
-    const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+    const url = 'https://overpass.kumi.systems/api/interpreter?data=' + encodeURIComponent(overpassQuery);
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     const data = await resp.json();
@@ -259,10 +259,7 @@ async function searchAddressSuggestions(query) {
 
   const results = await overpassSearch(query, lat, lng);
   if (results.length > 0) return results;
-
-  // Append locality so Nominatim finds nearby stores rather than ranking by city size
-  const localQuery = userLocality ? `${query} ${userLocality}` : query;
-  return nominatimSearch(localQuery, lat, lng, !userLocality);
+  return nominatimSearch(query, lat, lng, false);
 }
 
 async function reverseGeocode(lat, lng) {
