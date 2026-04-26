@@ -195,43 +195,101 @@ const NOMINATIM_HEADERS = {
   'User-Agent': 'StrideGuide/1.0',
 };
 
-async function searchAddress(query) {
+function looksLikeAddress(query) {
+  return /\d/.test(query);
+}
+
+function distKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+async function overpassSearch(query, lat, lng) {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const overpassQuery = `[out:json][timeout:10];(nwr["name"~"${escaped}",i](around:32187,${lat},${lng});nwr["brand"~"${escaped}",i](around:32187,${lat},${lng}););out bb;`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, 12000);
+
+  try {
+    const url = 'https://overpass.kumi.systems/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    const data = await resp.json();
+
+    return (data.elements || [])
+      .map(function (el) {
+        let elLat, elLng;
+        if (el.lat !== undefined) {
+          elLat = el.lat; elLng = el.lon;
+        } else if (el.bounds) {
+          elLat = (el.bounds.minlat + el.bounds.maxlat) / 2;
+          elLng = (el.bounds.minlon + el.bounds.maxlon) / 2;
+        }
+        const name = el.tags?.name || el.tags?.brand || query;
+        const street = el.tags?.['addr:street'] || '';
+        const city = el.tags?.['addr:city'] || el.tags?.['addr:town'] || '';
+        const detail = [street, city].filter(Boolean).join(', ');
+        return { lat: elLat, lng: elLng, name, detail };
+      })
+      .filter(function (el) { return el.lat && el.lng; })
+      .sort(function (a, b) {
+        return distKm(lat, lng, a.lat, a.lng) - distKm(lat, lng, b.lat, b.lng);
+      })
+      .slice(0, 5);
+  } catch {
+    clearTimeout(timer);
+    return [];
+  }
+}
+
+async function nominatimSearch(query, lat, lng, globalFallback = true) {
   const encoded = encodeURIComponent(query);
+  const dlat = 0.29;
+  const dlng = 0.47;
+  const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
+
+  const localResp = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&viewbox=${viewbox}&bounded=1`,
+    { headers: NOMINATIM_HEADERS }
+  );
+  const localData = await localResp.json();
+
+  const data = localData.length > 0 || !globalFallback ? localData : await (async () => {
+    const globalResp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5`,
+      { headers: NOMINATIM_HEADERS }
+    );
+    return globalResp.json();
+  })();
+
+  return data.map(function (item) {
+    const parts = item.display_name.split(',');
+    return {
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+      name: parts[0].trim(),
+      detail: parts.slice(1, 3).join(',').trim(),
+    };
+  });
+}
+
+async function searchAddressSuggestions(query) {
   const centre = startLocation || userLocation || map.getCenter();
   const lat = centre.lat;
   const lng = centre.lng;
 
-  // 50-mile (~80 km) bounding box: ~0.72° lat, ~1.17° lng at UK latitudes
-  const dlat = 0.72;
-  const dlng = 1.17;
-  const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
-
-  const localUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
-  const localResp = await fetch(localUrl, { headers: NOMINATIM_HEADERS });
-  const localData = await localResp.json();
-
-  if (localData.length > 0) {
-    return parseNominatimResult(localData[0]);
+  if (looksLikeAddress(query)) {
+    return nominatimSearch(query, lat, lng);
   }
 
-  // Nothing nearby — fall back to global search
-  const globalUrl = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`;
-  const globalResp = await fetch(globalUrl, { headers: NOMINATIM_HEADERS });
-  const globalData = await globalResp.json();
-
-  if (globalData.length === 0) {
-    throw new Error('Location not found, try a different search');
-  }
-
-  return parseNominatimResult(globalData[0]);
-}
-
-function parseNominatimResult(item) {
-  return {
-    lat: parseFloat(item.lat),
-    lng: parseFloat(item.lon),
-    name: item.display_name.split(',').slice(0, 2).join(', '),
-  };
+  const results = await overpassSearch(query, lat, lng);
+  if (results.length > 0) return results;
+  return nominatimSearch(query, lat, lng, false);
 }
 
 async function reverseGeocode(lat, lng) {
