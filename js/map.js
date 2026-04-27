@@ -111,7 +111,7 @@ function clearRoute() {
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
-const navHeadingBuffer = [];
+const navPositionHistory = [];
 let navLastBearing = null;
 const navTrailMarkers = [];
 
@@ -166,17 +166,25 @@ function startNavigation(onPosition, onError) {
 
       const speed = position.coords.speed;
 
-      navHeadingBuffer.push({ lat, lng });
-      if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
+      navPositionHistory.push({ lat, lng });
+      if (navPositionHistory.length > 50) navPositionHistory.shift();
 
-      if (typeof map.setBearing === 'function' && navHeadingBuffer.length >= 2) {
-        const first = navHeadingBuffer[0];
-        const last = navHeadingBuffer[navHeadingBuffer.length - 1];
-        if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.003) {
-          navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
+      if (typeof map.setBearing === 'function') {
+        // Walk backwards through history to find the most recent position
+        // that is at least 15 m behind current — far enough above GPS noise
+        // to give a reliable bearing.
+        let ref = null;
+        for (let i = navPositionHistory.length - 2; i >= 0; i--) {
+          if (distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng) >= 0.015) {
+            ref = navPositionHistory[i];
+            break;
+          }
+        }
+        if (ref) {
+          navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
           map.setBearing((navLastBearing + 180) % 360);
         }
-        // else: not moved enough yet — keep last bearing so map doesn't snap
+        // else: haven't moved 15 m yet — hold current orientation
       }
 
       onPosition({ lat, lng, speed });
@@ -189,7 +197,7 @@ function startNavigation(onPosition, onError) {
 function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (userMarker) { userMarker.remove(); userMarker = null; }
-  navHeadingBuffer.length = 0;
+  navPositionHistory.length = 0;
   navLastBearing = null;
   navTrailMarkers.forEach(function (m) { m.remove(); });
   navTrailMarkers.length = 0;
