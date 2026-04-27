@@ -76,7 +76,6 @@ function showError(msg) {
 function showArrival(name) {
   arrivalToast.textContent = `You've arrived at ${name}`;
   arrivalToast.classList.add('visible');
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 
 function hideArrival() {
@@ -372,7 +371,7 @@ startBtn.addEventListener('click', function () {
 
       if (!navArrived && destination) {
         const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
-        if (distToDest < 0.05) {
+        if (distToDest < 0.01) {
           navArrived = true;
           instructionPill.classList.add('hidden');
           showArrival(destination.name);
