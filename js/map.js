@@ -113,6 +113,14 @@ function clearRoute() {
 
 const navHeadingBuffer = [];
 let navLastBearing = null;
+const navTrailMarkers = [];
+
+const trailIcon = L.divIcon({
+  className: '',
+  html: '<div class="trail-dot"></div>',
+  iconSize: [8, 8],
+  iconAnchor: [4, 4],
+});
 
 function computeBearing(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -141,6 +149,14 @@ function startNavigation(onPosition, onError) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       const heading = position.coords.heading;
+
+      // Stamp a trail dot at the current position before advancing the main marker
+      if (userMarker) {
+        const prev = userMarker.getLatLng();
+        const dot = L.marker([prev.lat, prev.lng], { icon: trailIcon, interactive: false }).addTo(map);
+        navTrailMarkers.push(dot);
+        if (navTrailMarkers.length > 5) navTrailMarkers.shift().remove();
+      }
 
       if (!userMarker) {
         userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
@@ -183,6 +199,8 @@ function stopNavigation(watchId) {
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navHeadingBuffer.length = 0;
   navLastBearing = null;
+  navTrailMarkers.forEach(function (m) { m.remove(); });
+  navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
 }
 
