@@ -1,6 +1,11 @@
 // ─── Map Setup ────────────────────────────────────────────────────────────────
 
-const map = L.map('map', { zoomControl: true });
+const map = L.map('map', {
+  zoomControl: true,
+  rotate: true,
+  bearing: 0,
+  touchRotate: false,
+});
 
 map.zoomControl.setPosition('topleft');
 
@@ -188,17 +193,27 @@ function startNavigation(onPosition, onError) {
 
       map.setView([lat, lng], map.getZoom(), { animate: true });
 
+      const heading = position.coords.heading;
+      const speed = position.coords.speed;
+
       navHeadingBuffer.push({ lat, lng });
       if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
-      if (navHeadingBuffer.length >= 2 && typeof map.setBearing === 'function') {
-        const first = navHeadingBuffer[0];
-        const last = navHeadingBuffer[navHeadingBuffer.length - 1];
-        if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
-          map.setBearing(computeBearing(first.lat, first.lng, last.lat, last.lng));
+
+      if (typeof map.setBearing === 'function') {
+        // Prefer live device heading when moving (speed > 0.3 m/s ≈ slow walk)
+        if (heading !== null && !isNaN(heading) && speed !== null && speed > 0.3) {
+          map.setBearing(heading);
+        } else if (navHeadingBuffer.length >= 2) {
+          // Fall back to GPS-computed bearing from the position buffer
+          const first = navHeadingBuffer[0];
+          const last = navHeadingBuffer[navHeadingBuffer.length - 1];
+          if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
+            map.setBearing(computeBearing(first.lat, first.lng, last.lat, last.lng));
+          }
         }
       }
 
-      onPosition({ lat, lng, speed: position.coords.speed });
+      onPosition({ lat, lng, speed });
     },
     function () { onError('Lost GPS signal'); },
     { enableHighAccuracy: true, maximumAge: 1000 }
