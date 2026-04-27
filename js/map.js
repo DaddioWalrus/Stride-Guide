@@ -210,27 +210,19 @@ function startNavigation(onPosition, onError) {
 
       map.setView([lat, lng], map.getZoom(), { animate: true });
 
-      const heading = position.coords.heading;
       const speed = position.coords.speed;
 
       navHeadingBuffer.push({ lat, lng });
       if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
 
-      if (typeof map.setBearing === 'function') {
-        if (heading !== null && !isNaN(heading)) {
-          // Geolocation API only sets heading when moving, so use it directly
-          navLastBearing = heading;
-          map.setBearing(heading);
-        } else if (navHeadingBuffer.length >= 2) {
-          // Fall back to GPS-computed bearing; only apply if we've moved enough
-          const first = navHeadingBuffer[0];
-          const last = navHeadingBuffer[navHeadingBuffer.length - 1];
-          if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
-            navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
-            map.setBearing(navLastBearing);
-          }
-          // else: heading went null (paused at crossing etc.) — keep last bearing
+      if (typeof map.setBearing === 'function' && navHeadingBuffer.length >= 2) {
+        const first = navHeadingBuffer[0];
+        const last = navHeadingBuffer[navHeadingBuffer.length - 1];
+        if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.003) {
+          navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
+          map.setBearing(navLastBearing);
         }
+        // else: not moved enough yet — keep last bearing so map doesn't snap
       }
 
       onPosition({ lat, lng, speed });
