@@ -157,6 +157,7 @@ function flyToUserLocation() {
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 const navHeadingBuffer = [];
+let navLastBearing = null;
 
 function computeBearing(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -200,16 +201,19 @@ function startNavigation(onPosition, onError) {
       if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
 
       if (typeof map.setBearing === 'function') {
-        // Prefer live device heading when moving (speed > 0.3 m/s ≈ slow walk)
-        if (heading !== null && !isNaN(heading) && speed !== null && speed > 0.3) {
+        if (heading !== null && !isNaN(heading)) {
+          // Geolocation API only sets heading when moving, so use it directly
+          navLastBearing = heading;
           map.setBearing(heading);
         } else if (navHeadingBuffer.length >= 2) {
-          // Fall back to GPS-computed bearing from the position buffer
+          // Fall back to GPS-computed bearing; only apply if we've moved enough
           const first = navHeadingBuffer[0];
           const last = navHeadingBuffer[navHeadingBuffer.length - 1];
           if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
-            map.setBearing(computeBearing(first.lat, first.lng, last.lat, last.lng));
+            navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
+            map.setBearing(navLastBearing);
           }
+          // else: heading went null (paused at crossing etc.) — keep last bearing
         }
       }
 
@@ -224,6 +228,7 @@ function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navHeadingBuffer.length = 0;
+  navLastBearing = null;
   if (typeof map.setBearing === 'function') map.setBearing(0);
 }
 
