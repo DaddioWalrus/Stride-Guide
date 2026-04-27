@@ -141,11 +141,12 @@ function updateNavDisplay() {
   const avgKmh = navTotalDistKm > 0.05 && elapsedHr > 0.001
     ? navTotalDistKm / elapsedHr
     : navCurrentSpeedMs * 3.6;
+  const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
   if (useMetric) {
-    navDistEl.textContent = `${navTotalDistKm.toFixed(2)} km`;
+    navDistEl.textContent = `${remainingKm.toFixed(2)} km`;
     navPaceEl.textContent = `${avgKmh.toFixed(1)} km/h`;
   } else {
-    navDistEl.textContent = `${(navTotalDistKm * 0.621371).toFixed(2)} mi`;
+    navDistEl.textContent = `${(remainingKm * 0.621371).toFixed(2)} mi`;
     navPaceEl.textContent = `${(avgKmh * 0.621371).toFixed(1)} mph`;
   }
   navUnitEl.textContent = useMetric ? 'metric' : 'imperial';

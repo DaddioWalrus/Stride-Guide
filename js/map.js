@@ -111,6 +111,17 @@ function clearRoute() {
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
+const navHeadingBuffer = [];
+
+function computeBearing(lat1, lng1, lat2, lng2) {
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const rlat1 = lat1 * Math.PI / 180;
+  const rlat2 = lat2 * Math.PI / 180;
+  const y = Math.sin(dLng) * Math.cos(rlat2);
+  const x = Math.cos(rlat1) * Math.sin(rlat2) - Math.sin(rlat1) * Math.cos(rlat2) * Math.cos(dLng);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
 const userIcon = L.divIcon({
   className: '',
   html: '<div class="user-dot"></div>',
@@ -138,8 +149,14 @@ function startNavigation(onPosition, onError) {
 
       map.setView([lat, lng], map.getZoom(), { animate: true });
 
-      if (heading !== null && typeof map.setBearing === 'function') {
-        map.setBearing(heading);
+      navHeadingBuffer.push({ lat, lng });
+      if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
+      if (navHeadingBuffer.length >= 2 && typeof map.setBearing === 'function') {
+        const first = navHeadingBuffer[0];
+        const last = navHeadingBuffer[navHeadingBuffer.length - 1];
+        if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
+          map.setBearing(computeBearing(first.lat, first.lng, last.lat, last.lng));
+        }
       }
 
       onPosition({ lat, lng, heading, speed: position.coords.speed });
@@ -152,6 +169,7 @@ function startNavigation(onPosition, onError) {
 function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (userMarker) { userMarker.remove(); userMarker = null; }
+  navHeadingBuffer.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
 }
 
