@@ -148,8 +148,6 @@ function startNavigation(onPosition, onError) {
     function (position) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const heading = position.coords.heading;
-
       // Stamp a trail dot at the current position before advancing the main marker
       if (userMarker) {
         const prev = userMarker.getLatLng();
@@ -171,23 +169,17 @@ function startNavigation(onPosition, onError) {
       navHeadingBuffer.push({ lat, lng });
       if (navHeadingBuffer.length > 5) navHeadingBuffer.shift();
 
-      if (typeof map.setBearing === 'function') {
-        if (heading !== null && !isNaN(heading)) {
-          // Geolocation API only sets heading when moving, so use it directly
-          navLastBearing = heading;
-          map.setBearing(heading);
-        } else if (navHeadingBuffer.length >= 2) {
-          const first = navHeadingBuffer[0];
-          const last = navHeadingBuffer[navHeadingBuffer.length - 1];
-          if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.005) {
-            navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
-            map.setBearing(navLastBearing);
-          }
-          // else: heading went null (paused at crossing etc.) — keep last bearing
+      if (typeof map.setBearing === 'function' && navHeadingBuffer.length >= 2) {
+        const first = navHeadingBuffer[0];
+        const last = navHeadingBuffer[navHeadingBuffer.length - 1];
+        if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.003) {
+          navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
+          map.setBearing(navLastBearing);
         }
+        // else: not moved enough yet — keep last bearing so map doesn't snap
       }
 
-      onPosition({ lat, lng, heading, speed });
+      onPosition({ lat, lng, speed });
     },
     function () { onError('Lost GPS signal'); },
     { enableHighAccuracy: true, maximumAge: 1000 }
