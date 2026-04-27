@@ -220,7 +220,7 @@ function startNavigation(onPosition, onError) {
         const last = navHeadingBuffer[navHeadingBuffer.length - 1];
         if (distKm(first.lat, first.lng, last.lat, last.lng) > 0.003) {
           navLastBearing = computeBearing(first.lat, first.lng, last.lat, last.lng);
-          map.setBearing(navLastBearing);
+          map.setBearing((navLastBearing + 180) % 360);
         }
         // else: not moved enough yet — keep last bearing so map doesn't snap
       }
