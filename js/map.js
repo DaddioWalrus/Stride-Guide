@@ -23,6 +23,7 @@ let userLocality = '';
 let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
+let pinMarker = null;
 
 // Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
@@ -87,6 +88,23 @@ const dotIcon = L.divIcon({
 function placeDestinationPin(lat, lng) {
   if (destinationMarker) destinationMarker.remove();
   destinationMarker = L.marker([lat, lng], { icon: dotIcon }).addTo(map);
+}
+
+const pinIcon = L.divIcon({
+  className: '',
+  html: '<div class="pin-marker"></div>',
+  iconSize: [22, 32],
+  iconAnchor: [11, 32],
+});
+
+function placePinMarker(lat, lng) {
+  if (pinMarker) pinMarker.remove();
+  pinMarker = L.marker([lat, lng], { icon: pinIcon, interactive: false }).addTo(map);
+  if (window.onPinDropped) window.onPinDropped(lat, lng);
+}
+
+function clearPinMarker() {
+  if (pinMarker) { pinMarker.remove(); pinMarker = null; }
 }
 
 function clearDestination() {
@@ -297,6 +315,7 @@ function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (navRafId !== null) { cancelAnimationFrame(navRafId); navRafId = null; }
   stopCompass();
+  clearPinMarker();
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;

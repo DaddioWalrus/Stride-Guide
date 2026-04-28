@@ -517,6 +517,100 @@ button {
   opacity: 1;
 }
 
+/* ─── Pin Card ────────────────────────────────────── */
+
+#pin-card .nav-eta { flex: 1; }
+
+#pin-time {
+  font-size: 26px;
+  font-weight: 700;
+  color: #333;
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-card-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+#pin-dist {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+#pin-name {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pin-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.pin-close-btn:active { opacity: 0.7; }
+
+/* ─── Pin Marker ──────────────────────────────────── */
+
+.pin-marker {
+  width: 22px;
+  height: 32px;
+  position: relative;
+}
+
+.pin-marker::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1px;
+  width: 20px;
+  height: 20px;
+  background: #e74c3c;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.pin-marker::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 14px solid #e74c3c;
+}
+
 /* ─── Hidden Utility ──────────────────────────────── */
 
 .hidden {
