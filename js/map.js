@@ -34,6 +34,7 @@ let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
 let userMarker = null;
+let pinMarker = null;
 
 // ─── GPS — on demand only ─────────────────────────────────────────────────────
 
@@ -86,8 +87,26 @@ const dragIcon = L.icon({
   iconAnchor: [12, 120],
 });
 
+const pinIcon = L.divIcon({
+  className: '',
+  html: '<div class="pin-marker"></div>',
+  iconSize: [22, 32],
+  iconAnchor: [11, 32],
+});
+
+function placePinMarker(lat, lng) {
+  if (pinMarker) pinMarker.remove();
+  pinMarker = L.marker([lat, lng], { icon: pinIcon, interactive: false }).addTo(map);
+  if (window.onPinDropped) window.onPinDropped(lat, lng);
+}
+
+function clearPinMarker() {
+  if (pinMarker) { pinMarker.remove(); pinMarker = null; }
+}
+
 map.on('click', function (e) {
-  placeDestinationPin(e.latlng.lat, e.latlng.lng);
+  if (navRafId !== null) return;
+  placePinMarker(e.latlng.lat, e.latlng.lng);
 });
 
 function placeDestinationPin(lat, lng) {
@@ -340,6 +359,7 @@ function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (navRafId !== null) { cancelAnimationFrame(navRafId); navRafId = null; }
   stopCompass();
+  clearPinMarker();
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;

@@ -67,6 +67,13 @@ const instructionArrowEl = document.getElementById('instruction-arrow');
 const instructionTextEl = document.getElementById('instruction-text');
 const instructionDistEl = document.getElementById('instruction-dist');
 
+const pinCard = document.getElementById('pin-card');
+const pinTimeEl = document.getElementById('pin-time');
+const pinDistEl = document.getElementById('pin-dist');
+const pinNameEl = document.getElementById('pin-name');
+const pinCloseBtn = document.getElementById('pin-close-btn');
+const pinDirectionsBtn = document.getElementById('pin-directions-btn');
+
 // ─── Turn-by-Turn ─────────────────────────────────────────────────────────────
 
 const STEP_ARROWS = {
@@ -140,6 +147,77 @@ navCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
   updateNavDisplay();
   updateInstruction();
+});
+
+// ─── Pin Card ────────────────────────────────────────────────────────────────
+
+let pinLat = null, pinLng = null, pinName = null;
+
+window.onPinDropped = async function (lat, lng) {
+  pinLat = lat;
+  pinLng = lng;
+  pinName = null;
+
+  pinTimeEl.textContent = '-- min';
+  pinNameEl.textContent = 'Locating...';
+
+  if (userLocation) {
+    const d = haversineKm(userLocation.lat, userLocation.lng, lat, lng);
+    const mins = Math.round(d / 5 * 60);
+    pinDistEl.textContent = useMetric ? `${d.toFixed(1)} km` : `${(d * 0.621371).toFixed(1)} mi`;
+    pinTimeEl.textContent = `~${mins} min`;
+  } else {
+    pinDistEl.textContent = '-- km';
+  }
+
+  panel.classList.add('hidden');
+  pinCard.classList.remove('hidden');
+
+  const name = await reverseGeocode(lat, lng);
+  pinName = name;
+  pinNameEl.textContent = name;
+};
+
+pinCloseBtn.addEventListener('click', function () {
+  pinCard.classList.add('hidden');
+  panel.classList.remove('hidden');
+  clearPinMarker();
+  pinLat = null;
+  pinLng = null;
+  pinName = null;
+});
+
+pinDirectionsBtn.addEventListener('click', async function () {
+  if (!userLocation) {
+    pinNameEl.textContent = 'Enable GPS to get directions';
+    return;
+  }
+
+  const toLat = pinLat;
+  const toLng = pinLng;
+  const toName = pinName || 'your destination';
+
+  pinDirectionsBtn.disabled = true;
+  pinDirectionsBtn.textContent = 'Loading...';
+
+  try {
+    startLocation = userLocation;
+    destination = { lat: toLat, lng: toLng, name: toName };
+    clearDestination();
+    const result = await generateABRoute(userLocation.lat, userLocation.lng, toLat, toLng);
+    drawRoute(result.coords);
+    pinCard.classList.add('hidden');
+    panel.classList.remove('hidden');
+    collapsePanel(result.summary, result.steps);
+    clearPinMarker();
+    pinLat = null;
+    pinLng = null;
+  } catch (e) {
+    pinNameEl.textContent = 'Could not find route — try again';
+  }
+
+  pinDirectionsBtn.disabled = false;
+  pinDirectionsBtn.textContent = 'Go';
 });
 
 // ─── Destination Callback (from map.js) ───────────────────────────────────────
@@ -510,6 +588,8 @@ stopBtn.addEventListener('click', function () {
   stopNavigation(navWatchId);
   navWatchId = null;
   navPanel.classList.add('hidden');
+  pinCard.classList.add('hidden');
+  pinLat = null; pinLng = null; pinName = null;
   panel.classList.remove('collapsed');
   panel.classList.remove('hidden');
   clearRoute();
