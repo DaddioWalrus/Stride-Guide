@@ -144,6 +144,9 @@ function startNavigation(onPosition, onError) {
     return null;
   }
 
+  const dbgEl = document.getElementById('bearing-debug');
+  if (dbgEl) dbgEl.classList.remove('hidden');
+
   return navigator.geolocation.watchPosition(
     function (position) {
       const lat = position.coords.latitude;
@@ -169,22 +172,38 @@ function startNavigation(onPosition, onError) {
       navPositionHistory.push({ lat, lng });
       if (navPositionHistory.length > 50) navPositionHistory.shift();
 
+      const dbg = document.getElementById('bearing-debug');
+      let dbgRefDist = 0;
+      let dbgRaw = '--';
+      let dbgSet = '--';
+
       if (typeof map.setBearing === 'function') {
-        // Walk backwards through history to find the most recent position
-        // that is at least 15 m behind current — far enough above GPS noise
-        // to give a reliable bearing.
         let ref = null;
+        let refDist = 0;
         for (let i = navPositionHistory.length - 2; i >= 0; i--) {
-          if (distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng) >= 0.015) {
+          refDist = distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
+          if (refDist >= 0.015) {
             ref = navPositionHistory[i];
+            dbgRefDist = refDist;
             break;
           }
         }
         if (ref) {
           navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
-          map.setBearing((navLastBearing + 180) % 360);
+          const toSet = (navLastBearing + 180) % 360;
+          map.setBearing(toSet);
+          dbgRaw = navLastBearing.toFixed(1);
+          dbgSet = toSet.toFixed(1);
         }
-        // else: haven't moved 15 m yet — hold current orientation
+      }
+
+      if (dbg) {
+        dbg.textContent =
+          `hist: ${navPositionHistory.length}\n` +
+          `ref dist: ${(dbgRefDist * 1000).toFixed(0)} m\n` +
+          `bearing: ${dbgRaw}°\n` +
+          `setBearing: ${dbgSet}°\n` +
+          `setBearing?: ${typeof map.setBearing === 'function'}`;
       }
 
       onPosition({ lat, lng, speed });
@@ -202,6 +221,8 @@ function stopNavigation(watchId) {
   navTrailMarkers.forEach(function (m) { m.remove(); });
   navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
+  const dbgEl = document.getElementById('bearing-debug');
+  if (dbgEl) dbgEl.classList.add('hidden');
 }
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────
