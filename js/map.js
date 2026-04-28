@@ -121,7 +121,10 @@ let navPrevLat = null, navPrevLng = null; // for trail dots
 let navRafId = null, navRafPrevTs = null;
 const navTrailMarkers = [];
 
-const NAV_ROT_SPEED = 120; // degrees per second max rotation
+const NAV_ROT_SPEED = 200; // degrees per second max rotation
+
+let navCompassWatching = false;
+let navLastSpeed = 0;
 
 const trailIcon = L.divIcon({
   className: '',
@@ -142,6 +145,41 @@ function computeBearing(lat1, lng1, lat2, lng2) {
 function smoothBearing(current, target, t) {
   const diff = ((target - current + 540) % 360) - 180;
   return (current + diff * t + 360) % 360;
+}
+
+function navHandleOrientation(e) {
+  let heading = null;
+  if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
+    heading = e.webkitCompassHeading; // iOS — already clockwise from true north
+  } else if (e.absolute && typeof e.alpha === 'number' && !isNaN(e.alpha)) {
+    heading = (360 - e.alpha) % 360; // Android absolute — alpha is CCW from north
+  }
+  if (heading === null) return;
+  if (navSmoothedBearing === null || navDisplayBearing === null) {
+    navSmoothedBearing = heading;
+    navDisplayBearing  = heading;
+  } else {
+    navSmoothedBearing = smoothBearing(navSmoothedBearing, heading, 0.1);
+  }
+}
+
+async function startCompass() {
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const state = await DeviceOrientationEvent.requestPermission();
+      if (state !== 'granted') return;
+    }
+  } catch { return; }
+  window.addEventListener('deviceorientationabsolute', navHandleOrientation, true);
+  window.addEventListener('deviceorientation', navHandleOrientation, true);
+  navCompassWatching = true;
+}
+
+function stopCompass() {
+  window.removeEventListener('deviceorientationabsolute', navHandleOrientation, true);
+  window.removeEventListener('deviceorientation', navHandleOrientation, true);
+  navCompassWatching = false;
 }
 
 const userIcon = L.divIcon({
@@ -199,11 +237,14 @@ function startNavigation(onPosition, onError) {
 
   navRafPrevTs = null;
   navRafId = requestAnimationFrame(navRafTick);
+  startCompass(); // fires async; may prompt on iOS — GPS heading covers the gap
 
   return navigator.geolocation.watchPosition(
     function (position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
+      const lat   = position.coords.latitude;
+      const lng   = position.coords.longitude;
+      const speed = position.coords.speed ?? 0;
+      navLastSpeed = speed;
 
       // Trail dot at previous GPS position
       if (navPrevLat !== null) {
@@ -218,43 +259,44 @@ function startNavigation(onPosition, onError) {
         userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
       }
 
-      // Seed display position on first fix so RAF has somewhere to animate from
-      if (navDisplayLat === null) {
-        navDisplayLat = lat;
-        navDisplayLng = lng;
-      }
+      if (navDisplayLat === null) { navDisplayLat = lat; navDisplayLng = lng; }
       navTargetLat = lat;
       navTargetLng = lng;
-
-      const speed = position.coords.speed;
 
       navPositionHistory.push({ lat, lng });
       if (navPositionHistory.length > 50) navPositionHistory.shift();
 
-      // Compute bearing from first history point >= 8 m back
-      for (let i = navPositionHistory.length - 2; i >= 0; i--) {
-        if (distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng) >= 0.008) {
-          navLastBearing = computeBearing(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
-          if (navSmoothedBearing === null) {
-            navSmoothedBearing = navLastBearing;
-            navDisplayBearing  = navLastBearing;
-          } else {
-            navSmoothedBearing = smoothBearing(navSmoothedBearing, navLastBearing, 0.4);
+      // Compass handles bearing when active; fall back to GPS heading, then computed
+      if (!navCompassWatching) {
+        const gpsHdg = position.coords.heading;
+        if (gpsHdg != null && !isNaN(gpsHdg) && speed > 0.3) {
+          // GPS chipset heading — no lookback needed, updates every fix
+          if (navSmoothedBearing === null) { navSmoothedBearing = gpsHdg; navDisplayBearing = gpsHdg; }
+          else { navSmoothedBearing = smoothBearing(navSmoothedBearing, gpsHdg, 0.5); }
+        } else {
+          // Computed from position history (last resort)
+          for (let i = navPositionHistory.length - 2; i >= 0; i--) {
+            if (distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng) >= 0.008) {
+              navLastBearing = computeBearing(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
+              if (navSmoothedBearing === null) { navSmoothedBearing = navLastBearing; navDisplayBearing = navLastBearing; }
+              else { navSmoothedBearing = smoothBearing(navSmoothedBearing, navLastBearing, 0.4); }
+              break;
+            }
           }
-          break;
         }
       }
 
       onPosition({ lat, lng, speed });
     },
     function () { onError('Lost GPS signal'); },
-    { enableHighAccuracy: true, maximumAge: 1000 }
+    { enableHighAccuracy: true, maximumAge: 0 }
   );
 }
 
 function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   if (navRafId !== null) { cancelAnimationFrame(navRafId); navRafId = null; }
+  stopCompass();
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;
@@ -262,7 +304,7 @@ function stopNavigation(watchId) {
   navTargetLat = null; navTargetLng = null;
   navDisplayLat = null; navDisplayLng = null;
   navPrevLat = null; navPrevLng = null;
-  navRafPrevTs = null;
+  navRafPrevTs = null; navLastSpeed = 0;
   navTrailMarkers.forEach(function (m) { m.remove(); });
   navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
