@@ -190,10 +190,9 @@ function startNavigation(onPosition, onError) {
         }
         if (ref) {
           navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
-          const toSet = (navLastBearing + 180) % 360;
-          map.setBearing(toSet);
+          map.setBearing(navLastBearing);
           dbgRaw = navLastBearing.toFixed(1);
-          dbgSet = toSet.toFixed(1);
+          dbgSet = navLastBearing.toFixed(1);
         }
       }
 
