@@ -139,9 +139,9 @@ function computeBearing(lat1, lng1, lat2, lng2) {
 
 const userIcon = L.divIcon({
   className: '',
-  html: '<div class="user-dot"></div>',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  html: '<div class="user-arrow"></div>',
+  iconSize: [20, 26],
+  iconAnchor: [10, 13],
 });
 
 function startNavigation(onPosition, onError) {
@@ -171,7 +171,16 @@ function startNavigation(onPosition, onError) {
         userMarker.setLatLng([lat, lng]);
       }
 
-      map.setView([lat, lng], map.getZoom(), { animate: true });
+      const zoom = map.getZoom();
+      const bearing = navSmoothedBearing ?? 0;
+      const bearingRad = bearing * Math.PI / 180;
+      const userPx = map.project(L.latLng(lat, lng), zoom);
+      const shift = map.getSize().y * 0.15;
+      const centerPx = L.point(
+        userPx.x + Math.sin(bearingRad) * shift,
+        userPx.y - Math.cos(bearingRad) * shift
+      );
+      map.setView(map.unproject(centerPx, zoom), zoom, { animate: true });
 
       const speed = position.coords.speed;
 
@@ -188,7 +197,7 @@ function startNavigation(onPosition, onError) {
         let refDist = 0;
         for (let i = navPositionHistory.length - 2; i >= 0; i--) {
           refDist = distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
-          if (refDist >= 0.015) {
+          if (refDist >= 0.008) {
             ref = navPositionHistory[i];
             dbgRefDist = refDist;
             break;
@@ -198,7 +207,7 @@ function startNavigation(onPosition, onError) {
           navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
           navSmoothedBearing = navSmoothedBearing === null
             ? navLastBearing
-            : smoothBearing(navSmoothedBearing, navLastBearing, 0.3);
+            : smoothBearing(navSmoothedBearing, navLastBearing, 0.4);
           const mapRotation = (360 - navSmoothedBearing) % 360;
           map.setBearing(mapRotation);
           dbgRaw = navLastBearing.toFixed(1);
