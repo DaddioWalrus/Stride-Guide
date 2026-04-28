@@ -478,20 +478,3 @@ body {
   display: none !important;
 }
 
-/* ─── Bearing debug overlay ───────────────────────── */
-
-#bearing-debug {
-  position: fixed;
-  top: 70px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.75);
-  color: #0f0;
-  font-family: monospace;
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  z-index: 9999;
-  white-space: pre;
-  line-height: 1.6;
-  pointer-events: none;
-}

@@ -157,14 +157,16 @@ function flyToUserLocation() {
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 const navPositionHistory = [];
-let navLastBearing = null;
-let navSmoothedBearing = null;
+let navLastBearing    = null;
+let navSmoothedBearing = null; // EMA-filtered target bearing (updated on GPS fix)
+let navDisplayBearing  = null; // animated bearing (updated every RAF frame)
+let navTargetLat = null, navTargetLng = null; // latest GPS position
+let navDisplayLat = null, navDisplayLng = null; // animated position
+let navPrevLat = null, navPrevLng = null; // for trail dots
+let navRafId = null, navRafPrevTs = null;
 const navTrailMarkers = [];
 
-function smoothBearing(current, target, t) {
-  const diff = ((target - current + 540) % 360) - 180;
-  return (current + diff * t + 360) % 360;
-}
+const NAV_ROT_SPEED = 120; // degrees per second max rotation
 
 const trailIcon = L.divIcon({
   className: '',
@@ -182,6 +184,11 @@ function computeBearing(lat1, lng1, lat2, lng2) {
   return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
 
+function smoothBearing(current, target, t) {
+  const diff = ((target - current + 540) % 360) - 180;
+  return (current + diff * t + 360) % 360;
+}
+
 const userIcon = L.divIcon({
   className: '',
   html: '<div class="user-arrow"></div>',
@@ -189,85 +196,98 @@ const userIcon = L.divIcon({
   iconAnchor: [10, 13],
 });
 
+function navRafTick(ts) {
+  navRafId = requestAnimationFrame(navRafTick);
+  const dt = navRafPrevTs ? Math.min((ts - navRafPrevTs) / 1000, 0.1) : 0;
+  navRafPrevTs = ts;
+  if (navDisplayLat === null || dt === 0) return;
+
+  // Animate bearing toward smoothed GPS target at capped angular speed
+  if (navSmoothedBearing !== null) {
+    const diff = ((navSmoothedBearing - navDisplayBearing + 540) % 360) - 180;
+    if (Math.abs(diff) > 0.05) {
+      const step = Math.sign(diff) * Math.min(Math.abs(diff), NAV_ROT_SPEED * dt);
+      navDisplayBearing = (navDisplayBearing + step + 360) % 360;
+    }
+  }
+
+  // Animate position toward GPS target (~0.15 s time constant)
+  if (navTargetLat !== null) {
+    const k = 1 - Math.exp(-dt / 0.15);
+    navDisplayLat += (navTargetLat - navDisplayLat) * k;
+    navDisplayLng += (navTargetLng - navDisplayLng) * k;
+  }
+
+  if (userMarker) userMarker.setLatLng([navDisplayLat, navDisplayLng]);
+
+  // Offset map center forward so user sits in lower third
+  const zoom = map.getZoom();
+  const bearingRad = (navDisplayBearing ?? 0) * Math.PI / 180;
+  const userPx = map.project(L.latLng(navDisplayLat, navDisplayLng), zoom);
+  const shift = map.getSize().y * 0.15;
+  const centerPx = L.point(
+    userPx.x + Math.sin(bearingRad) * shift,
+    userPx.y - Math.cos(bearingRad) * shift
+  );
+  map.setView(map.unproject(centerPx, zoom), zoom, { animate: false });
+
+  if (typeof map.setBearing === 'function') {
+    map.setBearing((360 - (navDisplayBearing ?? 0)) % 360);
+  }
+}
+
 function startNavigation(onPosition, onError) {
   if (!navigator.geolocation) {
     onError('GPS not available on this device');
     return null;
   }
 
-  const dbgEl = document.getElementById('bearing-debug');
-  if (dbgEl) dbgEl.classList.remove('hidden');
+  navRafPrevTs = null;
+  navRafId = requestAnimationFrame(navRafTick);
 
   return navigator.geolocation.watchPosition(
     function (position) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      // Stamp a trail dot at the current position before advancing the main marker
-      if (userMarker) {
-        const prev = userMarker.getLatLng();
-        const dot = L.marker([prev.lat, prev.lng], { icon: trailIcon, interactive: false }).addTo(map);
+      // Trail dot at previous GPS position
+      if (navPrevLat !== null) {
+        const dot = L.marker([navPrevLat, navPrevLng], { icon: trailIcon, interactive: false }).addTo(map);
         navTrailMarkers.push(dot);
         if (navTrailMarkers.length > 5) navTrailMarkers.shift().remove();
       }
+      navPrevLat = lat;
+      navPrevLng = lng;
 
       if (!userMarker) {
         userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
-      } else {
-        userMarker.setLatLng([lat, lng]);
       }
 
-      const zoom = map.getZoom();
-      const bearing = navSmoothedBearing ?? 0;
-      const bearingRad = bearing * Math.PI / 180;
-      const userPx = map.project(L.latLng(lat, lng), zoom);
-      const shift = map.getSize().y * 0.15;
-      const centerPx = L.point(
-        userPx.x + Math.sin(bearingRad) * shift,
-        userPx.y - Math.cos(bearingRad) * shift
-      );
-      map.setView(map.unproject(centerPx, zoom), zoom, { animate: true });
+      // Seed display position on first fix so RAF has somewhere to animate from
+      if (navDisplayLat === null) {
+        navDisplayLat = lat;
+        navDisplayLng = lng;
+      }
+      navTargetLat = lat;
+      navTargetLng = lng;
 
       const speed = position.coords.speed;
 
       navPositionHistory.push({ lat, lng });
       if (navPositionHistory.length > 50) navPositionHistory.shift();
 
-      const dbg = document.getElementById('bearing-debug');
-      let dbgRefDist = 0;
-      let dbgRaw = '--';
-      let dbgSet = '--';
-
-      if (typeof map.setBearing === 'function') {
-        let ref = null;
-        let refDist = 0;
-        for (let i = navPositionHistory.length - 2; i >= 0; i--) {
-          refDist = distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
-          if (refDist >= 0.008) {
-            ref = navPositionHistory[i];
-            dbgRefDist = refDist;
-            break;
+      // Compute bearing from first history point >= 8 m back
+      for (let i = navPositionHistory.length - 2; i >= 0; i--) {
+        if (distKm(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng) >= 0.008) {
+          navLastBearing = computeBearing(navPositionHistory[i].lat, navPositionHistory[i].lng, lat, lng);
+          if (navSmoothedBearing === null) {
+            navSmoothedBearing = navLastBearing;
+            navDisplayBearing  = navLastBearing;
+          } else {
+            navSmoothedBearing = smoothBearing(navSmoothedBearing, navLastBearing, 0.4);
           }
+          break;
         }
-        if (ref) {
-          navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
-          navSmoothedBearing = navSmoothedBearing === null
-            ? navLastBearing
-            : smoothBearing(navSmoothedBearing, navLastBearing, 0.4);
-          const mapRotation = (360 - navSmoothedBearing) % 360;
-          map.setBearing(mapRotation);
-          dbgRaw = navLastBearing.toFixed(1);
-          dbgSet = mapRotation.toFixed(1);
-        }
-      }
-
-      if (dbg) {
-        dbg.textContent =
-          `hist: ${navPositionHistory.length}\n` +
-          `ref dist: ${(dbgRefDist * 1000).toFixed(0)} m\n` +
-          `bearing: ${dbgRaw}°\n` +
-          `setBearing: ${dbgSet}°\n` +
-          `setBearing?: ${typeof map.setBearing === 'function'}`;
       }
 
       onPosition({ lat, lng, speed });
@@ -279,15 +299,18 @@ function startNavigation(onPosition, onError) {
 
 function stopNavigation(watchId) {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  if (navRafId !== null) { cancelAnimationFrame(navRafId); navRafId = null; }
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navPositionHistory.length = 0;
-  navLastBearing = null;
-  navSmoothedBearing = null;
+  navLastBearing = null; navSmoothedBearing = null;
+  navDisplayBearing = null;
+  navTargetLat = null; navTargetLng = null;
+  navDisplayLat = null; navDisplayLng = null;
+  navPrevLat = null; navPrevLng = null;
+  navRafPrevTs = null;
   navTrailMarkers.forEach(function (m) { m.remove(); });
   navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
-  const dbgEl = document.getElementById('bearing-debug');
-  if (dbgEl) dbgEl.classList.add('hidden');
 }
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────
