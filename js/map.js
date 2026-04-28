@@ -158,7 +158,13 @@ function flyToUserLocation() {
 
 const navPositionHistory = [];
 let navLastBearing = null;
+let navSmoothedBearing = null;
 const navTrailMarkers = [];
+
+function smoothBearing(current, target, t) {
+  const diff = ((target - current + 540) % 360) - 180;
+  return (current + diff * t + 360) % 360;
+}
 
 const trailIcon = L.divIcon({
   className: '',
@@ -236,9 +242,13 @@ function startNavigation(onPosition, onError) {
         }
         if (ref) {
           navLastBearing = computeBearing(ref.lat, ref.lng, lat, lng);
-          map.setBearing(navLastBearing);
+          navSmoothedBearing = navSmoothedBearing === null
+            ? navLastBearing
+            : smoothBearing(navSmoothedBearing, navLastBearing, 0.3);
+          const mapRotation = (360 - navSmoothedBearing) % 360;
+          map.setBearing(mapRotation);
           dbgRaw = navLastBearing.toFixed(1);
-          dbgSet = navLastBearing.toFixed(1);
+          dbgSet = mapRotation.toFixed(1);
         }
       }
 
@@ -263,6 +273,7 @@ function stopNavigation(watchId) {
   if (userMarker) { userMarker.remove(); userMarker = null; }
   navPositionHistory.length = 0;
   navLastBearing = null;
+  navSmoothedBearing = null;
   navTrailMarkers.forEach(function (m) { m.remove(); });
   navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
