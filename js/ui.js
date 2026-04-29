@@ -5,6 +5,7 @@ let startLocation = null;
 let currentMode = 'ab';
 let loopMode = null;
 let loopValue = 30;
+let loopUseMetric = true;
 let navWatchId = null;
 let navRouteDistKm = 0;
 let navTotalDistKm = 0;
@@ -61,6 +62,8 @@ const abTab = document.getElementById('ab-tab');
 const loopTab = document.getElementById('loop-tab');
 
 const loopPanel = document.getElementById('loop-panel');
+const loopStepCenter = document.getElementById('loop-step-center');
+const loopUnitHint = document.getElementById('loop-unit-hint');
 const loopTimeBtn = document.getElementById('loop-time-btn');
 const loopDistBtn = document.getElementById('loop-dist-btn');
 const loopStepRow = document.getElementById('loop-step-row');
@@ -72,7 +75,8 @@ const loopGenerateBtn = document.getElementById('loop-generate-btn');
 const pinCard = document.getElementById('pin-card');
 const pinTimeEl = document.getElementById('pin-time');
 const pinDistEl = document.getElementById('pin-dist');
-const pinNameEl = document.getElementById('pin-name');
+const pinLocationLabel = document.getElementById('pin-location-label');
+const pinLocationName = document.getElementById('pin-location-name');
 const pinCloseBtn = document.getElementById('pin-close-btn');
 const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 
@@ -140,11 +144,24 @@ loopTimeBtn.addEventListener('click', function () {
 loopDistBtn.addEventListener('click', function () {
   loopMode = 'distance';
   loopValue = 2;
+  loopUseMetric = true;
   loopDistBtn.classList.add('active');
   loopTimeBtn.classList.remove('active');
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
+});
+
+loopStepCenter.addEventListener('click', function () {
+  if (loopMode !== 'distance') return;
+  if (loopUseMetric) {
+    loopValue = Math.round(loopValue * 0.621371 * 2) / 2;
+    loopUseMetric = false;
+  } else {
+    loopValue = Math.round(loopValue / 0.621371 * 2) / 2;
+    loopUseMetric = true;
+  }
+  updateLoopStepValue();
 });
 
 loopStepDown.addEventListener('click', function () {
@@ -166,7 +183,18 @@ loopStepUp.addEventListener('click', function () {
 });
 
 function updateLoopStepValue() {
-  loopStepValue.textContent = loopMode === 'time' ? `${loopValue} min` : `${loopValue} km`;
+  if (loopMode === 'time') {
+    loopStepValue.textContent = `${loopValue} min`;
+    loopUnitHint.classList.add('hidden');
+  } else if (loopUseMetric) {
+    loopStepValue.textContent = `${loopValue} km`;
+    loopUnitHint.textContent = 'imperial';
+    loopUnitHint.classList.remove('hidden');
+  } else {
+    loopStepValue.textContent = `${loopValue} mi`;
+    loopUnitHint.textContent = 'metric';
+    loopUnitHint.classList.remove('hidden');
+  }
 }
 
 function updateLoopGenerateBtn() {
@@ -181,7 +209,9 @@ loopGenerateBtn.addEventListener('click', async function () {
     return;
   }
 
-  const distanceKm = loopMode === 'time' ? (loopValue / 60) * 5 : loopValue;
+  const distanceKm = loopMode === 'time'
+    ? (loopValue / 60) * 5
+    : (loopUseMetric ? loopValue : loopValue / 0.621371);
 
   loopGenerateBtn.disabled = true;
   loopGenerateBtn.textContent = 'Generating...';
@@ -319,7 +349,7 @@ window.onPinDropped = async function (lat, lng) {
   pinName = null;
 
   pinTimeEl.textContent = '-- min';
-  pinNameEl.textContent = 'Locating...';
+  pinLocationName.textContent = 'Locating...';
 
   if (userLocation) {
     const d = haversineKm(userLocation.lat, userLocation.lng, lat, lng);
@@ -332,22 +362,24 @@ window.onPinDropped = async function (lat, lng) {
 
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
+  pinLocationLabel.classList.remove('hidden');
 
   const name = await reverseGeocode(lat, lng);
   pinName = name;
-  pinNameEl.textContent = name;
+  pinLocationName.textContent = name;
 };
 
 pinCloseBtn.addEventListener('click', function () {
   pinCard.classList.add('hidden');
+  pinLocationLabel.classList.add('hidden');
   clearPinMarker();
   pinLat = null; pinLng = null; pinName = null;
-  showPhase('search-panel');
+  showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
 });
 
 pinDirectionsBtn.addEventListener('click', async function () {
   if (!userLocation) {
-    pinNameEl.textContent = 'Enable GPS to get directions';
+    showError('Enable GPS to get directions');
     return;
   }
 
@@ -374,12 +406,13 @@ pinDirectionsBtn.addEventListener('click', async function () {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     pinCard.classList.add('hidden');
+    pinLocationLabel.classList.add('hidden');
     clearPinMarker();
     pinLat = null; pinLng = null;
     showPhase('route-panel');
     showRouteDest(toName);
-  } catch (e) {
-    pinNameEl.textContent = 'Could not find route — try again';
+  } catch {
+    showError('Could not find route — try again');
   }
 
   loadingBox.classList.remove('visible');
@@ -699,6 +732,7 @@ stopBtn.addEventListener('click', function () {
   stopNavigation(navWatchId);
   navWatchId = null;
   pinCard.classList.add('hidden');
+  pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
   clearRoute();
   clearDestination();

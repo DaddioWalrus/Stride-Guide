@@ -47,7 +47,10 @@
       </div>
       <div class="step-row hidden" id="loop-step-row">
         <button class="step-btn" id="loop-step-down">−</button>
-        <div class="step-value" id="loop-step-value">30 min</div>
+        <div class="step-center" id="loop-step-center">
+          <div class="step-value" id="loop-step-value">30 min</div>
+          <div class="step-unit-hint hidden" id="loop-unit-hint">imperial</div>
+        </div>
         <button class="step-btn" id="loop-step-up">+</button>
       </div>
       <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate Route</button>
@@ -93,14 +96,18 @@
       </div>
     </div>
 
+    <!-- Pin location label (floats above pin card) -->
+    <div id="pin-location-label" class="hidden">
+      <span id="pin-location-name">Locating...</span>
+    </div>
+
     <!-- Pin Card -->
     <div id="pin-card" class="panel row-panel hidden">
       <div class="nav-eta">
         <div id="pin-time">-- min</div>
       </div>
-      <div class="pin-card-center">
+      <div class="nav-center">
         <div id="pin-dist">-- km</div>
-        <div id="pin-name">Locating...</div>
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="pin-close-btn">✕</button>
