@@ -24,26 +24,22 @@
 
     <div id="map"></div>
 
-    <!-- Phase 1: Search -->
-    <div id="search-panel">
-      <ul id="suggestions" class="suggestions hidden"></ul>
+    <!-- A→B search panel -->
+    <div id="search-panel" class="panel">
+      <div class="preview-header">
+        <span class="preview-title">Plan a Route</span>
+      </div>
       <div class="search-bar">
         <input id="dest-input" class="search-input" type="text" placeholder="Where to?" />
         <button class="search-btn" id="search-btn">Search</button>
       </div>
+      <ul id="suggestions" class="suggestions hidden"></ul>
     </div>
 
     <!-- Loop planning panel -->
     <div id="loop-panel" class="panel hidden">
       <div class="preview-header">
         <span class="preview-title">Plan a Loop</span>
-      </div>
-      <div class="route-setup">
-        <div class="route-field">
-          <span class="field-label">From</span>
-          <input class="field-input" id="loop-start-input" type="text" placeholder="Getting your location..." />
-          <button class="gps-btn small-gps" id="loop-gps-btn">📍</button>
-        </div>
       </div>
       <div class="loop-mode-row">
         <button class="mode-btn" id="loop-time-btn">⏱ Time</button>

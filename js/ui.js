@@ -5,7 +5,6 @@ let startLocation = null;
 let currentMode = 'ab';
 let loopMode = null;
 let loopValue = 30;
-let loopStartLocation = null;
 let navWatchId = null;
 let navRouteDistKm = 0;
 let navTotalDistKm = 0;
@@ -62,8 +61,6 @@ const abTab = document.getElementById('ab-tab');
 const loopTab = document.getElementById('loop-tab');
 
 const loopPanel = document.getElementById('loop-panel');
-const loopStartInput = document.getElementById('loop-start-input');
-const loopGpsBtn = document.getElementById('loop-gps-btn');
 const loopTimeBtn = document.getElementById('loop-time-btn');
 const loopDistBtn = document.getElementById('loop-dist-btn');
 const loopStepRow = document.getElementById('loop-step-row');
@@ -121,71 +118,14 @@ loopTab.addEventListener('click', function () {
   clearRoute();
   clearDestination();
   clearStartMarker();
+  clearPinMarker();
   destination = null;
   startLocation = null;
   suggestionsList.classList.add('hidden');
   showPhase('loop-panel');
-  acquireLoopStart();
 });
 
 // ─── Loop Planning ────────────────────────────────────────────────────────────
-
-function acquireLoopStart() {
-  if (userLocation) {
-    loopStartLocation = userLocation;
-    loopStartInput.value = 'My Location';
-    loopStartInput.disabled = true;
-    loopGpsBtn.textContent = '📍';
-    updateLoopGenerateBtn();
-    return;
-  }
-  loopStartLocation = null;
-  loopStartInput.value = '';
-  loopStartInput.placeholder = 'Getting your location...';
-  loopStartInput.disabled = true;
-  loopGpsBtn.textContent = '⏳';
-  requestGPS(
-    function (loc) {
-      loopStartLocation = loc;
-      loopStartInput.value = 'My Location';
-      loopStartInput.disabled = true;
-      loopGpsBtn.textContent = '📍';
-      updateLoopGenerateBtn();
-    },
-    function () {
-      loopStartInput.placeholder = 'Enter a start address...';
-      loopStartInput.disabled = false;
-      loopGpsBtn.textContent = '📍';
-    }
-  );
-}
-
-loopGpsBtn.addEventListener('click', acquireLoopStart);
-
-loopStartInput.addEventListener('keydown', async function (e) {
-  if (e.key !== 'Enter') return;
-  const query = loopStartInput.value.trim();
-  if (!query) return;
-  loopStartInput.disabled = true;
-  loopStartInput.value = 'Searching...';
-  try {
-    const results = await searchAddressSuggestions(query);
-    if (results.length > 0) {
-      loopStartLocation = { lat: results[0].lat, lng: results[0].lng };
-      loopStartInput.value = results[0].name;
-      loopStartInput.disabled = true;
-      updateLoopGenerateBtn();
-    } else {
-      showError('Start location not found — try again');
-      loopStartInput.value = query;
-      loopStartInput.disabled = false;
-    }
-  } catch {
-    showError('Search failed — please try again');
-    loopStartInput.value = query;
-    loopStartInput.disabled = false;
-  }
-});
 
 loopTimeBtn.addEventListener('click', function () {
   loopMode = 'time';
@@ -230,11 +170,16 @@ function updateLoopStepValue() {
 }
 
 function updateLoopGenerateBtn() {
-  loopGenerateBtn.classList.toggle('hidden', !(loopStartLocation && loopMode));
+  loopGenerateBtn.classList.toggle('hidden', !loopMode);
 }
 
 loopGenerateBtn.addEventListener('click', async function () {
-  if (!loopStartLocation || !loopMode) return;
+  if (!loopMode) return;
+  const loc = userLocation;
+  if (!loc) {
+    showError('Waiting for GPS location — please try again in a moment');
+    return;
+  }
 
   const distanceKm = loopMode === 'time' ? (loopValue / 60) * 5 : loopValue;
 
@@ -243,9 +188,9 @@ loopGenerateBtn.addEventListener('click', async function () {
   loadingBox.classList.add('visible');
 
   try {
-    startLocation = loopStartLocation;
-    destination = { lat: loopStartLocation.lat, lng: loopStartLocation.lng, name: 'Loop start' };
-    const result = await generateLoopRoute(loopStartLocation.lat, loopStartLocation.lng, distanceKm);
+    startLocation = loc;
+    destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
+    const result = await generateLoopRoute(loc.lat, loc.lng, distanceKm);
     navRouteDistKm = result.summary.distance / 1000;
     const mins = Math.round(result.summary.duration / 60);
     routeTimeEl.textContent = `${mins} min`;
@@ -456,6 +401,7 @@ map.on('click', function (e) {
     return;
   }
   if (navRafId !== null) return;
+  if (currentMode === 'loop') return;
   placePinMarker(e.latlng.lat, e.latlng.lng);
 });
 
