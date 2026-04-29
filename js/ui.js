@@ -22,6 +22,8 @@ let navOffCourseFixes = 0;
 let navLastRerouteTime = 0;
 let navRerouting = false;
 let pinUseMetric = true;
+let pinRouteResult = null;
+let pinRoutePromise = null;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -364,7 +366,9 @@ pinCenter.addEventListener('click', function () {
   if (pinLat === null) return;
   if (!userLocation) return;
   pinUseMetric = !pinUseMetric;
-  const d = haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
+  const d = pinRouteResult
+    ? pinRouteResult.summary.distance / 1000
+    : haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
   updatePinDist(d);
 });
 
@@ -373,15 +377,16 @@ window.onPinDropped = async function (lat, lng) {
   pinLng = lng;
   pinName = null;
   pinUseMetric = true;
+  pinRouteResult = null;
+  pinRoutePromise = null;
 
   pinTimeEl.textContent = '-- min';
   pinLocationName.textContent = 'Locating...';
 
   if (userLocation) {
     const d = haversineKm(userLocation.lat, userLocation.lng, lat, lng);
-    const mins = Math.round(d / 5 * 60);
     updatePinDist(d);
-    pinTimeEl.textContent = `~${mins} min`;
+    pinTimeEl.textContent = `~${Math.round(d / 5 * 60)} min`;
   } else {
     pinDistEl.textContent = '-- km';
     pinUnitHint.classList.add('hidden');
@@ -390,6 +395,22 @@ window.onPinDropped = async function (lat, lng) {
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
   pinLocationLabel.classList.remove('hidden');
+
+  if (userLocation) {
+    const fromLat = userLocation.lat, fromLng = userLocation.lng;
+    pinRoutePromise = generateABRoute(fromLat, fromLng, lat, lng)
+      .then(function (result) {
+        pinRouteResult = result;
+        const distKm = result.summary.distance / 1000;
+        navRouteDistKm = distKm;
+        navRouteCoords = result.coords;
+        initSteps(result.steps || []);
+        drawRoute(result.coords);
+        updatePinDist(distKm);
+        pinTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
+      })
+      .catch(function () { /* silent — will retry on Go */ });
+  }
 
   const name = await reverseGeocode(lat, lng);
   pinName = name;
@@ -414,37 +435,38 @@ pinDirectionsBtn.addEventListener('click', async function () {
   const toLng = pinLng;
   const toName = pinName || 'your destination';
 
-  pinDirectionsBtn.disabled = true;
-  pinDirectionsBtn.textContent = 'Loading...';
-  loadingBox.classList.add('visible');
+  startLocation = userLocation;
+  destination = { lat: toLat, lng: toLng, name: toName };
 
-  try {
-    startLocation = userLocation;
-    destination = { lat: toLat, lng: toLng, name: toName };
-    clearDestination();
-    const result = await generateABRoute(userLocation.lat, userLocation.lng, toLat, toLng);
-    navRouteDistKm = result.summary.distance / 1000;
-    const mins = Math.round(result.summary.duration / 60);
-    routeTimeEl.textContent = `${mins} min`;
-    routeDistEl.textContent = useMetric
-      ? `${navRouteDistKm.toFixed(1)} km`
-      : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
-    navRouteCoords = result.coords;
-    initSteps(result.steps || []);
-    drawRoute(result.coords);
-    pinCard.classList.add('hidden');
-    pinLocationLabel.classList.add('hidden');
-    clearPinMarker();
-    pinLat = null; pinLng = null;
-    showPhase('route-panel');
-    showRouteDest(toName);
-  } catch {
-    showError('Could not find route — try again');
+  if (!pinRouteResult) {
+    pinDirectionsBtn.disabled = true;
+    pinDirectionsBtn.textContent = 'Loading...';
+    try {
+      if (pinRoutePromise) await pinRoutePromise;
+      if (!pinRouteResult) {
+        const result = await generateABRoute(userLocation.lat, userLocation.lng, toLat, toLng);
+        pinRouteResult = result;
+        navRouteDistKm = result.summary.distance / 1000;
+        navRouteCoords = result.coords;
+        initSteps(result.steps || []);
+        drawRoute(result.coords);
+      }
+    } catch {
+      showError('Could not find route — try again');
+      pinDirectionsBtn.disabled = false;
+      pinDirectionsBtn.textContent = 'Go';
+      return;
+    }
+    pinDirectionsBtn.disabled = false;
+    pinDirectionsBtn.textContent = 'Go';
   }
 
-  loadingBox.classList.remove('visible');
-  pinDirectionsBtn.disabled = false;
-  pinDirectionsBtn.textContent = 'Go';
+  clearDestination();
+  pinCard.classList.add('hidden');
+  pinLocationLabel.classList.add('hidden');
+  clearPinMarker();
+  pinLat = null; pinLng = null;
+  beginNavigation();
 });
 
 // ─── Phase 1: Search ──────────────────────────────────────────────────────────
@@ -669,7 +691,7 @@ async function triggerReroute() {
   navRerouting = false;
 }
 
-startBtn.addEventListener('click', function () {
+function beginNavigation() {
   showPhase('nav-panel');
   map.setZoom(18);
 
@@ -736,7 +758,9 @@ startBtn.addEventListener('click', function () {
     },
     function (err) { showError(err); }
   );
-});
+}
+
+startBtn.addEventListener('click', beginNavigation);
 
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
