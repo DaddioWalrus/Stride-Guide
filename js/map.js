@@ -372,7 +372,7 @@ function distKm(lat1, lng1, lat2, lng2) {
 async function photonSearch(query, lat, lng) {
   const encoded = encodeURIComponent(query);
   const bbox = `${lng - 0.47},${lat - 0.29},${lng + 0.47},${lat + 0.29}`;
-  const url = `https://photon.komoot.io/api/?q=${encoded}&lat=${lat}&lon=${lng}&limit=5&lang=en&bbox=${bbox}`;
+  const url = `https://photon.komoot.io/api/?q=${encoded}&lat=${lat}&lon=${lng}&limit=15&lang=en&bbox=${bbox}`;
 
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, 8000);
@@ -384,6 +384,7 @@ async function photonSearch(query, lat, lng) {
 
     return (data.features || [])
       .filter(function (f) { return f.properties.name; })
+      .filter(function (f) { return f.properties.name.toLowerCase().includes(query.toLowerCase()); })
       .map(function (f) {
         const p = f.properties;
         const detail = [p.street, p.city || p.town || p.village].filter(Boolean).join(', ');
@@ -411,14 +412,14 @@ async function nominatimSearch(query, lat, lng, globalFallback = true) {
   const viewbox = `${lng - dlng},${lat + dlat},${lng + dlng},${lat - dlat}`;
 
   const localResp = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=10&viewbox=${viewbox}&bounded=1`,
+    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=15&viewbox=${viewbox}&bounded=1`,
     { headers: NOMINATIM_HEADERS }
   );
   const localData = await localResp.json();
 
   const data = localData.length > 0 || !globalFallback ? localData : await (async () => {
     const globalResp = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=10`,
+      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=15`,
       { headers: NOMINATIM_HEADERS }
     );
     return globalResp.json();
