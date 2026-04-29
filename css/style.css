@@ -466,25 +466,23 @@ button {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: white;
-  border-radius: 20px;
-  padding: 14px 20px;
+  border-radius: 16px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   z-index: 1100;
 }
 
 #instruction-arrow {
-  font-size: 30px;
+  font-size: 20px;
   flex-shrink: 0;
-  line-height: 1;
 }
 
 #instruction-text {
   flex: 1;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .instr-prep {
@@ -492,11 +490,10 @@ button {
 }
 
 #instruction-dist {
-  font-size: 21px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
-  line-height: 1;
 }
 
 /* ─── Loading Box ─────────────────────────────────── */
