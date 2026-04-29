@@ -265,6 +265,12 @@ button {
   gap: 12px;
 }
 
+#loop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .preview-header {
   display: flex;
   align-items: center;

@@ -771,7 +771,7 @@ const searchPanel = document.getElementById('search-panel');
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + 30) + 'px';
+  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + 64) + 'px';
 }
 
 if (window.visualViewport) {
