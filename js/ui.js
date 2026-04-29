@@ -17,6 +17,10 @@ let navSteps = [];
 let navCurrentStep = 0;
 let navCurrentSpeedMs = 0;
 let useMetric = true;
+let navRouteCoords = null;
+let navOffCourseFixes = 0;
+let navLastRerouteTime = 0;
+let navRerouting = false;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -83,8 +87,8 @@ const STEP_ARROWS = {
   10: '●', 11: '↑', 12: '↖', 13: '↗',
 };
 
-function initSteps(steps) {
-  let cumKm = 0;
+function initSteps(steps, distOffset) {
+  let cumKm = distOffset || 0;
   navSteps = steps.map(function (s) {
     const step = { instruction: s.instruction, type: s.type, triggerKm: cumKm };
     cumKm += s.distance / 1000;
@@ -205,6 +209,7 @@ pinDirectionsBtn.addEventListener('click', async function () {
     destination = { lat: toLat, lng: toLng, name: toName };
     clearDestination();
     const result = await generateABRoute(userLocation.lat, userLocation.lng, toLat, toLng);
+    navRouteCoords = result.coords;
     drawRoute(result.coords);
     pinCard.classList.add('hidden');
     panel.classList.remove('hidden');
@@ -433,6 +438,7 @@ async function handleGenerateRoute() {
       );
     }
 
+    navRouteCoords = result.coords;
     drawRoute(result.coords);
     collapsePanel(result.summary, result.steps);
 
@@ -502,7 +508,7 @@ function clearError() {
   errorEl.classList.add('hidden');
 }
 
-// ─── Navigation ───────────────────────────────────────────────────────────────
+// ─── Off-Course Rerouting ─────────────────────────────────────────────────────
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -512,6 +518,53 @@ function haversineKm(lat1, lng1, lat2, lng2) {
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
 }
+
+function distToSegmentM(plat, plng, alat, alng, blat, blng) {
+  const R = 6371000;
+  const cosLat = Math.cos(((plat + alat + blat) / 3) * Math.PI / 180);
+  const px = (plng - alng) * cosLat * R * Math.PI / 180;
+  const py = (plat - alat) * R * Math.PI / 180;
+  const bx = (blng - alng) * cosLat * R * Math.PI / 180;
+  const by = (blat - alat) * R * Math.PI / 180;
+  const len2 = bx * bx + by * by;
+  const t = len2 > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
+  return Math.sqrt((px - t * bx) ** 2 + (py - t * by) ** 2);
+}
+
+function distToRouteM(lat, lng, coords) {
+  let min = Infinity;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const d = distToSegmentM(lat, lng, coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+async function triggerReroute() {
+  navRerouting = true;
+  navLastRerouteTime = Date.now();
+  navOffCourseFixes = 0;
+
+  instructionArrowEl.textContent = '↻';
+  instructionTextEl.innerHTML = 'Rerouting...';
+  instructionDistEl.textContent = '';
+  instructionPill.classList.remove('hidden');
+
+  try {
+    const result = await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
+    navRouteCoords = result.coords;
+    navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
+    drawRoute(result.coords);
+    initSteps(result.steps || [], navTotalDistKm);
+    updateInstruction();
+  } catch (e) {
+    updateInstruction();
+  }
+
+  navRerouting = false;
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
 
 startNavBtn.addEventListener('click', function () {
   panel.classList.add('hidden');
@@ -567,6 +620,17 @@ startNavBtn.addEventListener('click', function () {
           showArrival(destination.name || 'your destination');
         }
       }
+
+      if (!navArrived && !navRerouting && destination && navRouteCoords && navRouteCoords.length > 1) {
+        if (distToRouteM(pos.lat, pos.lng, navRouteCoords) > 15) {
+          navOffCourseFixes++;
+          if (navOffCourseFixes >= 2 && Date.now() - navLastRerouteTime > 20000) {
+            triggerReroute();
+          }
+        } else {
+          navOffCourseFixes = 0;
+        }
+      }
     },
     function (err) { showError(err); }
   );
@@ -583,6 +647,9 @@ stopBtn.addEventListener('click', function () {
   navArrived = false;
   navSteps = [];
   navCurrentStep = 0;
+  navRouteCoords = null;
+  navOffCourseFixes = 0;
+  navRerouting = false;
   hideArrival();
   instructionPill.classList.add('hidden');
   stopNavigation(navWatchId);
