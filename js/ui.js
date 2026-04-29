@@ -2,6 +2,10 @@
 
 let destination = null;
 let startLocation = null;
+let currentMode = 'ab';
+let loopMode = null;
+let loopValue = 30;
+let loopStartLocation = null;
 let navWatchId = null;
 let navRouteDistKm = 0;
 let navTotalDistKm = 0;
@@ -53,6 +57,21 @@ const instructionArrowEl = document.getElementById('instruction-arrow');
 const instructionTextEl = document.getElementById('instruction-text');
 const instructionDistEl = document.getElementById('instruction-dist');
 
+const modeBar = document.getElementById('mode-bar');
+const abTab = document.getElementById('ab-tab');
+const loopTab = document.getElementById('loop-tab');
+
+const loopPanel = document.getElementById('loop-panel');
+const loopStartInput = document.getElementById('loop-start-input');
+const loopGpsBtn = document.getElementById('loop-gps-btn');
+const loopTimeBtn = document.getElementById('loop-time-btn');
+const loopDistBtn = document.getElementById('loop-dist-btn');
+const loopStepRow = document.getElementById('loop-step-row');
+const loopStepDown = document.getElementById('loop-step-down');
+const loopStepUp = document.getElementById('loop-step-up');
+const loopStepValue = document.getElementById('loop-step-value');
+const loopGenerateBtn = document.getElementById('loop-generate-btn');
+
 const pinCard = document.getElementById('pin-card');
 const pinTimeEl = document.getElementById('pin-time');
 const pinDistEl = document.getElementById('pin-dist');
@@ -62,7 +81,7 @@ const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 
 // ─── Phase Navigation ─────────────────────────────────────────────────────────
 
-const phases = ['search-panel', 'preview-panel', 'route-panel', 'nav-panel'];
+const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel'];
 
 function showPhase(id) {
   phases.forEach(function (p) {
@@ -70,12 +89,181 @@ function showPhase(id) {
   });
   document.getElementById(id).classList.remove('hidden');
   if (id !== 'route-panel') routeDestLabel.classList.add('hidden');
+  const barVisible = id === 'search-panel' || id === 'preview-panel' || id === 'loop-panel';
+  modeBar.classList.toggle('hidden', !barVisible);
 }
 
 function showRouteDest(name) {
   routeDestName.textContent = name || '';
   routeDestLabel.classList.toggle('hidden', !name);
 }
+
+// ─── Mode Selector ───────────────────────────────────────────────────────────
+
+abTab.addEventListener('click', function () {
+  if (currentMode === 'ab') return;
+  currentMode = 'ab';
+  abTab.classList.add('active');
+  loopTab.classList.remove('active');
+  clearRoute();
+  clearDestination();
+  destination = null;
+  startLocation = null;
+  suggestionsList.classList.add('hidden');
+  showPhase('search-panel');
+});
+
+loopTab.addEventListener('click', function () {
+  if (currentMode === 'loop') return;
+  currentMode = 'loop';
+  loopTab.classList.add('active');
+  abTab.classList.remove('active');
+  clearRoute();
+  clearDestination();
+  clearStartMarker();
+  destination = null;
+  startLocation = null;
+  suggestionsList.classList.add('hidden');
+  showPhase('loop-panel');
+  acquireLoopStart();
+});
+
+// ─── Loop Planning ────────────────────────────────────────────────────────────
+
+function acquireLoopStart() {
+  if (userLocation) {
+    loopStartLocation = userLocation;
+    loopStartInput.value = 'My Location';
+    loopStartInput.disabled = true;
+    loopGpsBtn.textContent = '📍';
+    updateLoopGenerateBtn();
+    return;
+  }
+  loopStartLocation = null;
+  loopStartInput.value = '';
+  loopStartInput.placeholder = 'Getting your location...';
+  loopStartInput.disabled = true;
+  loopGpsBtn.textContent = '⏳';
+  requestGPS(
+    function (loc) {
+      loopStartLocation = loc;
+      loopStartInput.value = 'My Location';
+      loopStartInput.disabled = true;
+      loopGpsBtn.textContent = '📍';
+      updateLoopGenerateBtn();
+    },
+    function () {
+      loopStartInput.placeholder = 'Enter a start address...';
+      loopStartInput.disabled = false;
+      loopGpsBtn.textContent = '📍';
+    }
+  );
+}
+
+loopGpsBtn.addEventListener('click', acquireLoopStart);
+
+loopStartInput.addEventListener('keydown', async function (e) {
+  if (e.key !== 'Enter') return;
+  const query = loopStartInput.value.trim();
+  if (!query) return;
+  loopStartInput.disabled = true;
+  loopStartInput.value = 'Searching...';
+  try {
+    const results = await searchAddressSuggestions(query);
+    if (results.length > 0) {
+      loopStartLocation = { lat: results[0].lat, lng: results[0].lng };
+      loopStartInput.value = results[0].name;
+      loopStartInput.disabled = true;
+      updateLoopGenerateBtn();
+    } else {
+      showError('Start location not found — try again');
+      loopStartInput.value = query;
+      loopStartInput.disabled = false;
+    }
+  } catch {
+    showError('Search failed — please try again');
+    loopStartInput.value = query;
+    loopStartInput.disabled = false;
+  }
+});
+
+loopTimeBtn.addEventListener('click', function () {
+  loopMode = 'time';
+  loopValue = 30;
+  loopTimeBtn.classList.add('active');
+  loopDistBtn.classList.remove('active');
+  loopStepRow.classList.remove('hidden');
+  updateLoopStepValue();
+  updateLoopGenerateBtn();
+});
+
+loopDistBtn.addEventListener('click', function () {
+  loopMode = 'distance';
+  loopValue = 2;
+  loopDistBtn.classList.add('active');
+  loopTimeBtn.classList.remove('active');
+  loopStepRow.classList.remove('hidden');
+  updateLoopStepValue();
+  updateLoopGenerateBtn();
+});
+
+loopStepDown.addEventListener('click', function () {
+  if (loopMode === 'time') {
+    loopValue = Math.max(5, loopValue - 5);
+  } else {
+    loopValue = Math.max(0.5, Math.round((loopValue - 0.5) * 10) / 10);
+  }
+  updateLoopStepValue();
+});
+
+loopStepUp.addEventListener('click', function () {
+  if (loopMode === 'time') {
+    loopValue = loopValue + 5;
+  } else {
+    loopValue = Math.round((loopValue + 0.5) * 10) / 10;
+  }
+  updateLoopStepValue();
+});
+
+function updateLoopStepValue() {
+  loopStepValue.textContent = loopMode === 'time' ? `${loopValue} min` : `${loopValue} km`;
+}
+
+function updateLoopGenerateBtn() {
+  loopGenerateBtn.classList.toggle('hidden', !(loopStartLocation && loopMode));
+}
+
+loopGenerateBtn.addEventListener('click', async function () {
+  if (!loopStartLocation || !loopMode) return;
+
+  const distanceKm = loopMode === 'time' ? (loopValue / 60) * 5 : loopValue;
+
+  loopGenerateBtn.disabled = true;
+  loopGenerateBtn.textContent = 'Generating...';
+  loadingBox.classList.add('visible');
+
+  try {
+    startLocation = loopStartLocation;
+    destination = { lat: loopStartLocation.lat, lng: loopStartLocation.lng, name: 'Loop start' };
+    const result = await generateLoopRoute(loopStartLocation.lat, loopStartLocation.lng, distanceKm);
+    navRouteDistKm = result.summary.distance / 1000;
+    const mins = Math.round(result.summary.duration / 60);
+    routeTimeEl.textContent = `${mins} min`;
+    routeDistEl.textContent = useMetric
+      ? `${navRouteDistKm.toFixed(1)} km`
+      : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
+    navRouteCoords = result.coords;
+    initSteps(result.steps || []);
+    drawRoute(result.coords);
+    showPhase('route-panel');
+  } catch {
+    showError('Could not generate route — please try again');
+  }
+
+  loadingBox.classList.remove('visible');
+  loopGenerateBtn.disabled = false;
+  loopGenerateBtn.textContent = 'Generate Route';
+});
 
 // ─── Error Toast ──────────────────────────────────────────────────────────────
 
@@ -418,7 +606,7 @@ directionsBtn.addEventListener('click', function () {
 routeBack.addEventListener('click', function () {
   clearRoute();
   clearStartMarker();
-  showPhase('preview-panel');
+  showPhase(currentMode === 'loop' ? 'loop-panel' : 'preview-panel');
 });
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -573,7 +761,7 @@ stopBtn.addEventListener('click', function () {
   startLocation = null;
   destInput.value = '';
   map.setZoom(15);
-  showPhase('search-panel');
+  showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
 });
 
 // ─── Keyboard tracking — keeps search panel above the keyboard ────────────────

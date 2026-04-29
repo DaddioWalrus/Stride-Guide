@@ -33,6 +33,30 @@
       </div>
     </div>
 
+    <!-- Loop planning panel -->
+    <div id="loop-panel" class="panel hidden">
+      <div class="preview-header">
+        <span class="preview-title">Plan a Loop</span>
+      </div>
+      <div class="route-setup">
+        <div class="route-field">
+          <span class="field-label">From</span>
+          <input class="field-input" id="loop-start-input" type="text" placeholder="Getting your location..." />
+          <button class="gps-btn small-gps" id="loop-gps-btn">📍</button>
+        </div>
+      </div>
+      <div class="loop-mode-row">
+        <button class="mode-btn" id="loop-time-btn">⏱ Time</button>
+        <button class="mode-btn" id="loop-dist-btn">📏 Distance</button>
+      </div>
+      <div class="step-row hidden" id="loop-step-row">
+        <button class="step-btn" id="loop-step-down">−</button>
+        <div class="step-value" id="loop-step-value">30 min</div>
+        <button class="step-btn" id="loop-step-up">+</button>
+      </div>
+      <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate Route</button>
+    </div>
+
     <!-- Phase 2: Destination preview -->
     <div id="preview-panel" class="panel hidden">
       <div class="preview-header">
@@ -118,6 +142,12 @@
 
     <!-- Arrival toast -->
     <div id="arrival-toast"></div>
+
+    <!-- Mode selector -->
+    <div id="mode-bar">
+      <button class="mode-tab active" id="ab-tab">A→B</button>
+      <button class="mode-tab" id="loop-tab">Loop</button>
+    </div>
 
     <!-- Scripts — order matters! -->
     <script src="/js/map.js"></script>
