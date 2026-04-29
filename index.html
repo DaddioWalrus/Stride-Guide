@@ -54,16 +54,23 @@
       <button class="primary-btn full-btn" id="directions-btn">Get Directions</button>
     </div>
 
+    <!-- Route destination label (sits above route-panel) -->
+    <div id="route-dest-label" class="hidden">
+      <span id="route-dest-name"></span>
+    </div>
+
     <!-- Phase 3: Route overview -->
     <div id="route-panel" class="panel row-panel hidden">
-      <button class="back-btn" id="route-back">←</button>
       <div class="nav-eta">
         <div id="route-time">-- min</div>
       </div>
       <div class="nav-center">
         <div id="route-dist">0.0 km</div>
       </div>
-      <button class="primary-btn green-btn" id="start-btn">Start</button>
+      <div class="pin-card-actions">
+        <button class="pin-close-btn" id="route-back">←</button>
+        <button class="primary-btn green-btn" id="start-btn">Start</button>
+      </div>
     </div>
 
     <!-- Pin Card -->

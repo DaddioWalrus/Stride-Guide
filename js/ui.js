@@ -35,6 +35,8 @@ const directionsBtn = document.getElementById('directions-btn');
 const routeBack = document.getElementById('route-back');
 const routeTimeEl = document.getElementById('route-time');
 const routeDistEl = document.getElementById('route-dist');
+const routeDestLabel = document.getElementById('route-dest-label');
+const routeDestName = document.getElementById('route-dest-name');
 const startBtn = document.getElementById('start-btn');
 
 const navTimeEl = document.getElementById('nav-time');
@@ -67,6 +69,12 @@ function showPhase(id) {
     document.getElementById(p).classList.add('hidden');
   });
   document.getElementById(id).classList.remove('hidden');
+  if (id !== 'route-panel') routeDestLabel.classList.add('hidden');
+}
+
+function showRouteDest(name) {
+  routeDestName.textContent = name || '';
+  routeDestLabel.classList.toggle('hidden', !name);
 }
 
 // ─── Error Toast ──────────────────────────────────────────────────────────────
@@ -236,6 +244,7 @@ pinDirectionsBtn.addEventListener('click', async function () {
     clearPinMarker();
     pinLat = null; pinLng = null;
     showPhase('route-panel');
+    showRouteDest(toName);
   } catch (e) {
     pinNameEl.textContent = 'Could not find route — try again';
   }
@@ -391,6 +400,7 @@ directionsBtn.addEventListener('click', function () {
       initSteps(result.steps || []);
       drawRoute(result.coords);
       showPhase('route-panel');
+      showRouteDest(destination.name);
     })
     .catch(function () {
       showError('Could not get route — check your locations and try again');
