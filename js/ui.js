@@ -126,6 +126,9 @@ loopTab.addEventListener('click', function () {
   clearDestination();
   clearStartMarker();
   clearPinMarker();
+  pinCard.classList.add('hidden');
+  pinLocationLabel.classList.add('hidden');
+  pinLat = null; pinLng = null; pinName = null;
   destination = null;
   startLocation = null;
   suggestionsList.classList.add('hidden');

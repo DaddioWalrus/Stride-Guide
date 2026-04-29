@@ -601,9 +601,10 @@ button {
 }
 
 #pin-dist {
-  font-size: 16px;
+  font-size: 26px;
   font-weight: 700;
   color: #333;
+  font-variant-numeric: tabular-nums;
 }
 
 #pin-name {
@@ -773,7 +774,7 @@ button {
 
 #pin-location-label {
   position: fixed;
-  bottom: 204px;
+  bottom: 150px;
   left: 20px;
   right: 20px;
   background: rgba(100, 100, 100, 0.65);
