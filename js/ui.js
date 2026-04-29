@@ -310,6 +310,7 @@ loopGpsBtn.addEventListener('click', function () {
   handleGPS(loopGpsBtn, function (loc) {
     startLocation = loc;
     loopStartInput.value = 'My Location';
+    loopStartInput.disabled = true;
     placeStartMarker(loc.lat, loc.lng);
     modeRow.classList.remove('hidden');
     updateGenerateButton();
@@ -320,6 +321,7 @@ abStartGpsBtn.addEventListener('click', function () {
   handleGPS(abStartGpsBtn, function (loc) {
     startLocation = loc;
     abStartInput.value = 'My Location';
+    abStartInput.disabled = true;
     placeStartMarker(loc.lat, loc.lng);
     updateGenerateButton();
   });
@@ -515,6 +517,8 @@ function collapsePanel(summary, steps) {
 changeBtn.addEventListener('click', function () {
   panel.classList.remove('collapsed');
   routeDestLabel.classList.add('hidden');
+  loopStartInput.disabled = false;
+  abStartInput.disabled = false;
   clearError();
 });
 

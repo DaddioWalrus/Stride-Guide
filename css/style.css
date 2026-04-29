@@ -125,6 +125,14 @@ body {
   border-color: #4A90D9;
 }
 
+.location-input:disabled {
+  background: white;
+  color: #333;
+  -webkit-text-fill-color: #333;
+  opacity: 1;
+  cursor: default;
+}
+
 .gps-btn {
   width: 44px;
   height: 44px;
