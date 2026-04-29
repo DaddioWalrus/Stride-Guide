@@ -49,9 +49,11 @@ const startBtn = document.getElementById('start-btn');
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
 const navUnitEl = document.getElementById('nav-unit');
-const navPaceEl = document.getElementById('nav-pace');
 const navCenterEl = document.getElementById('nav-center');
 const stopBtn = document.getElementById('stop-btn');
+
+const routeCenterEl = document.getElementById('route-center');
+const routeUnitHint = document.getElementById('route-unit-hint');
 
 const errorToast = document.getElementById('error-toast');
 const arrivalToast = document.getElementById('arrival-toast');
@@ -232,9 +234,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     navRouteDistKm = result.summary.distance / 1000;
     const mins = Math.round(result.summary.duration / 60);
     routeTimeEl.textContent = `${mins} min`;
-    routeDistEl.textContent = useMetric
-      ? `${navRouteDistKm.toFixed(1)} km`
-      : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
+    updateRouteDist();
     navRouteCoords = result.coords;
     initSteps(result.steps || []);
     drawRoute(result.coords);
@@ -333,18 +333,31 @@ function updateNavDisplay() {
   const remainingKm = Math.max(0, navRouteDistKm - navTotalDistKm);
   if (useMetric) {
     navDistEl.textContent = `${remainingKm.toFixed(2)} km`;
-    navPaceEl.textContent = `${avgKmh.toFixed(1)} km/h`;
   } else {
     navDistEl.textContent = `${(remainingKm * 0.621371).toFixed(2)} mi`;
-    navPaceEl.textContent = `${(avgKmh * 0.621371).toFixed(1)} mph`;
   }
-  navUnitEl.textContent = useMetric ? 'metric' : 'imperial';
+  navUnitEl.textContent = useMetric ? 'imperial' : 'metric';
 }
 
 navCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
   updateNavDisplay();
   updateInstruction();
+});
+
+function updateRouteDist() {
+  if (useMetric) {
+    routeDistEl.textContent = `${navRouteDistKm.toFixed(1)} km`;
+    routeUnitHint.textContent = 'imperial';
+  } else {
+    routeDistEl.textContent = `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
+    routeUnitHint.textContent = 'metric';
+  }
+}
+
+routeCenterEl.addEventListener('click', function () {
+  useMetric = !useMetric;
+  updateRouteDist();
 });
 
 // ─── Pin Card ────────────────────────────────────────────────────────────────
