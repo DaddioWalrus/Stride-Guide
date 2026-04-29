@@ -105,9 +105,130 @@ function clearPinMarker() {
 }
 
 map.on('click', function (e) {
+  if (activeAvoidIdx !== null) { deselectAvoidCircle(); return; }
   if (navRafId !== null) return;
   placePinMarker(e.latlng.lat, e.latlng.lng);
 });
+
+// ─── Avoid Circles ────────────────────────────────────────────────────────────
+
+const avoidCircles = [];
+let activeAvoidIdx = null;
+
+const AVOID_RADIUS_STEP = 50;
+const AVOID_RADIUS_MIN  = 50;
+const AVOID_RADIUS_DEFAULT = 200;
+
+const avoidDragIcon = L.divIcon({
+  className: '',
+  html: '<div class="avoid-drag-handle"></div>',
+  iconSize: [64, 64],
+  iconAnchor: [32, 32],
+});
+
+function circleToPolygon(lat, lng, radiusM) {
+  const pts = 32;
+  const coords = [];
+  for (let i = 0; i < pts; i++) {
+    const angle = (2 * Math.PI * i) / pts;
+    const dlat = (radiusM / 6371000) * Math.cos(angle) * (180 / Math.PI);
+    const dlng = (radiusM / 6371000) * Math.sin(angle) / Math.cos(lat * Math.PI / 180) * (180 / Math.PI);
+    coords.push([lng + dlng, lat + dlat]);
+  }
+  coords.push(coords[0]);
+  return { type: 'Polygon', coordinates: [coords] };
+}
+
+function getAvoidPolygons() {
+  return avoidCircles.map(function (c) { return circleToPolygon(c.lat, c.lng, c.radiusM); });
+}
+
+function _bindAvoidClick(idx) {
+  avoidCircles[idx].circle.off('click');
+  avoidCircles[idx].circle.on('click', function (e) {
+    L.DomEvent.stopPropagation(e);
+    selectAvoidCircle(idx);
+  });
+}
+
+function selectAvoidCircle(idx) {
+  if (activeAvoidIdx !== null && activeAvoidIdx !== idx) deselectAvoidCircle();
+  activeAvoidIdx = idx;
+  const c = avoidCircles[idx];
+  c.circle.setStyle({ color: 'white', weight: 3 });
+  if (!c.dragMarker) {
+    c.dragMarker = L.marker([c.lat, c.lng], {
+      icon: avoidDragIcon,
+      draggable: true,
+      zIndexOffset: 500,
+    }).addTo(map);
+    c.dragMarker.on('drag', function (e) {
+      const ll = e.target.getLatLng();
+      c.circle.setLatLng(ll);
+      c.lat = ll.lat;
+      c.lng = ll.lng;
+    });
+  }
+  if (window.onAvoidCircleSelected) window.onAvoidCircleSelected();
+}
+
+function deselectAvoidCircle() {
+  if (activeAvoidIdx === null) return;
+  const c = avoidCircles[activeAvoidIdx];
+  if (c) {
+    c.circle.setStyle({ color: 'transparent', weight: 0 });
+    if (c.dragMarker) { c.dragMarker.remove(); c.dragMarker = null; }
+  }
+  activeAvoidIdx = null;
+  if (window.onAvoidCircleDeselected) window.onAvoidCircleDeselected();
+}
+
+function addAvoidCircle() {
+  if (avoidCircles.length >= 3) return;
+  const centre = map.getCenter();
+  const circle = L.circle([centre.lat, centre.lng], {
+    radius: AVOID_RADIUS_DEFAULT,
+    color: 'transparent',
+    weight: 0,
+    fillColor: '#e74c3c',
+    fillOpacity: 0.35,
+    interactive: true,
+  }).addTo(map);
+  const idx = avoidCircles.length;
+  avoidCircles.push({ circle, lat: centre.lat, lng: centre.lng, radiusM: AVOID_RADIUS_DEFAULT, dragMarker: null });
+  _bindAvoidClick(idx);
+  selectAvoidCircle(idx);
+  if (window.onAvoidCountChanged) window.onAvoidCountChanged(avoidCircles.length);
+}
+
+function removeActiveAvoidCircle() {
+  if (activeAvoidIdx === null) return;
+  const c = avoidCircles[activeAvoidIdx];
+  if (c.dragMarker) c.dragMarker.remove();
+  c.circle.remove();
+  avoidCircles.splice(activeAvoidIdx, 1);
+  activeAvoidIdx = null;
+  avoidCircles.forEach(function (_, i) { _bindAvoidClick(i); });
+  if (window.onAvoidCircleDeselected) window.onAvoidCircleDeselected();
+  if (window.onAvoidCountChanged) window.onAvoidCountChanged(avoidCircles.length);
+}
+
+function adjustActiveAvoidRadius(delta) {
+  if (activeAvoidIdx === null) return;
+  const c = avoidCircles[activeAvoidIdx];
+  c.radiusM = Math.max(AVOID_RADIUS_MIN, c.radiusM + delta);
+  c.circle.setRadius(c.radiusM);
+}
+
+function clearAvoidCircles() {
+  deselectAvoidCircle();
+  avoidCircles.forEach(function (c) {
+    if (c.dragMarker) c.dragMarker.remove();
+    c.circle.remove();
+  });
+  avoidCircles.length = 0;
+  if (window.onAvoidCountChanged) window.onAvoidCountChanged(0);
+}
 
 function placeDestinationPin(lat, lng) {
   if (destinationMarker) {

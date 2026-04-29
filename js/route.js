@@ -35,8 +35,8 @@ async function callORS(body) {
 
 // ─── Loop Route ───────────────────────────────────────────────────────────────
 
-async function generateLoopRoute(lat, lng, distanceKm) {
-  return callORS({
+async function generateLoopRoute(lat, lng, distanceKm, avoidPolygons) {
+  const body = {
     coordinates: [[lng, lat]],
     options: {
       round_trip: {
@@ -44,7 +44,14 @@ async function generateLoopRoute(lat, lng, distanceKm) {
         points: 3,
       },
     },
-  });
+  };
+  if (avoidPolygons && avoidPolygons.length > 0) {
+    body.options.avoid_polygons = {
+      type: 'MultiPolygon',
+      coordinates: avoidPolygons.map(function (p) { return p.coordinates; }),
+    };
+  }
+  return callORS(body);
 }
 
 // ─── A→B Route ────────────────────────────────────────────────────────────────

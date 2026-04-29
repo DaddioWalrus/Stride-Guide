@@ -104,9 +104,25 @@
         <!-- Error message -->
         <div class="error-text hidden" id="error-text"></div>
 
+        <!-- Avoid areas — Loop only -->
+        <div class="avoid-row" id="avoid-row">
+          <button class="avoid-add-btn" id="avoid-add-btn">+ Avoid area</button>
+          <span class="avoid-count hidden" id="avoid-count"></span>
+        </div>
+
         <!-- Generate button -->
         <button class="generate-btn hidden" id="generate-btn">Generate Route</button>
 
+      </div>
+    </div>
+
+    <!-- Avoid circle controls (shows while a circle is selected) -->
+    <div id="avoid-controls" class="hidden">
+      <button class="avoid-confirm-btn" id="avoid-confirm-btn">Done</button>
+      <div class="avoid-action-row">
+        <button class="avoid-step-btn" id="avoid-minus-btn">−</button>
+        <button class="avoid-step-btn avoid-delete-btn" id="avoid-delete-btn">✕</button>
+        <button class="avoid-step-btn" id="avoid-plus-btn">+</button>
       </div>
     </div>
 

@@ -78,6 +78,15 @@ const pinNameEl = document.getElementById('pin-name');
 const pinCloseBtn = document.getElementById('pin-close-btn');
 const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 
+const avoidControls = document.getElementById('avoid-controls');
+const avoidConfirmBtn = document.getElementById('avoid-confirm-btn');
+const avoidMinusBtn = document.getElementById('avoid-minus-btn');
+const avoidPlusBtn = document.getElementById('avoid-plus-btn');
+const avoidDeleteBtn = document.getElementById('avoid-delete-btn');
+const avoidAddBtn = document.getElementById('avoid-add-btn');
+const avoidRow = document.getElementById('avoid-row');
+const avoidCountEl = document.getElementById('avoid-count');
+
 // ─── Turn-by-Turn ─────────────────────────────────────────────────────────────
 
 const STEP_ARROWS = {
@@ -152,6 +161,33 @@ navCenterEl.addEventListener('click', function () {
   updateNavDisplay();
   updateInstruction();
 });
+
+// ─── Avoid Circles ───────────────────────────────────────────────────────────
+
+window.onAvoidCircleSelected = function () {
+  avoidControls.classList.remove('hidden');
+};
+
+window.onAvoidCircleDeselected = function () {
+  avoidControls.classList.add('hidden');
+};
+
+window.onAvoidCountChanged = function (count) {
+  if (count === 0) {
+    avoidCountEl.textContent = '';
+    avoidCountEl.classList.add('hidden');
+  } else {
+    avoidCountEl.textContent = `${count}/3 area${count > 1 ? 's' : ''}`;
+    avoidCountEl.classList.remove('hidden');
+  }
+  avoidAddBtn.disabled = count >= 3;
+};
+
+avoidAddBtn.addEventListener('click', function () { addAvoidCircle(); });
+avoidConfirmBtn.addEventListener('click', function () { deselectAvoidCircle(); });
+avoidMinusBtn.addEventListener('click', function () { adjustActiveAvoidRadius(-AVOID_RADIUS_STEP); });
+avoidPlusBtn.addEventListener('click', function () { adjustActiveAvoidRadius(AVOID_RADIUS_STEP); });
+avoidDeleteBtn.addEventListener('click', function () { removeActiveAvoidCircle(); });
 
 // ─── Pin Card ────────────────────────────────────────────────────────────────
 
@@ -244,6 +280,7 @@ loopBtn.addEventListener('click', function () {
   loopLocationRow.classList.remove('hidden');
   abLocationRows.classList.add('hidden');
   modeRow.classList.remove('hidden');
+  avoidRow.classList.remove('hidden');
   destination = null;
   clearDestination();
   clearRoute();
@@ -258,8 +295,10 @@ abBtn.addEventListener('click', function () {
   loopLocationRow.classList.add('hidden');
   modeRow.classList.add('hidden');
   stepRow.classList.add('hidden');
+  avoidRow.classList.add('hidden');
   mode = null;
   clearRoute();
+  clearAvoidCircles();
   updateGenerateButton();
 });
 
@@ -427,7 +466,8 @@ async function handleGenerateRoute() {
       result = await generateLoopRoute(
         startLocation.lat,
         startLocation.lng,
-        distanceKm
+        distanceKm,
+        getAvoidPolygons()
       );
     } else {
       result = await generateABRoute(

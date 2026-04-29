@@ -472,6 +472,108 @@ body {
   opacity: 1;
 }
 
+/* ─── Avoid row (in route panel) ─────────────────── */
+
+.avoid-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avoid-add-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e74c3c;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.avoid-add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.avoid-count {
+  font-size: 13px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* ─── Avoid circle controls overlay ──────────────── */
+
+#avoid-controls {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.avoid-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.avoid-confirm-btn:active { opacity: 0.7; }
+
+.avoid-action-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.avoid-step-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: #4A90D9;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.avoid-delete-btn { background: #e74c3c; font-size: 22px; }
+
+.avoid-step-btn:active { opacity: 0.7; }
+
+/* ─── Avoid drag handle ───────────────────────────── */
+
+.avoid-drag-handle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+}
+
+.avoid-drag-handle:active { cursor: grabbing; }
+
 /* ─── Pin Card ────────────────────────────────────── */
 
 #pin-card {
