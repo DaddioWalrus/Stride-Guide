@@ -57,6 +57,8 @@ const startNavBtn = document.getElementById('start-nav-btn');
 
 const routeTimeEl = document.getElementById('route-time');
 const routeDistEl = document.getElementById('route-dist');
+const routeDestLabel = document.getElementById('route-dest-label');
+const routeDestName = document.getElementById('route-dest-name');
 
 const navPanel = document.getElementById('nav-panel');
 const navTimeEl = document.getElementById('nav-time');
@@ -504,10 +506,15 @@ function collapsePanel(summary, steps) {
       : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
   }
   initSteps(steps || []);
+  if (destination && destination.name) {
+    routeDestName.textContent = destination.name;
+    routeDestLabel.classList.remove('hidden');
+  }
 }
 
 changeBtn.addEventListener('click', function () {
   panel.classList.remove('collapsed');
+  routeDestLabel.classList.add('hidden');
   clearError();
 });
 
@@ -699,6 +706,7 @@ stopBtn.addEventListener('click', function () {
   pinLat = null; pinLng = null; pinName = null;
   panel.classList.remove('collapsed');
   panel.classList.remove('hidden');
+  routeDestLabel.classList.add('hidden');
   clearRoute();
   map.setZoom(15);
 });
