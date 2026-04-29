@@ -467,11 +467,11 @@ pinDirectionsBtn.addEventListener('click', async function () {
     } catch {
       showError('Could not find route — try again');
       pinDirectionsBtn.disabled = false;
-      pinDirectionsBtn.textContent = 'Go';
+      pinDirectionsBtn.textContent = 'Start';
       return;
     }
     pinDirectionsBtn.disabled = false;
-    pinDirectionsBtn.textContent = 'Go';
+    pinDirectionsBtn.textContent = 'Start';
   }
 
   clearDestination();
@@ -615,9 +615,7 @@ directionsBtn.addEventListener('click', function () {
   }
 
   directionsBtn.disabled = true;
-  map.flyTo([startLocation.lat, startLocation.lng], 15, { duration: 1 });
   placeStartMarker(startLocation.lat, startLocation.lng);
-  loadingBox.classList.add('visible');
 
   generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
     .then(function (result) {
@@ -637,7 +635,6 @@ directionsBtn.addEventListener('click', function () {
       showError('Could not get route — check your locations and try again');
     })
     .finally(function () {
-      loadingBox.classList.remove('visible');
       directionsBtn.disabled = false;
     });
 });

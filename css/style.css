@@ -448,6 +448,7 @@ button {
   padding: 12px 20px;
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.5;
   text-align: center;
   z-index: 1000;
   overflow: hidden;
@@ -774,6 +775,7 @@ button {
   padding: 12px 20px;
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.5;
   text-align: center;
   z-index: 999;
   overflow: hidden;
