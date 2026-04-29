@@ -21,6 +21,7 @@ let navRouteCoords = null;
 let navOffCourseFixes = 0;
 let navLastRerouteTime = 0;
 let navRerouting = false;
+let pinUseMetric = true;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -75,6 +76,8 @@ const loopGenerateBtn = document.getElementById('loop-generate-btn');
 const pinCard = document.getElementById('pin-card');
 const pinTimeEl = document.getElementById('pin-time');
 const pinDistEl = document.getElementById('pin-dist');
+const pinCenter = document.getElementById('pin-center');
+const pinUnitHint = document.getElementById('pin-unit-hint');
 const pinLocationLabel = document.getElementById('pin-location-label');
 const pinLocationName = document.getElementById('pin-location-name');
 const pinCloseBtn = document.getElementById('pin-close-btn');
@@ -343,10 +346,30 @@ navCenterEl.addEventListener('click', function () {
 
 let pinLat = null, pinLng = null, pinName = null;
 
+function updatePinDist(d) {
+  if (pinUseMetric) {
+    pinDistEl.textContent = `${d.toFixed(1)} km`;
+    pinUnitHint.textContent = 'imperial';
+  } else {
+    pinDistEl.textContent = `${(d * 0.621371).toFixed(1)} mi`;
+    pinUnitHint.textContent = 'metric';
+  }
+  pinUnitHint.classList.remove('hidden');
+}
+
+pinCenter.addEventListener('click', function () {
+  if (pinLat === null) return;
+  if (!userLocation) return;
+  pinUseMetric = !pinUseMetric;
+  const d = haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
+  updatePinDist(d);
+});
+
 window.onPinDropped = async function (lat, lng) {
   pinLat = lat;
   pinLng = lng;
   pinName = null;
+  pinUseMetric = true;
 
   pinTimeEl.textContent = '-- min';
   pinLocationName.textContent = 'Locating...';
@@ -354,10 +377,11 @@ window.onPinDropped = async function (lat, lng) {
   if (userLocation) {
     const d = haversineKm(userLocation.lat, userLocation.lng, lat, lng);
     const mins = Math.round(d / 5 * 60);
-    pinDistEl.textContent = useMetric ? `${d.toFixed(1)} km` : `${(d * 0.621371).toFixed(1)} mi`;
+    updatePinDist(d);
     pinTimeEl.textContent = `~${mins} min`;
   } else {
     pinDistEl.textContent = '-- km';
+    pinUnitHint.classList.add('hidden');
   }
 
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });

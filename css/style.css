@@ -448,8 +448,7 @@ button {
 
 #route-dest-label {
   position: fixed;
-  bottom: 116px;
-  left: 20px;
+  bottom: 150px;  left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
@@ -470,7 +469,7 @@ button {
 
 #instruction-pill {
   position: fixed;
-  bottom: 124px;
+  bottom: 158px;
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
@@ -774,7 +773,7 @@ button {
 
 #pin-location-label {
   position: fixed;
-  bottom: 148px;
+  bottom: 204px;
   left: 20px;
   right: 20px;
   background: rgba(100, 100, 100, 0.65);
@@ -792,11 +791,24 @@ button {
   white-space: nowrap;
 }
 
+#route-panel,
+#nav-panel {
+  bottom: 64px;
+}
+
 #pin-card {
   bottom: 64px;
 }
 
 #pin-card .nav-eta { flex: 1; }
+
+#pin-center {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#pin-center:active { opacity: 0.7; }
 
 /* ─── Hidden Utility ──────────────────────────────── */
 
