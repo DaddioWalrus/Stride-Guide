@@ -325,8 +325,8 @@ function acquireStartLocation() {
   requestGPS(
     function (loc) {
       startLocation = loc;
-      startInput.placeholder = 'My Location';
-      startInput.disabled = false;
+      startInput.value = 'My Location';
+      startInput.disabled = true;
       startGpsBtn.textContent = '📍';
       directionsBtn.disabled = false;
     },
@@ -373,6 +373,8 @@ previewBack.addEventListener('click', function () {
   clearDestination();
   destination = null;
   startLocation = null;
+  startInput.value = '';
+  startInput.disabled = false;
   suggestionsList.classList.add('hidden');
   showPhase('search-panel');
 });

@@ -24,6 +24,7 @@ let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
 let pinMarker = null;
+let locationDotMarker = null;
 
 // Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
@@ -32,7 +33,14 @@ if (navigator.geolocation) {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
     };
-    map.setView([userLocation.lat, userLocation.lng], 15);
+    map.setView([userLocation.lat, userLocation.lng], 17);
+    if (!locationDotMarker) {
+      locationDotMarker = L.marker([userLocation.lat, userLocation.lng], {
+        icon: locationDotIcon,
+        interactive: false,
+        zIndexOffset: 800,
+      }).addTo(map);
+    }
     try {
       const resp = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json&zoom=10`,
@@ -77,6 +85,13 @@ function placeStartMarker(lat, lng) {
 function clearStartMarker() {
   if (startMarker) { startMarker.remove(); startMarker = null; }
 }
+
+const locationDotIcon = L.divIcon({
+  className: '',
+  html: '<div class="user-dot"></div>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
 
 const dotIcon = L.divIcon({
   className: '',
@@ -274,6 +289,7 @@ function startNavigation(onPosition, onError) {
       navPrevLng = lng;
 
       if (!userMarker) {
+        if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
         userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
       }
 

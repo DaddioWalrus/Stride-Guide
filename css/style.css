@@ -271,7 +271,12 @@ button {
 }
 
 .field-input::placeholder { color: #aaa; }
-.field-input:disabled { color: #aaa; }
+.field-input:disabled {
+  color: #333;
+  -webkit-text-fill-color: #333;
+  opacity: 1;
+  cursor: default;
+}
 
 .field-value {
   flex: 1;
