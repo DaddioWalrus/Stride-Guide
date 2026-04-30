@@ -26,10 +26,7 @@ let currentRoute = null;
 let routeArrowMarkers = [];
 let pinMarker = null;
 let locationDotMarker = null;
-let navDragging = false;
-
-map.on('dragstart', function () { navDragging = true; });
-map.on('dragend',   function () { navDragging = false; });
+let navFreeCamera = false;
 
 // Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
@@ -282,7 +279,7 @@ function navRafTick(ts) {
 
   if (userMarker) userMarker.setLatLng([navDisplayLat, navDisplayLng]);
 
-  if (!navDragging) {
+  if (!navFreeCamera) {
     // Offset map center forward so user sits in lower third
     const zoom = map.getZoom();
     const bearingRad = (navDisplayBearing ?? 0) * Math.PI / 180;
@@ -371,7 +368,7 @@ function stopNavigation(watchId) {
   stopCompass();
   clearPinMarker();
   if (userMarker) { userMarker.remove(); userMarker = null; }
-  navDragging = false;
+  navFreeCamera = false;
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;
   navDisplayBearing = null;

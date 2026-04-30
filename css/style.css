@@ -643,7 +643,14 @@ button {
   position: fixed;
   right: 20px;
   bottom: 150px;
-  z-index: 1000;
+  z-index: 1050;
+}
+
+#nav-recentre-btn {
+  position: fixed;
+  left: 20px;
+  bottom: 150px;
+  z-index: 1050;
 }
 
 .route-arrow {

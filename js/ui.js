@@ -47,6 +47,7 @@ const routeDestLabel = document.getElementById('route-dest-label');
 const routeDestName = document.getElementById('route-dest-name');
 const startBtn = document.getElementById('start-btn');
 const loopRegenBtn = document.getElementById('loop-regen-btn');
+const navRecentreBtn = document.getElementById('nav-recentre-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
@@ -503,6 +504,8 @@ destInput.addEventListener('keydown', function (e) {
 let suppressMapClick = false;
 map.getContainer().addEventListener('touchstart', function () {
   if (document.activeElement === destInput) suppressMapClick = true;
+  navFreeCamera = true;
+  navRecentreBtn.classList.remove('hidden');
 }, { passive: true });
 
 map.on('click', function (e) {
@@ -660,24 +663,35 @@ directionsBtn.addEventListener('click', function () {
 
 // ─── Phase 3: Route Overview ──────────────────────────────────────────────────
 
+navRecentreBtn.addEventListener('click', function () {
+  navFreeCamera = false;
+  navRecentreBtn.classList.add('hidden');
+  if (userLocation) map.flyTo([userLocation.lat, userLocation.lng], map.getZoom(), { duration: 0.4 });
+});
+
 routeBack.addEventListener('click', function () {
   loopRegenBtn.classList.add('hidden');
+  navRecentreBtn.classList.add('hidden');
   clearRoute();
   clearStartMarker();
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'preview-panel');
 });
 
 loopRegenBtn.addEventListener('click', async function () {
-  const loc = userLocation;
+  const wasNavigating = navRafId !== null;
+  const loc = (wasNavigating ? navLastPos : null) || userLocation;
   if (!loc) {
     showError('Waiting for GPS location — please try again in a moment');
     return;
   }
 
+  if (wasNavigating) haltNavigation();
+
   loopRegenBtn.disabled = true;
-  loopRegenBtn.textContent = '...';
 
   try {
+    startLocation = loc;
+    destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
     const result = await generateLoopRoute(loc.lat, loc.lng, loopLastDistKm);
     navRouteDistKm = result.summary.distance / 1000;
     routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
@@ -686,12 +700,15 @@ loopRegenBtn.addEventListener('click', async function () {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
+    navRecentreBtn.classList.add('hidden');
+    navFreeCamera = false;
+    showPhase('route-panel');
   } catch {
     showError('Could not generate route — please try again');
+    if (wasNavigating) showPhase('loop-panel');
   }
 
   loopRegenBtn.disabled = false;
-  loopRegenBtn.textContent = '↺';
 });
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -749,7 +766,7 @@ async function triggerReroute() {
 }
 
 function beginNavigation() {
-  loopRegenBtn.classList.add('hidden');
+  navRecentreBtn.classList.add('hidden');
   showPhase('nav-panel');
   map.setZoom(18);
 
@@ -822,15 +839,13 @@ startBtn.addEventListener('click', beginNavigation);
 
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
-stopBtn.addEventListener('click', function () {
+function haltNavigation() {
   clearInterval(navTimerInterval);
   navTimerInterval = null;
   navStartTime = null;
   navTotalDistKm = 0;
-  navRouteDistKm = 0;
   navLastPos = null;
   navArrived = false;
-  navRouteCoords = null;
   navOffCourseFixes = 0;
   navRerouting = false;
   navSteps = [];
@@ -840,18 +855,28 @@ stopBtn.addEventListener('click', function () {
   instructionPill.classList.add('hidden');
   stopNavigation(navWatchId);
   navWatchId = null;
+}
+
+function doStopNavigation() {
+  haltNavigation();
   pinCard.classList.add('hidden');
   pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
+  navRouteDistKm = 0;
+  navRouteCoords = null;
   clearRoute();
   clearDestination();
   clearStartMarker();
   destination = null;
   startLocation = null;
   destInput.value = '';
+  loopRegenBtn.classList.add('hidden');
+  navRecentreBtn.classList.add('hidden');
   map.setZoom(15);
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
-});
+}
+
+stopBtn.addEventListener('click', doStopNavigation);
 
 // ─── Keyboard tracking — keeps search panel above the keyboard ────────────────
 
