@@ -24,6 +24,7 @@ let navRerouting = false;
 let pinUseMetric = true;
 let pinRouteResult = null;
 let pinRoutePromise = null;
+let loopLastDistKm = 0;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ const routeDistEl = document.getElementById('route-dist');
 const routeDestLabel = document.getElementById('route-dest-label');
 const routeDestName = document.getElementById('route-dest-name');
 const startBtn = document.getElementById('start-btn');
+const loopRegenBtn = document.getElementById('loop-regen-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
@@ -113,6 +115,7 @@ abTab.addEventListener('click', function () {
   currentMode = 'ab';
   abTab.classList.add('active');
   loopTab.classList.remove('active');
+  loopRegenBtn.classList.add('hidden');
   clearRoute();
   clearDestination();
   destination = null;
@@ -231,6 +234,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     ? (loopValue / 60) * 5
     : (loopUseMetric ? loopValue : loopValue / 0.621371);
 
+  loopLastDistKm = distanceKm;
   loopGenerateBtn.disabled = true;
 
   try {
@@ -244,6 +248,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     navRouteCoords = result.coords;
     initSteps(result.steps || []);
     drawRoute(result.coords);
+    loopRegenBtn.classList.remove('hidden');
     showPhase('route-panel');
   } catch {
     showError('Could not generate route — please try again');
@@ -655,9 +660,36 @@ directionsBtn.addEventListener('click', function () {
 // ─── Phase 3: Route Overview ──────────────────────────────────────────────────
 
 routeBack.addEventListener('click', function () {
+  loopRegenBtn.classList.add('hidden');
   clearRoute();
   clearStartMarker();
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'preview-panel');
+});
+
+loopRegenBtn.addEventListener('click', async function () {
+  const loc = userLocation;
+  if (!loc) {
+    showError('Waiting for GPS location — please try again in a moment');
+    return;
+  }
+
+  loopRegenBtn.disabled = true;
+  loopRegenBtn.textContent = '...';
+
+  try {
+    const result = await generateLoopRoute(loc.lat, loc.lng, loopLastDistKm);
+    navRouteDistKm = result.summary.distance / 1000;
+    routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
+    updateRouteDist();
+    navRouteCoords = result.coords;
+    initSteps(result.steps || []);
+    drawRoute(result.coords);
+  } catch {
+    showError('Could not generate route — please try again');
+  }
+
+  loopRegenBtn.disabled = false;
+  loopRegenBtn.textContent = '↺';
 });
 
 function haversineKm(lat1, lng1, lat2, lng2) {
