@@ -816,3 +816,6 @@ button {
   display: none !important;
 }
 
+.invisible {
+  visibility: hidden;
+}
