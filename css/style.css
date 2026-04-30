@@ -259,6 +259,19 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-top: 12px;
+}
+
+#loop-panel .loop-mode-row {
+  margin-top: 4px;
+}
+
+#loop-unit-hint {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .preview-header {
@@ -821,7 +834,4 @@ button {
   display: none !important;
 }
 
-.invisible {
-  visibility: hidden;
-}
 
