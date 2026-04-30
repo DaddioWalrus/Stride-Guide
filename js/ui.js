@@ -122,7 +122,7 @@ abTab.addEventListener('click', function () {
 });
 
 loopTab.addEventListener('click', function () {
-  if (currentMode === 'loop') return;
+  if (currentMode === 'loop') { collapseLoopStepRow(); return; }
   currentMode = 'loop';
   loopTab.classList.add('active');
   abTab.classList.remove('active');
@@ -142,7 +142,6 @@ loopTab.addEventListener('click', function () {
 // ─── Loop Planning ────────────────────────────────────────────────────────────
 
 loopTimeBtn.addEventListener('click', function () {
-  if (loopMode === 'time') { collapseLoopStepRow(); return; }
   loopMode = 'time';
   loopValue = 30;
   loopTimeBtn.classList.add('active');
@@ -153,7 +152,6 @@ loopTimeBtn.addEventListener('click', function () {
 });
 
 loopDistBtn.addEventListener('click', function () {
-  if (loopMode === 'distance') { collapseLoopStepRow(); return; }
   loopMode = 'distance';
   loopValue = 2;
   loopUseMetric = true;
