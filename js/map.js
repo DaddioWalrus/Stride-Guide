@@ -143,7 +143,7 @@ function drawRouteArrows(coords) {
   routeArrowMarkers.forEach(function (m) { m.remove(); });
   routeArrowMarkers = [];
   if (coords.length < 2) return;
-  const INTERVAL_M = 200;
+  const INTERVAL_M = 100;
   let accumulated = 0;
   for (let i = 1; i < coords.length; i++) {
     const [lat1, lng1] = coords[i - 1];
@@ -157,8 +157,8 @@ function drawRouteArrows(coords) {
           icon: L.divIcon({
             className: '',
             html: `<div class="route-arrow" style="transform:rotate(${brg}deg)"></div>`,
-            iconSize: [10, 14],
-            iconAnchor: [5, 7],
+            iconSize: [14, 20],
+            iconAnchor: [7, 10],
           }),
           interactive: false,
           zIndexOffset: 500,

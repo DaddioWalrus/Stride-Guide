@@ -647,11 +647,11 @@ button {
 }
 
 .route-arrow {
-  width: 10px;
-  height: 14px;
-  background: white;
+  width: 14px;
+  height: 20px;
+  background: #4A90D9;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* ─── Pin Marker ──────────────────────────────────── */

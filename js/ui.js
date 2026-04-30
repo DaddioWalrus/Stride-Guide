@@ -749,6 +749,7 @@ async function triggerReroute() {
 }
 
 function beginNavigation() {
+  loopRegenBtn.classList.add('hidden');
   showPhase('nav-panel');
   map.setZoom(18);
 
