@@ -486,13 +486,18 @@ destInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleSearch();
 });
 
+let suppressMapClick = false;
+map.getContainer().addEventListener('touchstart', function () {
+  if (document.activeElement === destInput) suppressMapClick = true;
+}, { passive: true });
+
 map.on('click', function (e) {
   if (!suggestionsList.classList.contains('hidden')) {
     suggestionsList.classList.add('hidden');
     return;
   }
-  if (document.activeElement === destInput) {
-    destInput.blur();
+  if (suppressMapClick) {
+    suppressMapClick = false;
     return;
   }
   if (navRafId !== null) return;
@@ -813,14 +818,17 @@ function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
   const keyboardUp = offsetFromBottom > 10;
-
-  if (!searchPanel.classList.contains('hidden')) {
-    modeBar.classList.toggle('hidden', keyboardUp);
-  }
-
   const bottomPad = keyboardUp ? 10 : 64;
   searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + bottomPad) + 'px';
 }
+
+destInput.addEventListener('focus', function () {
+  modeBar.classList.add('hidden');
+});
+
+destInput.addEventListener('blur', function () {
+  modeBar.classList.remove('hidden');
+});
 
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
