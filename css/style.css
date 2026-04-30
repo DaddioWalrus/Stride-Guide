@@ -258,17 +258,12 @@ button {
 #loop-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 12px;
-}
-
-#loop-panel .loop-mode-row {
-  margin-top: 4px;
+  gap: 16px;
 }
 
 #loop-unit-hint {
   position: absolute;
-  top: 100%;
+  top: 38px;
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -687,7 +682,8 @@ button {
 
 .mode-btn {
   flex: 1;
-  padding: 10px;
+  height: 44px;
+  padding: 0 10px;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   font-size: 14px;
