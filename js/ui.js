@@ -142,6 +142,7 @@ loopTab.addEventListener('click', function () {
 // ─── Loop Planning ────────────────────────────────────────────────────────────
 
 loopTimeBtn.addEventListener('click', function () {
+  if (loopMode === 'time') { collapseLoopStepRow(); return; }
   loopMode = 'time';
   loopValue = 30;
   loopTimeBtn.classList.add('active');
@@ -152,6 +153,7 @@ loopTimeBtn.addEventListener('click', function () {
 });
 
 loopDistBtn.addEventListener('click', function () {
+  if (loopMode === 'distance') { collapseLoopStepRow(); return; }
   loopMode = 'distance';
   loopValue = 2;
   loopUseMetric = true;
@@ -161,6 +163,14 @@ loopDistBtn.addEventListener('click', function () {
   updateLoopStepValue();
   updateLoopGenerateBtn();
 });
+
+function collapseLoopStepRow() {
+  loopMode = null;
+  loopTimeBtn.classList.remove('active');
+  loopDistBtn.classList.remove('active');
+  loopStepRow.classList.add('hidden');
+  updateLoopGenerateBtn();
+}
 
 loopStepCenter.addEventListener('click', function () {
   if (loopMode !== 'distance') return;
@@ -817,17 +827,18 @@ const searchPanel = document.getElementById('search-panel');
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-  const keyboardUp = offsetFromBottom > 10;
-  const bottomPad = keyboardUp ? 10 : 64;
+  const bottomPad = document.activeElement === destInput ? 10 : 64;
   searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + bottomPad) + 'px';
 }
 
 destInput.addEventListener('focus', function () {
   modeBar.classList.add('hidden');
+  searchPanel.style.bottom = '10px';
 });
 
 destInput.addEventListener('blur', function () {
   modeBar.classList.remove('hidden');
+  searchPanel.style.bottom = '64px';
 });
 
 if (window.visualViewport) {
