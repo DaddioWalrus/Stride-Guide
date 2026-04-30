@@ -34,7 +34,8 @@ async function generateLoopRoute(lat, lng, distanceKm) {
     options: {
       round_trip: {
         length: distanceKm * 1000,
-        points: 3,
+        points: 5,
+        seed: Math.floor(Math.random() * 90),
       },
     },
   });
