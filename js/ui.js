@@ -224,8 +224,6 @@ loopGenerateBtn.addEventListener('click', async function () {
     : (loopUseMetric ? loopValue : loopValue / 0.621371);
 
   loopGenerateBtn.disabled = true;
-  loopGenerateBtn.textContent = 'Generating...';
-  loadingBox.classList.add('visible');
 
   try {
     startLocation = loc;
@@ -243,9 +241,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     showError('Could not generate route — please try again');
   }
 
-  loadingBox.classList.remove('visible');
   loopGenerateBtn.disabled = false;
-  loopGenerateBtn.textContent = 'Generate Route';
 });
 
 // ─── Error Toast ──────────────────────────────────────────────────────────────
