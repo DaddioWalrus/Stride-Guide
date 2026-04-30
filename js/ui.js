@@ -491,6 +491,10 @@ map.on('click', function (e) {
     suggestionsList.classList.add('hidden');
     return;
   }
+  if (document.activeElement === destInput) {
+    destInput.blur();
+    return;
+  }
   if (navRafId !== null) return;
   if (currentMode === 'loop') return;
   placePinMarker(e.latlng.lat, e.latlng.lng);
@@ -808,7 +812,14 @@ const searchPanel = document.getElementById('search-panel');
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + 64) + 'px';
+  const keyboardUp = offsetFromBottom > 10;
+
+  if (!searchPanel.classList.contains('hidden')) {
+    modeBar.classList.toggle('hidden', keyboardUp);
+  }
+
+  const bottomPad = keyboardUp ? 10 : 64;
+  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + bottomPad) + 'px';
 }
 
 if (window.visualViewport) {
