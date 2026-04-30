@@ -195,15 +195,15 @@ loopStepUp.addEventListener('click', function () {
 function updateLoopStepValue() {
   if (loopMode === 'time') {
     loopStepValue.textContent = `${loopValue} min`;
-    loopUnitHint.classList.add('invisible');
+    loopUnitHint.classList.add('hidden');
   } else if (loopUseMetric) {
     loopStepValue.textContent = `${loopValue} km`;
     loopUnitHint.textContent = 'imperial';
-    loopUnitHint.classList.remove('invisible');
+    loopUnitHint.classList.remove('hidden');
   } else {
     loopStepValue.textContent = `${loopValue} mi`;
     loopUnitHint.textContent = 'metric';
-    loopUnitHint.classList.remove('invisible');
+    loopUnitHint.classList.remove('hidden');
   }
 }
 
