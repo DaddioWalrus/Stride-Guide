@@ -23,6 +23,7 @@ let userLocality = '';
 let startMarker = null;
 let destinationMarker = null;
 let currentRoute = null;
+let routeArrowMarkers = [];
 let pinMarker = null;
 let locationDotMarker = null;
 
@@ -138,8 +139,39 @@ function drawRoute(coords) {
   map.fitBounds(currentRoute.getBounds(), { padding: [40, 40] });
 }
 
+function drawRouteArrows(coords) {
+  routeArrowMarkers.forEach(function (m) { m.remove(); });
+  routeArrowMarkers = [];
+  if (coords.length < 2) return;
+  const INTERVAL_M = 200;
+  let accumulated = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const [lat1, lng1] = coords[i - 1];
+    const [lat2, lng2] = coords[i];
+    accumulated += distKm(lat1, lng1, lat2, lng2) * 1000;
+    if (accumulated >= INTERVAL_M) {
+      accumulated -= INTERVAL_M;
+      const brg = computeBearing(lat1, lng1, lat2, lng2);
+      routeArrowMarkers.push(
+        L.marker([lat2, lng2], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="route-arrow" style="transform:rotate(${brg}deg)"></div>`,
+            iconSize: [10, 14],
+            iconAnchor: [5, 7],
+          }),
+          interactive: false,
+          zIndexOffset: 500,
+        }).addTo(map)
+      );
+    }
+  }
+}
+
 function clearRoute() {
   if (currentRoute) { currentRoute.remove(); currentRoute = null; }
+  routeArrowMarkers.forEach(function (m) { m.remove(); });
+  routeArrowMarkers = [];
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────

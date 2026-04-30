@@ -248,6 +248,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     navRouteCoords = result.coords;
     initSteps(result.steps || []);
     drawRoute(result.coords);
+    drawRouteArrows(result.coords);
     loopRegenBtn.classList.remove('hidden');
     showPhase('route-panel');
   } catch {
@@ -684,6 +685,7 @@ loopRegenBtn.addEventListener('click', async function () {
     navRouteCoords = result.coords;
     initSteps(result.steps || []);
     drawRoute(result.coords);
+    drawRouteArrows(result.coords);
   } catch {
     showError('Could not generate route — please try again');
   }
@@ -796,7 +798,7 @@ function beginNavigation() {
         if (distToDest < 0.01) {
           navArrived = true;
           instructionPill.classList.add('hidden');
-          showArrival(destination.name);
+          if (currentMode !== 'loop') showArrival(destination.name);
         }
       }
 
