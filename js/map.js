@@ -4,7 +4,7 @@ const map = L.map('map', {
   zoomControl: true,
   rotate: true,
   bearing: 0,
-  touchRotate: false,
+  touchRotate: true,
 });
 
 map.zoomControl.setPosition('topleft');
@@ -26,6 +26,10 @@ let currentRoute = null;
 let routeArrowMarkers = [];
 let pinMarker = null;
 let locationDotMarker = null;
+let navDragging = false;
+
+map.on('dragstart', function () { navDragging = true; });
+map.on('dragend',   function () { navDragging = false; });
 
 // Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
@@ -278,19 +282,21 @@ function navRafTick(ts) {
 
   if (userMarker) userMarker.setLatLng([navDisplayLat, navDisplayLng]);
 
-  // Offset map center forward so user sits in lower third
-  const zoom = map.getZoom();
-  const bearingRad = (navDisplayBearing ?? 0) * Math.PI / 180;
-  const userPx = map.project(L.latLng(navDisplayLat, navDisplayLng), zoom);
-  const shift = map.getSize().y * 0.15;
-  const centerPx = L.point(
-    userPx.x + Math.sin(bearingRad) * shift,
-    userPx.y - Math.cos(bearingRad) * shift
-  );
-  map.setView(map.unproject(centerPx, zoom), zoom, { animate: false });
+  if (!navDragging) {
+    // Offset map center forward so user sits in lower third
+    const zoom = map.getZoom();
+    const bearingRad = (navDisplayBearing ?? 0) * Math.PI / 180;
+    const userPx = map.project(L.latLng(navDisplayLat, navDisplayLng), zoom);
+    const shift = map.getSize().y * 0.15;
+    const centerPx = L.point(
+      userPx.x + Math.sin(bearingRad) * shift,
+      userPx.y - Math.cos(bearingRad) * shift
+    );
+    map.setView(map.unproject(centerPx, zoom), zoom, { animate: false });
 
-  if (typeof map.setBearing === 'function') {
-    map.setBearing((360 - (navDisplayBearing ?? 0)) % 360);
+    if (typeof map.setBearing === 'function') {
+      map.setBearing((360 - (navDisplayBearing ?? 0)) % 360);
+    }
   }
 }
 
@@ -365,6 +371,7 @@ function stopNavigation(watchId) {
   stopCompass();
   clearPinMarker();
   if (userMarker) { userMarker.remove(); userMarker = null; }
+  navDragging = false;
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;
   navDisplayBearing = null;
