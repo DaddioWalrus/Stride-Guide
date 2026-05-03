@@ -25,6 +25,7 @@ let pinUseMetric = true;
 let pinRouteResult = null;
 let pinRoutePromise = null;
 let loopLastDistKm = 0;
+let mapDefaultZoom = 15;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -94,6 +95,16 @@ const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 
 const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel'];
 
+function positionRecentreBtn() {
+  const ids = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel', 'pin-card'];
+  let h = 0;
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) { h = el.offsetHeight; break; }
+  }
+  navRecentreBtn.style.bottom = (64 + h + 10) + 'px';
+}
+
 function showPhase(id) {
   phases.forEach(function (p) {
     document.getElementById(p).classList.add('hidden');
@@ -102,6 +113,21 @@ function showPhase(id) {
   if (id !== 'route-panel') routeDestLabel.classList.add('hidden');
   const barVisible = id === 'search-panel' || id === 'preview-panel' || id === 'loop-panel';
   modeBar.classList.toggle('hidden', !barVisible);
+  positionRecentreBtn();
+}
+
+function showNavPrompt() {
+  document.getElementById('nav-eta-wrap').classList.add('hidden');
+  navCenterEl.classList.add('hidden');
+  document.getElementById('nav-controls-wrap').classList.add('hidden');
+  document.getElementById('nav-prompt').classList.remove('hidden');
+}
+
+function hideNavPrompt() {
+  document.getElementById('nav-prompt').classList.add('hidden');
+  document.getElementById('nav-eta-wrap').classList.remove('hidden');
+  navCenterEl.classList.remove('hidden');
+  document.getElementById('nav-controls-wrap').classList.remove('hidden');
 }
 
 function showRouteDest(name) {
@@ -153,6 +179,7 @@ loopTimeBtn.addEventListener('click', function () {
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
+  positionRecentreBtn();
 });
 
 loopDistBtn.addEventListener('click', function () {
@@ -164,6 +191,7 @@ loopDistBtn.addEventListener('click', function () {
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
+  positionRecentreBtn();
 });
 
 function collapseLoopStepRow() {
@@ -172,6 +200,7 @@ function collapseLoopStepRow() {
   loopDistBtn.classList.remove('active');
   loopStepRow.classList.add('hidden');
   updateLoopGenerateBtn();
+  positionRecentreBtn();
 }
 
 loopStepCenter.addEventListener('click', function () {
@@ -221,6 +250,7 @@ function updateLoopStepValue() {
 
 function updateLoopGenerateBtn() {
   loopGenerateBtn.classList.toggle('hidden', !loopMode);
+  positionRecentreBtn();
 }
 
 loopGenerateBtn.addEventListener('click', async function () {
@@ -505,6 +535,7 @@ let suppressMapClick = false;
 map.getContainer().addEventListener('touchstart', function () {
   if (document.activeElement === destInput) suppressMapClick = true;
   navFreeCamera = true;
+  positionRecentreBtn();
   navRecentreBtn.classList.remove('hidden');
 }, { passive: true });
 
@@ -666,7 +697,8 @@ directionsBtn.addEventListener('click', function () {
 navRecentreBtn.addEventListener('click', function () {
   navFreeCamera = false;
   navRecentreBtn.classList.add('hidden');
-  if (userLocation) map.flyTo([userLocation.lat, userLocation.lng], map.getZoom(), { duration: 0.4 });
+  if (typeof map.setBearing === 'function') map.setBearing(0);
+  if (userLocation) map.flyTo([userLocation.lat, userLocation.lng], mapDefaultZoom, { duration: 0.4 });
 });
 
 routeBack.addEventListener('click', function () {
@@ -678,17 +710,16 @@ routeBack.addEventListener('click', function () {
 });
 
 loopRegenBtn.addEventListener('click', async function () {
-  const wasNavigating = navRafId !== null;
-  const loc = (wasNavigating ? navLastPos : null) || userLocation;
+  if (navRafId !== null) {
+    showNavPrompt();
+    return;
+  }
+  const loc = userLocation;
   if (!loc) {
     showError('Waiting for GPS location — please try again in a moment');
     return;
   }
-
-  if (wasNavigating) haltNavigation();
-
   loopRegenBtn.disabled = true;
-
   try {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
@@ -705,10 +736,48 @@ loopRegenBtn.addEventListener('click', async function () {
     showPhase('route-panel');
   } catch {
     showError('Could not generate route — please try again');
-    if (wasNavigating) showPhase('loop-panel');
   }
-
   loopRegenBtn.disabled = false;
+});
+
+document.getElementById('nav-prompt-cancel').addEventListener('click', hideNavPrompt);
+
+async function runLoopRegen(distKm) {
+  const loc = navLastPos || userLocation;
+  if (!loc) { showError('Waiting for GPS location'); return; }
+  haltNavigation();
+  loopRegenBtn.disabled = true;
+  try {
+    startLocation = loc;
+    destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
+    const result = await generateLoopRoute(loc.lat, loc.lng, distKm);
+    navRouteDistKm = result.summary.distance / 1000;
+    routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
+    updateRouteDist();
+    navRouteCoords = result.coords;
+    initSteps(result.steps || []);
+    drawRoute(result.coords);
+    drawRouteArrows(result.coords);
+    navFreeCamera = false;
+    navRecentreBtn.classList.add('hidden');
+    showPhase('route-panel');
+  } catch {
+    showError('Could not generate route — please try again');
+    showPhase('loop-panel');
+  }
+  loopRegenBtn.disabled = false;
+}
+
+document.getElementById('nav-prompt-adjust').addEventListener('click', function () {
+  const remainingKm = Math.max(0.5, loopLastDistKm - navTotalDistKm);
+  loopLastDistKm = remainingKm;
+  hideNavPrompt();
+  runLoopRegen(remainingKm);
+});
+
+document.getElementById('nav-prompt-fresh').addEventListener('click', function () {
+  hideNavPrompt();
+  runLoopRegen(loopLastDistKm);
 });
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -766,6 +835,7 @@ async function triggerReroute() {
 }
 
 function beginNavigation() {
+  mapDefaultZoom = 18;
   navRecentreBtn.classList.add('hidden');
   showPhase('nav-panel');
   map.setZoom(18);
@@ -870,8 +940,10 @@ function doStopNavigation() {
   destination = null;
   startLocation = null;
   destInput.value = '';
+  hideNavPrompt();
   loopRegenBtn.classList.add('hidden');
   navRecentreBtn.classList.add('hidden');
+  mapDefaultZoom = 15;
   map.setZoom(15);
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
 }

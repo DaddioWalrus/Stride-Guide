@@ -649,9 +649,17 @@ button {
 #nav-recentre-btn {
   position: fixed;
   left: 20px;
-  bottom: 150px;
   z-index: 1050;
 }
+
+#nav-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+#nav-prompt .primary-btn { flex: 1; }
 
 .route-arrow {
   width: 14px;

@@ -125,15 +125,20 @@
 
     <!-- Phase 4: Navigation -->
     <div id="nav-panel" class="panel row-panel hidden">
-      <div class="nav-eta">
+      <div class="nav-eta" id="nav-eta-wrap">
         <div id="nav-time">-- min</div>
       </div>
       <div class="nav-center" id="nav-center">
         <div id="nav-dist">0.00 km</div>
         <div id="nav-unit">metric</div>
       </div>
-      <div class="nav-controls">
+      <div class="nav-controls" id="nav-controls-wrap">
         <button class="stop-btn" id="stop-btn">Stop</button>
+      </div>
+      <div id="nav-prompt" class="hidden">
+        <button class="pin-close-btn" id="nav-prompt-cancel">✕</button>
+        <button class="primary-btn" id="nav-prompt-adjust">Adjust route</button>
+        <button class="primary-btn green-btn" id="nav-prompt-fresh">Reset</button>
       </div>
     </div>
 
