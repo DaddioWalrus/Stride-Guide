@@ -1,16 +1,15 @@
 // ─── Auth State ────────────────────────────────────────────────────────────────
 
 let currentUser = null;
-let authIsSignUp = false;
 
 // ─── Element References ────────────────────────────────────────────────────────
 
-const accountBtn       = document.getElementById('account-btn');
-const accountBackdrop  = document.getElementById('account-backdrop');
-const accountPanel     = document.getElementById('account-panel');
-const authSigninView   = document.getElementById('auth-signin-view');
-const authEmailView    = document.getElementById('auth-email-view');
-const authProfileView  = document.getElementById('auth-profile-view');
+const accountBtn      = document.getElementById('account-btn');
+const accountBackdrop = document.getElementById('account-backdrop');
+const accountPanel    = document.getElementById('account-panel');
+const authSigninView  = document.getElementById('auth-signin-view');
+const authSentView    = document.getElementById('auth-sent-view');
+const authProfileView = document.getElementById('auth-profile-view');
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
@@ -28,27 +27,22 @@ function closeAccountPanel() {
 
 function showAuthView(view) {
   authSigninView.classList.add('hidden');
-  authEmailView.classList.add('hidden');
+  authSentView.classList.add('hidden');
   authProfileView.classList.add('hidden');
-  if (view === 'signin') {
-    authSigninView.classList.remove('hidden');
-  } else if (view === 'email') {
-    authEmailView.classList.remove('hidden');
-  } else if (view === 'profile') {
-    authProfileView.classList.remove('hidden');
-    renderProfile();
-  }
+  if (view === 'signin')       authSigninView.classList.remove('hidden');
+  else if (view === 'sent')    authSentView.classList.remove('hidden');
+  else if (view === 'profile') { authProfileView.classList.remove('hidden'); renderProfile(); }
 }
 
-// ─── Account Button ────────────────────────────────────────────────────────────
+// ─── Button Wiring ─────────────────────────────────────────────────────────────
 
 accountBtn.addEventListener('click', openAccountPanel);
 accountBackdrop.addEventListener('click', closeAccountPanel);
 
 document.getElementById('auth-close-btn').addEventListener('click', closeAccountPanel);
-document.getElementById('auth-email-close-btn').addEventListener('click', closeAccountPanel);
+document.getElementById('auth-sent-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-profile-close-btn').addEventListener('click', closeAccountPanel);
-document.getElementById('auth-back-btn').addEventListener('click', function () {
+document.getElementById('auth-sent-back-btn').addEventListener('click', function () {
   showAuthView('signin');
 });
 
@@ -59,11 +53,10 @@ function updateAccountBtn(user) {
     const meta = user.user_metadata || {};
     const name = meta.full_name || meta.name || user.email || 'U';
     const avatarUrl = meta.avatar_url || meta.picture;
-    const initial = name.charAt(0).toUpperCase();
     if (avatarUrl) {
       accountBtn.innerHTML = `<img src="${avatarUrl}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`;
     } else {
-      accountBtn.innerHTML = `<span class="account-btn-initial">${initial}</span>`;
+      accountBtn.innerHTML = `<span class="account-btn-initial">${name.charAt(0).toUpperCase()}</span>`;
     }
     accountBtn.classList.add('signed-in');
   } else {
@@ -72,72 +65,40 @@ function updateAccountBtn(user) {
   }
 }
 
-// ─── Google OAuth ──────────────────────────────────────────────────────────────
+// ─── Magic Link Sign-In ────────────────────────────────────────────────────────
 
-document.getElementById('auth-google-btn').addEventListener('click', async function () {
-  const { error } = await sbClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin },
-  });
-  if (error) showError(error.message);
-});
-
-// ─── Email / Password ──────────────────────────────────────────────────────────
-
-document.getElementById('auth-email-btn').addEventListener('click', function () {
-  authIsSignUp = false;
-  document.getElementById('auth-email-title').textContent = 'Sign in';
-  document.getElementById('auth-submit-btn').textContent = 'Sign in';
-  document.getElementById('auth-toggle-btn').textContent = "Don't have an account? Sign up";
-  document.getElementById('auth-email-input').value = '';
-  document.getElementById('auth-password-input').value = '';
-  showAuthView('email');
-});
-
-document.getElementById('auth-toggle-btn').addEventListener('click', function () {
-  authIsSignUp = !authIsSignUp;
-  if (authIsSignUp) {
-    document.getElementById('auth-email-title').textContent = 'Create account';
-    document.getElementById('auth-submit-btn').textContent = 'Create account';
-    document.getElementById('auth-toggle-btn').textContent = 'Already have an account? Sign in';
-  } else {
-    document.getElementById('auth-email-title').textContent = 'Sign in';
-    document.getElementById('auth-submit-btn').textContent = 'Sign in';
-    document.getElementById('auth-toggle-btn').textContent = "Don't have an account? Sign up";
-  }
-});
-
-document.getElementById('auth-submit-btn').addEventListener('click', async function () {
+async function sendMagicLink() {
   const email = document.getElementById('auth-email-input').value.trim();
-  const password = document.getElementById('auth-password-input').value;
-  if (!email || !password) return;
+  if (!email) return;
 
   const btn = document.getElementById('auth-submit-btn');
   btn.disabled = true;
-  btn.textContent = '...';
+  btn.textContent = 'Sending...';
 
-  if (authIsSignUp) {
-    const { error } = await sbClient.auth.signUp({ email, password });
-    if (error) {
-      showError(error.message);
-    } else {
-      closeAccountPanel();
-      showError('Check your email to confirm your account');
-    }
-  } else {
-    const { error } = await sbClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      showError(error.message);
-    } else {
-      closeAccountPanel();
-    }
-  }
+  const { error } = await sbClient.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin },
+  });
 
   btn.disabled = false;
-  btn.textContent = authIsSignUp ? 'Create account' : 'Sign in';
+  btn.textContent = 'Send magic link';
+
+  if (error) {
+    showError(error.message);
+    return;
+  }
+
+  document.getElementById('auth-sent-email').textContent = email;
+  showAuthView('sent');
+}
+
+document.getElementById('auth-submit-btn').addEventListener('click', sendMagicLink);
+
+document.getElementById('auth-email-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') sendMagicLink();
 });
 
-// ─── Profile View ──────────────────────────────────────────────────────────────
+// ─── Profile ───────────────────────────────────────────────────────────────────
 
 async function renderProfile() {
   if (!currentUser) return;
@@ -187,29 +148,24 @@ document.getElementById('auth-delete-no-btn').addEventListener('click', function
 });
 
 document.getElementById('auth-delete-yes-btn').addEventListener('click', async function () {
-  const btn = document.getElementById('auth-delete-yes-btn');
+  const btn = this;
   btn.disabled = true;
   btn.textContent = '...';
-
-  try {
-    const { error } = await sbClient.rpc('delete_user');
-    if (error) throw error;
-  } catch {
-    // delete_user RPC may not exist yet; fall through to sign-out
-  }
-
+  try { await sbClient.rpc('delete_user'); } catch { /* fall through */ }
   await sbClient.auth.signOut();
   closeAccountPanel();
 });
 
 // ─── Session ───────────────────────────────────────────────────────────────────
 
-sbClient.auth.onAuthStateChange(function (event, session) {
-  currentUser = session?.user || null;
-  updateAccountBtn(currentUser);
-});
+sbReady.then(function () {
+  sbClient.auth.onAuthStateChange(function (event, session) {
+    currentUser = session?.user || null;
+    updateAccountBtn(currentUser);
+  });
 
-sbClient.auth.getSession().then(function ({ data: { session } }) {
-  currentUser = session?.user || null;
-  updateAccountBtn(currentUser);
+  sbClient.auth.getSession().then(function ({ data: { session } }) {
+    currentUser = session?.user || null;
+    updateAccountBtn(currentUser);
+  });
 });
