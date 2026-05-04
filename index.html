@@ -37,28 +37,30 @@
     <div id="account-panel">
       <div class="auth-handle"></div>
 
-      <!-- View 1: Sign in (magic link) -->
+      <!-- View 1: Sign in -->
       <div id="auth-signin-view">
         <div class="auth-header">
           <span class="auth-title">Sign in to Stride Guide</span>
           <button class="auth-close-btn" id="auth-close-btn">✕</button>
         </div>
-        <p class="auth-body">Enter your email and we'll send you an instant sign-in link — no password needed.</p>
+        <p class="auth-body">Enter your email and we'll send a 6-digit code — no password needed.</p>
         <input class="auth-input" type="email" id="auth-email-input" placeholder="your@email.com" autocomplete="email" />
-        <button class="primary-btn full-btn" id="auth-submit-btn">Send magic link</button>
+        <button class="primary-btn full-btn" id="auth-submit-btn">Send code</button>
       </div>
 
-      <!-- View 2: Magic link sent confirmation -->
-      <div id="auth-sent-view" class="hidden">
+      <!-- View 2: Enter 6-digit code -->
+      <div id="auth-code-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-sent-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-code-back-btn">←</button>
           <span class="auth-title">Check your email</span>
-          <button class="auth-close-btn" id="auth-sent-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-code-close-btn">✕</button>
         </div>
         <div class="auth-sent-icon">✉️</div>
-        <p class="auth-body">We sent a sign-in link to</p>
+        <p class="auth-body">We sent a 6-digit code to</p>
         <p class="auth-sent-email" id="auth-sent-email"></p>
-        <p class="auth-body auth-body-muted">Click the link in that email to sign in. It's valid for 1 hour.</p>
+        <input class="auth-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000" id="auth-code-input" autocomplete="one-time-code" />
+        <button class="primary-btn full-btn" id="auth-verify-btn">Sign in</button>
+        <button class="auth-toggle-btn" id="auth-resend-btn">Resend code</button>
       </div>
 
       <!-- View 3: Profile -->
@@ -71,6 +73,7 @@
         <div class="auth-user-name" id="auth-user-name"></div>
         <div class="auth-user-email" id="auth-user-email"></div>
         <div class="auth-tier-badge" id="auth-tier-badge">Free</div>
+        <button class="auth-edit-profile-btn" id="auth-edit-profile-btn">Edit profile</button>
         <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
         <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
         <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
@@ -80,6 +83,23 @@
             <button class="primary-btn auth-delete-yes" id="auth-delete-yes-btn">Delete</button>
           </div>
         </div>
+      </div>
+
+      <!-- View 4: Edit profile -->
+      <div id="auth-edit-view" class="hidden">
+        <div class="auth-header">
+          <button class="auth-back-btn" id="auth-edit-back-btn">←</button>
+          <span class="auth-title">Edit profile</span>
+          <button class="auth-close-btn" id="auth-edit-close-btn">✕</button>
+        </div>
+        <div class="auth-avatar-upload">
+          <div class="auth-profile-avatar" id="auth-edit-avatar"></div>
+          <label class="auth-avatar-label" for="auth-avatar-input">Change photo</label>
+          <input type="file" id="auth-avatar-input" accept="image/*" class="hidden" />
+        </div>
+        <label class="auth-field-label" for="auth-name-input">Display name</label>
+        <input class="auth-input" type="text" id="auth-name-input" placeholder="Your name" autocomplete="name" />
+        <button class="primary-btn full-btn" id="auth-save-btn">Save changes</button>
       </div>
     </div>
 

@@ -1,6 +1,7 @@
 // ─── Auth State ────────────────────────────────────────────────────────────────
 
 let currentUser = null;
+let codeEmail = '';
 
 // ─── Element References ────────────────────────────────────────────────────────
 
@@ -8,8 +9,9 @@ const accountBtn      = document.getElementById('account-btn');
 const accountBackdrop = document.getElementById('account-backdrop');
 const accountPanel    = document.getElementById('account-panel');
 const authSigninView  = document.getElementById('auth-signin-view');
-const authSentView    = document.getElementById('auth-sent-view');
+const authCodeView    = document.getElementById('auth-code-view');
 const authProfileView = document.getElementById('auth-profile-view');
+const authEditView    = document.getElementById('auth-edit-view');
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
@@ -27,11 +29,13 @@ function closeAccountPanel() {
 
 function showAuthView(view) {
   authSigninView.classList.add('hidden');
-  authSentView.classList.add('hidden');
+  authCodeView.classList.add('hidden');
   authProfileView.classList.add('hidden');
+  authEditView.classList.add('hidden');
   if (view === 'signin')       authSigninView.classList.remove('hidden');
-  else if (view === 'sent')    authSentView.classList.remove('hidden');
+  else if (view === 'code')    authCodeView.classList.remove('hidden');
   else if (view === 'profile') { authProfileView.classList.remove('hidden'); renderProfile(); }
+  else if (view === 'edit')    { authEditView.classList.remove('hidden'); renderEditView(); }
 }
 
 // ─── Button Wiring ─────────────────────────────────────────────────────────────
@@ -40,10 +44,18 @@ accountBtn.addEventListener('click', openAccountPanel);
 accountBackdrop.addEventListener('click', closeAccountPanel);
 
 document.getElementById('auth-close-btn').addEventListener('click', closeAccountPanel);
-document.getElementById('auth-sent-close-btn').addEventListener('click', closeAccountPanel);
+document.getElementById('auth-code-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-profile-close-btn').addEventListener('click', closeAccountPanel);
-document.getElementById('auth-sent-back-btn').addEventListener('click', function () {
+document.getElementById('auth-edit-close-btn').addEventListener('click', closeAccountPanel);
+
+document.getElementById('auth-code-back-btn').addEventListener('click', function () {
   showAuthView('signin');
+});
+document.getElementById('auth-edit-back-btn').addEventListener('click', function () {
+  showAuthView('profile');
+});
+document.getElementById('auth-edit-profile-btn').addEventListener('click', function () {
+  showAuthView('edit');
 });
 
 // ─── Account Button Appearance ─────────────────────────────────────────────────
@@ -65,9 +77,17 @@ function updateAccountBtn(user) {
   }
 }
 
-// ─── Magic Link Sign-In ────────────────────────────────────────────────────────
+// ─── Send OTP Code ─────────────────────────────────────────────────────────────
 
-async function sendMagicLink() {
+async function sendCode(email) {
+  const { error } = await sbClient.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw error;
+}
+
+async function handleSendCode() {
   const email = document.getElementById('auth-email-input').value.trim();
   if (!email) return;
 
@@ -75,30 +95,80 @@ async function sendMagicLink() {
   btn.disabled = true;
   btn.textContent = 'Sending...';
 
-  const { error } = await sbClient.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
+  try {
+    await sendCode(email);
+    codeEmail = email;
+    document.getElementById('auth-sent-email').textContent = email;
+    document.getElementById('auth-code-input').value = '';
+    showAuthView('code');
+  } catch (err) {
+    showError(err.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Send code';
+}
+
+document.getElementById('auth-submit-btn').addEventListener('click', handleSendCode);
+document.getElementById('auth-email-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleSendCode();
+});
+
+// ─── Resend Code ───────────────────────────────────────────────────────────────
+
+document.getElementById('auth-resend-btn').addEventListener('click', async function () {
+  if (!codeEmail) return;
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    await sendCode(codeEmail);
+    showError('New code sent');
+  } catch (err) {
+    showError(err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Resend code';
+});
+
+// ─── Verify OTP Code ───────────────────────────────────────────────────────────
+
+async function handleVerifyCode() {
+  const token = document.getElementById('auth-code-input').value.trim();
+  if (token.length !== 6) return;
+
+  const btn = document.getElementById('auth-verify-btn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  const { error } = await sbClient.auth.verifyOtp({
+    email: codeEmail,
+    token,
+    type: 'email',
   });
 
   btn.disabled = false;
-  btn.textContent = 'Send magic link';
+  btn.textContent = 'Sign in';
 
   if (error) {
-    showError(error.message);
+    showError('Invalid or expired code — try again or request a new one');
     return;
   }
 
-  document.getElementById('auth-sent-email').textContent = email;
-  showAuthView('sent');
+  closeAccountPanel();
 }
 
-document.getElementById('auth-submit-btn').addEventListener('click', sendMagicLink);
+document.getElementById('auth-verify-btn').addEventListener('click', handleVerifyCode);
 
-document.getElementById('auth-email-input').addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') sendMagicLink();
+document.getElementById('auth-code-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') handleVerifyCode();
 });
 
-// ─── Profile ───────────────────────────────────────────────────────────────────
+document.getElementById('auth-code-input').addEventListener('input', function () {
+  if (this.value.replace(/\D/g, '').length === 6) handleVerifyCode();
+});
+
+// ─── Profile View ──────────────────────────────────────────────────────────────
 
 async function renderProfile() {
   if (!currentUser) return;
@@ -129,6 +199,70 @@ async function renderProfile() {
       tier.charAt(0).toUpperCase() + tier.slice(1);
   }
 }
+
+// ─── Edit Profile View ─────────────────────────────────────────────────────────
+
+function renderEditView() {
+  if (!currentUser) return;
+  const meta = currentUser.user_metadata || {};
+  const name = meta.full_name || meta.name || '';
+  const avatarUrl = meta.avatar_url || meta.picture;
+
+  const avatarEl = document.getElementById('auth-edit-avatar');
+  if (avatarUrl) {
+    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="" />`;
+  } else {
+    avatarEl.textContent = (name || currentUser.email || 'U').charAt(0).toUpperCase();
+  }
+
+  document.getElementById('auth-name-input').value = name;
+  document.getElementById('auth-avatar-input').value = '';
+}
+
+document.getElementById('auth-avatar-input').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  document.getElementById('auth-edit-avatar').innerHTML =
+    `<img src="${URL.createObjectURL(file)}" alt="" />`;
+});
+
+document.getElementById('auth-save-btn').addEventListener('click', async function () {
+  const name = document.getElementById('auth-name-input').value.trim();
+  const file = document.getElementById('auth-avatar-input').files[0];
+  if (!name && !file) { showAuthView('profile'); return; }
+
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    let avatarUrl = null;
+
+    if (file) {
+      const ext = file.name.split('.').pop();
+      const path = `${currentUser.id}/avatar.${ext}`;
+      const { error: uploadError } = await sbClient.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      avatarUrl = sbClient.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    }
+
+    const updates = {};
+    if (name) updates.full_name = name;
+    if (avatarUrl) updates.avatar_url = avatarUrl;
+
+    await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
+    await sbClient.auth.updateUser({ data: updates });
+
+    showAuthView('profile');
+  } catch (err) {
+    showError(err.message || 'Could not save — please try again');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save changes';
+});
 
 // ─── Sign Out ──────────────────────────────────────────────────────────────────
 
