@@ -18,6 +18,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-rotate/dist/leaflet-rotate-src.js"></script>
 
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
     <!-- Stride Guide styles -->
     <link rel="stylesheet" href="/css/style.css" />
   </head>
@@ -26,6 +29,169 @@
 
     <!-- Map -->
     <div id="map"></div>
+
+    <!-- Account Button -->
+    <button id="account-btn" class="account-btn" title="Account">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+    </button>
+
+    <!-- Account Backdrop -->
+    <div id="account-backdrop" class="account-backdrop"></div>
+
+    <!-- Account Panel -->
+    <div id="account-panel" class="account-panel">
+
+      <!-- View 1: Sign In -->
+      <div id="auth-signin-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <div class="auth-view-title">Account</div>
+          <button class="auth-close-btn" id="auth-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <p class="auth-intro">Sign in to save routes and track your walks.</p>
+          <input class="auth-input" id="auth-email-input" type="email" placeholder="Your email address" autocomplete="email" />
+          <button class="auth-primary-btn" id="auth-submit-btn">Send code</button>
+        </div>
+      </div>
+
+      <!-- View 2: OTP Code -->
+      <div id="auth-code-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-code-back-btn">←</button>
+          <div class="auth-view-title">Check your email</div>
+          <button class="auth-close-btn" id="auth-code-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <p class="auth-intro">We sent a 6-digit code to <strong id="auth-sent-email"></strong></p>
+          <input class="auth-input" id="auth-code-input" type="text" inputmode="numeric" placeholder="6-digit code" maxlength="6" autocomplete="one-time-code" />
+          <button class="auth-primary-btn" id="auth-verify-btn">Sign in</button>
+          <button class="auth-text-btn" id="auth-resend-btn">Resend code</button>
+        </div>
+      </div>
+
+      <!-- View 3: Profile -->
+      <div id="auth-profile-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <div class="auth-view-title">Account</div>
+          <button class="auth-close-btn" id="auth-profile-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div class="auth-profile-top">
+            <div class="auth-avatar" id="auth-profile-avatar"></div>
+            <div class="auth-profile-info">
+              <div class="auth-profile-name" id="auth-user-name"></div>
+              <div class="auth-profile-email" id="auth-user-email"></div>
+              <span class="auth-tier-badge" id="auth-tier-badge">Free</span>
+            </div>
+          </div>
+          <div class="auth-menu">
+            <button class="auth-menu-item" id="auth-stats-btn">📊 Stride Stats</button>
+            <button class="auth-menu-item" id="auth-history-btn">🕐 Walk History</button>
+            <button class="auth-menu-item" id="auth-saved-routes-btn">🗺️ Saved Routes</button>
+            <button class="auth-menu-item" id="auth-saved-locations-btn">📍 Saved Places</button>
+            <button class="auth-menu-item" id="auth-edit-profile-btn">✏️ Edit Profile</button>
+          </div>
+          <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
+          <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
+          <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
+            <p>Are you sure? This cannot be undone.</p>
+            <div class="auth-delete-confirm-btns">
+              <button id="auth-delete-no-btn">Cancel</button>
+              <button id="auth-delete-yes-btn" class="auth-delete-yes">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 4: Edit Profile -->
+      <div id="auth-edit-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-edit-back-btn">←</button>
+          <div class="auth-view-title">Edit Profile</div>
+          <button class="auth-close-btn" id="auth-edit-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div class="auth-avatar-edit">
+            <div class="auth-avatar" id="auth-edit-avatar"></div>
+            <label class="auth-avatar-label">
+              Change photo
+              <input type="file" id="auth-avatar-input" accept="image/*" class="hidden" />
+            </label>
+          </div>
+          <input class="auth-input" id="auth-name-input" type="text" placeholder="Display name" />
+          <button class="auth-primary-btn" id="auth-save-btn">Save changes</button>
+        </div>
+      </div>
+
+      <!-- View 5: Stride Stats -->
+      <div id="auth-stats-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-stats-back-btn">←</button>
+          <div class="auth-view-title">Stride Stats</div>
+          <button class="auth-close-btn" id="auth-stats-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div class="auth-placeholder hidden" id="stride-stats-empty">
+            <div class="auth-placeholder-icon">📊</div>
+            <p class="auth-placeholder-text">Your walking stats will appear here once you've completed some walks.</p>
+          </div>
+          <div id="stride-stats-grid" class="stride-stats-grid hidden"></div>
+        </div>
+      </div>
+
+      <!-- View 6: Walk History -->
+      <div id="auth-history-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-history-back-btn">←</button>
+          <div class="auth-view-title">Walk History</div>
+          <button class="auth-close-btn" id="auth-history-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div id="walk-history-list"></div>
+          <div class="auth-placeholder hidden" id="walk-history-empty">
+            <div class="auth-placeholder-icon">🕐</div>
+            <p class="auth-placeholder-text">Your completed walks will be logged here automatically.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 7: Saved Routes -->
+      <div id="auth-saved-routes-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-saved-routes-back-btn">←</button>
+          <div class="auth-view-title">Saved Routes</div>
+          <button class="auth-close-btn" id="auth-saved-routes-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div id="saved-routes-list"></div>
+          <div class="auth-placeholder hidden" id="saved-routes-empty">
+            <div class="auth-placeholder-icon">🗺️</div>
+            <p class="auth-placeholder-text">Routes you save will appear here so you can repeat them.</p>
+          </div>
+          <p class="saved-routes-note">Routes activate within 500 m of their path. If you're not at the entry point, we'll walk you there first.</p>
+        </div>
+      </div>
+
+      <!-- View 8: Saved Places -->
+      <div id="auth-saved-locations-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-saved-locations-back-btn">←</button>
+          <div class="auth-view-title">Saved Places</div>
+          <button class="auth-close-btn" id="auth-saved-locations-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div id="saved-locations-list"></div>
+          <div class="auth-placeholder hidden" id="saved-locations-empty">
+            <div class="auth-placeholder-icon">📍</div>
+            <p class="auth-placeholder-text">Tap the bookmark on a pin to save a place here.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Auth Toast -->
+    <div id="auth-toast" class="auth-toast"></div>
 
     <!-- Route destination label (sits above collapsed route panel) -->
     <div id="route-dest-label" class="hidden">
@@ -45,6 +211,8 @@
         </div>
         <div class="collapsed-actions">
           <button class="change-btn" id="change-btn">Change</button>
+          <button class="pin-save-btn" id="route-save-btn" title="Save this route">🔖</button>
+          <button class="pin-save-btn hidden" id="loop-dir-btn" title="Reverse direction">↺</button>
           <button class="start-nav-btn" id="start-nav-btn">Start</button>
         </div>
       </div>
@@ -142,6 +310,7 @@
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="pin-close-btn">✕</button>
+        <button class="pin-save-btn" id="pin-save-btn" title="Save this place">🔖</button>
         <button class="start-nav-btn" id="pin-directions-btn">Go</button>
       </div>
     </div>
@@ -176,6 +345,8 @@
     <script src="/js/map.js"></script>
     <script src="/js/route.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/supabase.js"></script>
+    <script src="/js/auth.js"></script>
 
   </body>
 </html>

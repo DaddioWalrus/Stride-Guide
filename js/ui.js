@@ -21,6 +21,7 @@ let navRouteCoords = null;
 let navOffCourseFixes = 0;
 let navLastRerouteTime = 0;
 let navRerouting = false;
+let loopRouteReversed = false;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
@@ -79,6 +80,9 @@ const pinDistEl = document.getElementById('pin-dist');
 const pinNameEl = document.getElementById('pin-name');
 const pinCloseBtn = document.getElementById('pin-close-btn');
 const pinDirectionsBtn = document.getElementById('pin-directions-btn');
+
+const routeSaveBtn = document.getElementById('route-save-btn');
+const loopDirBtn = document.getElementById('loop-dir-btn');
 
 const avoidControls = document.getElementById('avoid-controls');
 const avoidConfirmBtn = document.getElementById('avoid-confirm-btn');
@@ -512,6 +516,14 @@ function collapsePanel(summary, steps) {
     routeDestName.textContent = destination.name;
     routeDestLabel.classList.remove('hidden');
   }
+  routeSaveBtn.textContent = '🔖';
+  routeSaveBtn.disabled = false;
+  loopRouteReversed = false;
+  if (isLoop) {
+    loopDirBtn.classList.remove('hidden');
+  } else {
+    loopDirBtn.classList.add('hidden');
+  }
 }
 
 changeBtn.addEventListener('click', function () {
@@ -519,6 +531,7 @@ changeBtn.addEventListener('click', function () {
   routeDestLabel.classList.add('hidden');
   loopStartInput.disabled = false;
   abStartInput.disabled = false;
+  loopDirBtn.classList.add('hidden');
   clearError();
 });
 
@@ -615,6 +628,129 @@ async function triggerReroute() {
   navRerouting = false;
 }
 
+// ─── Pin Save Button ──────────────────────────────────────────────────────────
+
+document.getElementById('pin-save-btn').addEventListener('click', function () {
+  if (typeof window.onSaveLocationRequest === 'function') {
+    window.onSaveLocationRequest(pinLat, pinLng, pinName);
+  }
+});
+
+// ─── Route Save Button ────────────────────────────────────────────────────────
+
+routeSaveBtn.addEventListener('click', function () {
+  if (typeof window.onSaveRouteRequest !== 'function') return;
+  window.onSaveRouteRequest({
+    mode:        isLoop ? 'loop' : 'ab',
+    startLat:    startLocation ? startLocation.lat : null,
+    startLng:    startLocation ? startLocation.lng : null,
+    destLat:     destination ? destination.lat : null,
+    destLng:     destination ? destination.lng : null,
+    name:        destination ? destination.name || null : null,
+    loopMode:    isLoop ? mode : null,
+    loopValue:   isLoop ? value : null,
+    distKm:      navRouteDistKm,
+    durationSec: navRouteDistKm / 5 * 3600,
+    routeCoords: navRouteCoords,
+  });
+});
+
+// ─── Loop Direction Toggle ────────────────────────────────────────────────────
+
+loopDirBtn.addEventListener('click', function () {
+  if (!navRouteCoords || !navRouteCoords.length) return;
+  loopRouteReversed = !loopRouteReversed;
+  navRouteCoords = navRouteCoords.slice().reverse();
+  drawRoute(navRouteCoords);
+  initSteps([]);
+});
+
+// ─── Load Saved A→B Route ─────────────────────────────────────────────────────
+
+window.onLoadSavedABRoute = async function (startLat, startLng, destLat, destLng, name) {
+  if (!userLocation) return;
+  const dA = haversineKm(userLocation.lat, userLocation.lng, startLat, startLng);
+  const dB = haversineKm(userLocation.lat, userLocation.lng, destLat, destLng);
+  const target = dA <= dB
+    ? { lat: destLat, lng: destLng, name: name || 'Route end' }
+    : { lat: startLat, lng: startLng, name: 'Route start' };
+
+  isLoop = false;
+  abBtn.classList.add('active');
+  loopBtn.classList.remove('active');
+  loopLocationRow.classList.add('hidden');
+  abLocationRows.classList.remove('hidden');
+  modeRow.classList.add('hidden');
+  stepRow.classList.add('hidden');
+  avoidRow.classList.add('hidden');
+  clearRoute();
+  clearDestination();
+  clearAvoidCircles();
+  startLocation = userLocation;
+  destination = target;
+  abStartInput.value = 'My Location';
+  abDestInput.value = target.name;
+  panel.classList.remove('hidden');
+  panel.classList.remove('collapsed');
+  updateGenerateButton();
+  handleGenerateRoute();
+};
+
+// ─── Load Saved Loop Route ────────────────────────────────────────────────────
+
+window.onLoadSavedLoopRoute = function (savedLoopMode, savedLoopValue, coordsJson) {
+  const nearest = (typeof nearestLoopPoint === 'function') ? nearestLoopPoint(coordsJson) : null;
+  const alreadyOnRoute = nearest && userLocation &&
+    haversineKm(userLocation.lat, userLocation.lng, nearest[0], nearest[1]) < 0.005;
+
+  if (alreadyOnRoute || !nearest) {
+    isLoop = true;
+    loopBtn.classList.add('active');
+    abBtn.classList.remove('active');
+    loopLocationRow.classList.remove('hidden');
+    abLocationRows.classList.add('hidden');
+    avoidRow.classList.remove('hidden');
+    mode = savedLoopMode;
+    value = savedLoopValue;
+    timeBtn.classList.toggle('active', savedLoopMode === 'time');
+    distanceBtn.classList.toggle('active', savedLoopMode === 'distance');
+    modeRow.classList.remove('hidden');
+    stepRow.classList.remove('hidden');
+    updateStepValue();
+    if (userLocation) {
+      startLocation = userLocation;
+      loopStartInput.value = 'My Location';
+      loopStartInput.disabled = true;
+      placeStartMarker(userLocation.lat, userLocation.lng);
+    }
+    panel.classList.remove('hidden');
+    panel.classList.remove('collapsed');
+    updateGenerateButton();
+    handleGenerateRoute();
+  } else {
+    window._pendingLoopAfterNav = { loopMode: savedLoopMode, loopValue: savedLoopValue };
+    isLoop = false;
+    abBtn.classList.add('active');
+    loopBtn.classList.remove('active');
+    loopLocationRow.classList.add('hidden');
+    abLocationRows.classList.remove('hidden');
+    modeRow.classList.add('hidden');
+    stepRow.classList.add('hidden');
+    avoidRow.classList.add('hidden');
+    clearRoute();
+    clearDestination();
+    clearAvoidCircles();
+    startLocation = userLocation;
+    destination = { lat: nearest[0], lng: nearest[1], name: 'Loop entry' };
+    abStartInput.value = 'My Location';
+    abDestInput.value = 'Loop entry';
+    panel.classList.remove('hidden');
+    panel.classList.remove('collapsed');
+    updateGenerateButton();
+    handleGenerateRoute();
+  }
+};
+
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 startNavBtn.addEventListener('click', function () {
@@ -688,6 +824,13 @@ startNavBtn.addEventListener('click', function () {
 });
 
 stopBtn.addEventListener('click', function () {
+  // Capture walk data before state reset
+  const _distKm = navTotalDistKm;
+  const _durationSec = navStartTime ? (Date.now() - navStartTime) / 1000 : 0;
+  const _walkMode = isLoop ? 'loop' : 'ab';
+  const _destName = destination ? destination.name || null : null;
+  const _pending = window._pendingLoopAfterNav || null;
+
   clearInterval(navTimerInterval);
   navTimerInterval = null;
   navStartTime = null;
@@ -708,9 +851,43 @@ stopBtn.addEventListener('click', function () {
   navPanel.classList.add('hidden');
   pinCard.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
-  panel.classList.remove('collapsed');
-  panel.classList.remove('hidden');
   routeDestLabel.classList.add('hidden');
   clearRoute();
   map.setZoom(15);
+
+  // Log the completed walk
+  if (typeof window.onWalkCompleted === 'function') {
+    window.onWalkCompleted(_distKm, _durationSec, _walkMode, _destName);
+  }
+
+  // If a saved loop was pending (user just walked to loop entry), auto-load it
+  if (_pending) {
+    window._pendingLoopAfterNav = null;
+    isLoop = true;
+    loopBtn.classList.add('active');
+    abBtn.classList.remove('active');
+    loopLocationRow.classList.remove('hidden');
+    abLocationRows.classList.add('hidden');
+    avoidRow.classList.remove('hidden');
+    mode = _pending.loopMode;
+    value = _pending.loopValue;
+    timeBtn.classList.toggle('active', _pending.loopMode === 'time');
+    distanceBtn.classList.toggle('active', _pending.loopMode === 'distance');
+    modeRow.classList.remove('hidden');
+    stepRow.classList.remove('hidden');
+    updateStepValue();
+    if (userLocation) {
+      startLocation = userLocation;
+      loopStartInput.value = 'My Location';
+      loopStartInput.disabled = true;
+      placeStartMarker(userLocation.lat, userLocation.lng);
+    }
+    panel.classList.remove('collapsed');
+    panel.classList.remove('hidden');
+    updateGenerateButton();
+    handleGenerateRoute();
+  } else {
+    panel.classList.remove('collapsed');
+    panel.classList.remove('hidden');
+  }
 });

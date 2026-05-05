@@ -720,3 +720,530 @@ body {
   display: none !important;
 }
 
+/* ─── Account Button ──────────────────────────────── */
+
+.account-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #4A90D9;
+  color: white;
+  cursor: pointer;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  padding: 0;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.account-btn:active { opacity: 0.8; }
+
+.account-btn.signed-in { background: #2c3e50; }
+
+.account-btn-initial {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+/* ─── Account Backdrop ────────────────────────────── */
+
+.account-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.account-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ─── Account Panel ───────────────────────────────── */
+
+.account-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(380px, 100vw);
+  background: white;
+  z-index: 1400;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.account-panel.open {
+  transform: translateX(0);
+}
+
+/* ─── Auth View ───────────────────────────────────── */
+
+.auth-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.auth-view-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.auth-view-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.auth-close-btn,
+.auth-back-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.auth-close-btn:active,
+.auth-back-btn:active { opacity: 0.6; }
+
+.auth-view-body {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Auth Form Elements ──────────────────────────── */
+
+.auth-intro {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.auth-input {
+  width: 100%;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.auth-input:focus { border-color: #4A90D9; }
+
+.auth-primary-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4A90D9;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: inherit;
+}
+
+.auth-primary-btn:active { opacity: 0.8; }
+.auth-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-text-btn {
+  background: none;
+  border: none;
+  color: #4A90D9;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  text-align: center;
+  font-family: inherit;
+}
+
+/* ─── Profile View ────────────────────────────────── */
+
+.auth-profile-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+
+.auth-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #4A90D9;
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.auth-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-profile-info { flex: 1; min-width: 0; }
+
+.auth-profile-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-profile-email {
+  font-size: 13px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.auth-tier-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  background: #EBF4FF;
+  color: #4A90D9;
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-top: 4px;
+}
+
+/* ─── Auth Menu ───────────────────────────────────── */
+
+.auth-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-menu-item {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.auth-menu-item:active { background: #f0f0f0; }
+
+.auth-signout-btn {
+  width: 100%;
+  padding: 12px;
+  background: #f5f5f5;
+  color: #333;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s;
+}
+
+.auth-signout-btn:active { opacity: 0.7; }
+
+.auth-delete-btn {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.auth-delete-confirm {
+  background: #fff5f5;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-delete-confirm p { font-size: 14px; color: #333; }
+
+.auth-delete-confirm-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-delete-confirm-btns button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f0f0f0;
+  color: #333;
+  font-family: inherit;
+}
+
+.auth-delete-yes {
+  background: #e74c3c !important;
+  color: white !important;
+}
+
+/* ─── Edit Avatar ─────────────────────────────────── */
+
+.auth-avatar-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-avatar-label {
+  font-size: 14px;
+  color: #4A90D9;
+  cursor: pointer;
+}
+
+/* ─── Auth Placeholder ────────────────────────────── */
+
+.auth-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+}
+
+.auth-placeholder-icon { font-size: 40px; }
+
+.auth-placeholder-text {
+  font-size: 14px;
+  color: #aaa;
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+.auth-loading {
+  font-size: 14px;
+  color: #aaa;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* ─── Saved Locations / Route List Items ──────────── */
+
+.saved-location-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.saved-location-go {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  min-width: 0;
+}
+
+.saved-location-go:active { background: #f0f0f0; }
+
+.saved-location-icon { font-size: 20px; flex-shrink: 0; }
+
+.saved-location-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-location-delete {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #aaa;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.saved-location-delete:active { opacity: 0.6; }
+
+/* ─── Walk History Items ──────────────────────────── */
+
+.walk-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.walk-history-item:last-child { border-bottom: none; }
+.walk-history-icon { font-size: 20px; flex-shrink: 0; }
+.walk-history-info { flex: 1; min-width: 0; }
+
+.walk-history-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.walk-history-meta { font-size: 13px; color: #999; margin-top: 2px; }
+
+/* ─── Stride Stats Grid ───────────────────────────── */
+
+.stride-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+
+.stride-stat-card {
+  background: #f7f9fc;
+  border-radius: 14px;
+  padding: 16px 14px;
+  text-align: center;
+}
+
+.stride-stat-value { font-size: 22px; font-weight: 700; color: #333; }
+.stride-stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+
+/* ─── Saved Route Items ───────────────────────────── */
+
+.saved-route-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.saved-route-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+.saved-routes-note {
+  font-size: 12px;
+  color: #bbb;
+  text-align: center;
+  padding: 16px 8px 4px;
+  line-height: 1.5;
+}
+
+/* ─── Auth Toast ──────────────────────────────────── */
+
+.auth-toast {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2100;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+
+.auth-toast.visible { opacity: 1; }
+
+/* ─── Pin Save Button ─────────────────────────────── */
+
+.pin-save-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #EBF4FF;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.pin-save-btn:active { opacity: 0.7; }
+.pin-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
