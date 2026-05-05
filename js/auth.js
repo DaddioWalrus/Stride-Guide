@@ -135,7 +135,7 @@ document.getElementById('auth-resend-btn').addEventListener('click', async funct
 
 async function handleVerifyCode() {
   const token = document.getElementById('auth-code-input').value.trim();
-  if (token.length !== 6) return;
+  if (token.length < 6) return;
 
   const btn = document.getElementById('auth-verify-btn');
   btn.disabled = true;
@@ -164,9 +164,6 @@ document.getElementById('auth-code-input').addEventListener('keydown', function 
   if (e.key === 'Enter') handleVerifyCode();
 });
 
-document.getElementById('auth-code-input').addEventListener('input', function () {
-  if (this.value.replace(/\D/g, '').length === 6) handleVerifyCode();
-});
 
 // ─── Profile View ──────────────────────────────────────────────────────────────
 
