@@ -891,3 +891,26 @@ stopBtn.addEventListener('click', function () {
     panel.classList.remove('hidden');
   }
 });
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+(function () {
+  var backdrop = document.getElementById('onboarding-backdrop');
+  var card     = document.getElementById('onboarding-card');
+
+  if (!localStorage.getItem('strideGuideSeen')) {
+    backdrop.classList.add('visible');
+    card.classList.add('visible');
+  }
+
+  document.getElementById('onboarding-close').addEventListener('click', function () {
+    backdrop.classList.remove('visible');
+    card.classList.remove('visible');
+  });
+
+  document.getElementById('onboarding-got-it').addEventListener('click', function () {
+    localStorage.setItem('strideGuideSeen', '1');
+    backdrop.classList.remove('visible');
+    card.classList.remove('visible');
+  });
+}());

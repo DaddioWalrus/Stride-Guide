@@ -16,6 +16,7 @@ const authStatsView          = document.getElementById('auth-stats-view');
 const authHistoryView        = document.getElementById('auth-history-view');
 const authSavedRoutesView    = document.getElementById('auth-saved-routes-view');
 const authSavedLocationsView = document.getElementById('auth-saved-locations-view');
+const authHelpView           = document.getElementById('auth-help-view');
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -45,17 +46,18 @@ function closeAccountPanel() {
 
 function showAuthView(view) {
   [authSigninView, authCodeView, authProfileView, authEditView,
-   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView]
+   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView, authHelpView]
     .forEach(function (v) { v.classList.add('hidden'); });
 
-  if (view === 'signin')              authSigninView.classList.remove('hidden');
-  else if (view === 'code')           authCodeView.classList.remove('hidden');
-  else if (view === 'profile')        { authProfileView.classList.remove('hidden'); renderProfile(); }
-  else if (view === 'edit')           { authEditView.classList.remove('hidden'); renderEditView(); }
-  else if (view === 'stats')          { authStatsView.classList.remove('hidden'); loadStrideStats(); }
-  else if (view === 'history')        { authHistoryView.classList.remove('hidden'); loadWalkHistory(); }
-  else if (view === 'saved-routes')   { authSavedRoutesView.classList.remove('hidden'); loadSavedRoutes(); }
+  if (view === 'signin')               authSigninView.classList.remove('hidden');
+  else if (view === 'code')            authCodeView.classList.remove('hidden');
+  else if (view === 'profile')         { authProfileView.classList.remove('hidden'); renderProfile(); }
+  else if (view === 'edit')            { authEditView.classList.remove('hidden'); renderEditView(); }
+  else if (view === 'stats')           { authStatsView.classList.remove('hidden'); loadStrideStats(); }
+  else if (view === 'history')         { authHistoryView.classList.remove('hidden'); loadWalkHistory(); }
+  else if (view === 'saved-routes')    { authSavedRoutesView.classList.remove('hidden'); loadSavedRoutes(); }
   else if (view === 'saved-locations') { authSavedLocationsView.classList.remove('hidden'); loadSavedLocations(); }
+  else if (view === 'help')            authHelpView.classList.remove('hidden');
 }
 
 // ─── Button Wiring ─────────────────────────────────────────────────────────────
@@ -77,15 +79,17 @@ document.getElementById('auth-history-btn').addEventListener('click', function (
 document.getElementById('auth-saved-routes-btn').addEventListener('click', function () { showAuthView('saved-routes'); });
 document.getElementById('auth-saved-locations-btn').addEventListener('click', function () { showAuthView('saved-locations'); });
 
-['auth-stats-back-btn', 'auth-history-back-btn', 'auth-saved-routes-back-btn', 'auth-saved-locations-back-btn']
+['auth-stats-back-btn', 'auth-history-back-btn', 'auth-saved-routes-back-btn', 'auth-saved-locations-back-btn', 'auth-help-back-btn']
   .forEach(function (id) {
     document.getElementById(id).addEventListener('click', function () { showAuthView('profile'); });
   });
 
-['auth-stats-close-btn', 'auth-history-close-btn', 'auth-saved-routes-close-btn', 'auth-saved-locations-close-btn']
+['auth-stats-close-btn', 'auth-history-close-btn', 'auth-saved-routes-close-btn', 'auth-saved-locations-close-btn', 'auth-help-close-btn']
   .forEach(function (id) {
     document.getElementById(id).addEventListener('click', closeAccountPanel);
   });
+
+document.getElementById('auth-help-btn').addEventListener('click', function () { showAuthView('help'); });
 
 // ─── Account Button Appearance ─────────────────────────────────────────────────
 

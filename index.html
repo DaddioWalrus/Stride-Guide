@@ -92,6 +92,7 @@
             <button class="auth-menu-item" id="auth-edit-profile-btn">✏️ Edit Profile</button>
           </div>
           <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
+          <button class="auth-help-link" id="auth-help-btn">❓ How it works</button>
           <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
           <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
             <p>Are you sure? This cannot be undone.</p>
@@ -184,6 +185,37 @@
           <div class="auth-placeholder hidden" id="saved-locations-empty">
             <div class="auth-placeholder-icon">📍</div>
             <p class="auth-placeholder-text">Tap the bookmark on a pin to save a place here.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 9: Help -->
+      <div id="auth-help-view" class="auth-view hidden">
+        <div class="auth-view-header">
+          <button class="auth-back-btn" id="auth-help-back-btn">←</button>
+          <div class="auth-view-title">How it works</div>
+          <button class="auth-close-btn" id="auth-help-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div class="help-row">
+            <span class="help-icon">🔄</span>
+            <div class="help-text"><strong>Loop</strong> — Pick a start, choose a time or distance, and generate a circular walking route.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">↗️</span>
+            <div class="help-text"><strong>A→B</strong> — Enter a start and destination to get walking directions.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">📍</span>
+            <div class="help-text">Tap <strong>📍</strong> to use your current location. Tap and hold the map to drop a pin.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">🔖</span>
+            <div class="help-text">Tap <strong>🔖</strong> on a generated route or map pin to save it to your account.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">↺</span>
+            <div class="help-text">On a loop route, tap <strong>↺</strong> to instantly reverse the direction of travel.</div>
           </div>
         </div>
       </div>
@@ -339,6 +371,28 @@
 
     <!-- Arrival toast -->
     <div id="arrival-toast"></div>
+
+    <!-- Onboarding Card -->
+    <div id="onboarding-backdrop" class="onboarding-backdrop"></div>
+    <div id="onboarding-card" class="onboarding-card">
+      <button class="onboarding-close" id="onboarding-close">✕</button>
+      <div class="onboarding-title">Welcome to Stride Guide</div>
+      <div class="onboarding-rows">
+        <div class="onboarding-row">
+          <span class="onboarding-icon">🔄</span>
+          <div class="onboarding-text"><strong>Loop</strong> — Pick a start, choose a time or distance, and generate a circular walking route.</div>
+        </div>
+        <div class="onboarding-row">
+          <span class="onboarding-icon">↗️</span>
+          <div class="onboarding-text"><strong>A→B</strong> — Enter a start and destination to get walking directions.</div>
+        </div>
+        <div class="onboarding-row">
+          <span class="onboarding-icon">📍</span>
+          <div class="onboarding-text">Tap <strong>📍</strong> to use your current location. Tap and hold the map to drop a pin.</div>
+        </div>
+      </div>
+      <button class="onboarding-got-it" id="onboarding-got-it">Got it, don't show again</button>
+    </div>
 
     <!-- Scripts — order matters! -->
     <script>window.ORS_API_KEY = '%ORS_API_KEY%';</script>
