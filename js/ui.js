@@ -434,6 +434,10 @@ window.onPinDropped = async function (lat, lng) {
   pinRouteResult = null;
   pinRoutePromise = null;
 
+  const saveBtn = document.getElementById('pin-save-btn');
+  saveBtn.textContent = '🔖';
+  saveBtn.disabled = false;
+
   pinTimeEl.textContent = '-- min';
   pinLocationName.textContent = 'Locating...';
 
@@ -477,6 +481,12 @@ pinCloseBtn.addEventListener('click', function () {
   clearPinMarker();
   pinLat = null; pinLng = null; pinName = null;
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
+});
+
+document.getElementById('pin-save-btn').addEventListener('click', function () {
+  if (typeof window.onSaveLocationRequest === 'function') {
+    window.onSaveLocationRequest(pinLat, pinLng, pinName);
+  }
 });
 
 pinDirectionsBtn.addEventListener('click', async function () {

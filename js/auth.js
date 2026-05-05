@@ -5,13 +5,17 @@ let codeEmail = '';
 
 // ─── Element References ────────────────────────────────────────────────────────
 
-const accountBtn      = document.getElementById('account-btn');
-const accountBackdrop = document.getElementById('account-backdrop');
-const accountPanel    = document.getElementById('account-panel');
-const authSigninView  = document.getElementById('auth-signin-view');
-const authCodeView    = document.getElementById('auth-code-view');
-const authProfileView = document.getElementById('auth-profile-view');
-const authEditView    = document.getElementById('auth-edit-view');
+const accountBtn             = document.getElementById('account-btn');
+const accountBackdrop        = document.getElementById('account-backdrop');
+const accountPanel           = document.getElementById('account-panel');
+const authSigninView         = document.getElementById('auth-signin-view');
+const authCodeView           = document.getElementById('auth-code-view');
+const authProfileView        = document.getElementById('auth-profile-view');
+const authEditView           = document.getElementById('auth-edit-view');
+const authStatsView          = document.getElementById('auth-stats-view');
+const authHistoryView        = document.getElementById('auth-history-view');
+const authSavedRoutesView    = document.getElementById('auth-saved-routes-view');
+const authSavedLocationsView = document.getElementById('auth-saved-locations-view');
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
@@ -28,14 +32,18 @@ function closeAccountPanel() {
 }
 
 function showAuthView(view) {
-  authSigninView.classList.add('hidden');
-  authCodeView.classList.add('hidden');
-  authProfileView.classList.add('hidden');
-  authEditView.classList.add('hidden');
-  if (view === 'signin')       authSigninView.classList.remove('hidden');
-  else if (view === 'code')    authCodeView.classList.remove('hidden');
-  else if (view === 'profile') { authProfileView.classList.remove('hidden'); renderProfile(); }
-  else if (view === 'edit')    { authEditView.classList.remove('hidden'); renderEditView(); }
+  [authSigninView, authCodeView, authProfileView, authEditView,
+   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView]
+    .forEach(function (v) { v.classList.add('hidden'); });
+
+  if (view === 'signin')             authSigninView.classList.remove('hidden');
+  else if (view === 'code')          authCodeView.classList.remove('hidden');
+  else if (view === 'profile')       { authProfileView.classList.remove('hidden'); renderProfile(); }
+  else if (view === 'edit')          { authEditView.classList.remove('hidden'); renderEditView(); }
+  else if (view === 'stats')         authStatsView.classList.remove('hidden');
+  else if (view === 'history')       authHistoryView.classList.remove('hidden');
+  else if (view === 'saved-routes')  authSavedRoutesView.classList.remove('hidden');
+  else if (view === 'saved-locations') { authSavedLocationsView.classList.remove('hidden'); loadSavedLocations(); }
 }
 
 // ─── Button Wiring ─────────────────────────────────────────────────────────────
@@ -57,6 +65,21 @@ document.getElementById('auth-edit-back-btn').addEventListener('click', function
 document.getElementById('auth-edit-profile-btn').addEventListener('click', function () {
   showAuthView('edit');
 });
+
+document.getElementById('auth-stats-btn').addEventListener('click', function () { showAuthView('stats'); });
+document.getElementById('auth-history-btn').addEventListener('click', function () { showAuthView('history'); });
+document.getElementById('auth-saved-routes-btn').addEventListener('click', function () { showAuthView('saved-routes'); });
+document.getElementById('auth-saved-locations-btn').addEventListener('click', function () { showAuthView('saved-locations'); });
+
+['auth-stats-back-btn', 'auth-history-back-btn', 'auth-saved-routes-back-btn', 'auth-saved-locations-back-btn']
+  .forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function () { showAuthView('profile'); });
+  });
+
+['auth-stats-close-btn', 'auth-history-close-btn', 'auth-saved-routes-close-btn', 'auth-saved-locations-close-btn']
+  .forEach(function (id) {
+    document.getElementById(id).addEventListener('click', closeAccountPanel);
+  });
 
 // ─── Account Button Appearance ─────────────────────────────────────────────────
 
@@ -163,7 +186,6 @@ document.getElementById('auth-verify-btn').addEventListener('click', handleVerif
 document.getElementById('auth-code-input').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleVerifyCode();
 });
-
 
 // ─── Profile View ──────────────────────────────────────────────────────────────
 
@@ -286,6 +308,80 @@ document.getElementById('auth-delete-yes-btn').addEventListener('click', async f
   await sbClient.auth.signOut();
   closeAccountPanel();
 });
+
+// ─── Saved Locations ───────────────────────────────────────────────────────────
+
+window.onSaveLocationRequest = async function (lat, lng, name) {
+  if (!currentUser) { showError('Sign in to save places'); return; }
+  const btn = document.getElementById('pin-save-btn');
+  btn.disabled = true;
+  const { error } = await sbClient.from('saved_locations')
+    .insert({ user_id: currentUser.id, name: name || 'Saved place', lat, lng });
+  if (error) {
+    showError('Could not save place');
+    btn.disabled = false;
+  } else {
+    btn.textContent = '✓';
+    setTimeout(function () { btn.textContent = '🔖'; btn.disabled = false; }, 2000);
+  }
+};
+
+async function loadSavedLocations() {
+  const listEl  = document.getElementById('saved-locations-list');
+  const emptyEl = document.getElementById('saved-locations-empty');
+  listEl.innerHTML = '<p class="auth-loading">Loading...</p>';
+
+  const { data, error } = await sbClient.from('saved_locations')
+    .select('*').eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  listEl.innerHTML = '';
+  if (error) { showError('Could not load saved places'); return; }
+
+  if (!data || data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+  emptyEl.classList.add('hidden');
+
+  data.forEach(function (loc) {
+    const item = document.createElement('div');
+    item.className = 'saved-location-item';
+    item.innerHTML = `
+      <button class="saved-location-go" data-lat="${loc.lat}" data-lng="${loc.lng}" data-name="${escapeHtml(loc.name)}">
+        <span class="saved-location-icon">📍</span>
+        <span class="saved-location-name">${escapeHtml(loc.name)}</span>
+      </button>
+      <button class="saved-location-delete" data-id="${loc.id}">✕</button>`;
+    listEl.appendChild(item);
+  });
+
+  listEl.querySelectorAll('.saved-location-go').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      closeAccountPanel();
+      const lat = parseFloat(this.dataset.lat);
+      const lng = parseFloat(this.dataset.lng);
+      placePinMarker(lat, lng);
+      map.flyTo([lat, lng], 16, { duration: 1 });
+      if (typeof window.onPinDropped === 'function') window.onPinDropped(lat, lng);
+    });
+  });
+
+  listEl.querySelectorAll('.saved-location-delete').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      await sbClient.from('saved_locations').delete()
+        .eq('id', this.dataset.id).eq('user_id', currentUser.id);
+      const item = this.closest('.saved-location-item');
+      item.remove();
+      if (listEl.children.length === 0) emptyEl.classList.remove('hidden');
+    });
+  });
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 // ─── Session ───────────────────────────────────────────────────────────────────
 
