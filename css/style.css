@@ -4,17 +4,21 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 
 /* ─── Map ─────────────────────────────────────────── */
 
 #map {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
 }
 
 /* ─── Leaflet overrides ───────────────────────────── */
@@ -642,13 +646,14 @@ button {
 #loop-regen-btn {
   position: fixed;
   right: 20px;
-  bottom: 150px;
+  bottom: 206px;
   z-index: 1050;
 }
 
 #nav-recentre-btn {
   position: fixed;
-  left: 20px;
+  right: 20px;
+  bottom: 150px;
   z-index: 1050;
 }
 
@@ -1604,4 +1609,26 @@ button {
 }
 
 .auth-help-link:active { color: #4A90D9; }
+
+/* ─── Account Landing (signed-out) ───────────────── */
+
+.auth-landing-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 8px;
+  text-align: center;
+  gap: 14px;
+}
+
+.auth-landing-icon {
+  font-size: 52px;
+}
+
+.auth-landing-text {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.55;
+  max-width: 280px;
+}
 

@@ -96,13 +96,7 @@ const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel'];
 
 function positionRecentreBtn() {
-  const ids = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel', 'pin-card'];
-  let h = 0;
-  for (const id of ids) {
-    const el = document.getElementById(id);
-    if (el && !el.classList.contains('hidden')) { h = el.offsetHeight; break; }
-  }
-  navRecentreBtn.style.bottom = (64 + h + 10) + 'px';
+  // position is fixed via CSS (right: 20px, bottom: 150px)
 }
 
 function showPhase(id) {

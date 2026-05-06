@@ -8,6 +8,7 @@ let codeEmail = '';
 const accountBtn             = document.getElementById('account-btn');
 const accountBackdrop        = document.getElementById('account-backdrop');
 const accountPanel           = document.getElementById('account-panel');
+const authLandingView        = document.getElementById('auth-landing-view');
 const authSigninView         = document.getElementById('auth-signin-view');
 const authCodeView           = document.getElementById('auth-code-view');
 const authProfileView        = document.getElementById('auth-profile-view');
@@ -23,7 +24,7 @@ const authHelpView           = document.getElementById('auth-help-view');
 function openAccountPanel() {
   accountBackdrop.classList.add('open');
   accountPanel.classList.add('open');
-  showAuthView(currentUser ? 'profile' : 'signin');
+  showAuthView(currentUser ? 'profile' : 'landing');
 }
 
 function closeAccountPanel() {
@@ -33,11 +34,12 @@ function closeAccountPanel() {
 }
 
 function showAuthView(view) {
-  [authSigninView, authCodeView, authProfileView, authEditView,
+  [authLandingView, authSigninView, authCodeView, authProfileView, authEditView,
    authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView, authHelpView]
     .forEach(function (v) { v.classList.add('hidden'); });
 
-  if (view === 'signin')             authSigninView.classList.remove('hidden');
+  if (view === 'landing')            authLandingView.classList.remove('hidden');
+  else if (view === 'signin')        authSigninView.classList.remove('hidden');
   else if (view === 'code')          authCodeView.classList.remove('hidden');
   else if (view === 'profile')       { authProfileView.classList.remove('hidden'); renderProfile(); }
   else if (view === 'edit')          { authEditView.classList.remove('hidden'); renderEditView(); }
@@ -52,6 +54,9 @@ function showAuthView(view) {
 
 accountBtn.addEventListener('click', openAccountPanel);
 accountBackdrop.addEventListener('click', closeAccountPanel);
+
+document.getElementById('auth-landing-close-btn').addEventListener('click', closeAccountPanel);
+document.getElementById('auth-landing-signin-btn').addEventListener('click', function () { showAuthView('signin'); });
 
 document.getElementById('auth-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-code-close-btn').addEventListener('click', closeAccountPanel);
@@ -131,7 +136,12 @@ async function handleSendCode() {
     document.getElementById('auth-code-input').value = '';
     showAuthView('code');
   } catch (err) {
-    showError(err.message);
+    const msg = (err.message || '').toLowerCase();
+    if (msg.includes('email') || msg.includes('smtp') || msg.includes('sending')) {
+      showError('Could not send code — check Supabase SMTP settings');
+    } else {
+      showError(err.message || 'Could not send code — please try again');
+    }
   }
 
   btn.disabled = false;
@@ -184,7 +194,7 @@ async function handleVerifyCode() {
     return;
   }
 
-  closeAccountPanel();
+  showAuthView('profile');
 }
 
 document.getElementById('auth-verify-btn').addEventListener('click', handleVerifyCode);

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover" />
     <title>Stride Guide</title>
 
     <!-- PWA support -->
@@ -37,8 +37,21 @@
     <div id="account-panel">
       <div class="auth-handle"></div>
 
+      <!-- View 0: Landing (not signed in) -->
+      <div id="auth-landing-view">
+        <div class="auth-header">
+          <span class="auth-title">Account</span>
+          <button class="auth-close-btn" id="auth-landing-close-btn">✕</button>
+        </div>
+        <div class="auth-landing-body">
+          <div class="auth-landing-icon">🚶</div>
+          <p class="auth-landing-text">Sign in to save routes, track your walks, and view your stats.</p>
+          <button class="primary-btn full-btn" id="auth-landing-signin-btn">Sign in with email</button>
+        </div>
+      </div>
+
       <!-- View 1: Sign in -->
-      <div id="auth-signin-view">
+      <div id="auth-signin-view" class="hidden">
         <div class="auth-header">
           <span class="auth-title">Sign in to Stride Guide</span>
           <button class="auth-close-btn" id="auth-close-btn">✕</button>
