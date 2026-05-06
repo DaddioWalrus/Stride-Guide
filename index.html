@@ -99,6 +99,7 @@
         </div>
 
         <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
+        <button class="auth-help-link" id="auth-help-btn">❓ How it works</button>
         <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
         <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
           <p>Are you sure? This cannot be undone.</p>
@@ -126,43 +127,50 @@
         <button class="primary-btn full-btn" id="auth-save-btn">Save changes</button>
       </div>
 
-      <!-- View 5: Stride Stats (placeholder) -->
+      <!-- View 5: Stride Stats -->
       <div id="auth-stats-view" class="hidden">
         <div class="auth-header">
           <button class="auth-back-btn" id="auth-stats-back-btn">←</button>
           <span class="auth-title">Stride Stats</span>
           <button class="auth-close-btn" id="auth-stats-close-btn">✕</button>
         </div>
-        <div class="auth-placeholder">
+        <div id="stats-loading" class="auth-loading">Loading...</div>
+        <div id="stats-empty" class="auth-placeholder hidden">
           <div class="auth-placeholder-icon">📊</div>
-          <p class="auth-placeholder-text">Your walking stats will appear here once you've completed some walks.</p>
+          <p class="auth-placeholder-text">Complete your first walk to see stats here.</p>
         </div>
+        <div id="stats-grid" class="stat-grid hidden"></div>
       </div>
 
-      <!-- View 6: Walk History (placeholder) -->
+      <!-- View 6: Walk History -->
       <div id="auth-history-view" class="hidden">
         <div class="auth-header">
           <button class="auth-back-btn" id="auth-history-back-btn">←</button>
           <span class="auth-title">Walk History</span>
           <button class="auth-close-btn" id="auth-history-close-btn">✕</button>
         </div>
-        <div class="auth-placeholder">
+        <div id="history-loading" class="auth-loading">Loading...</div>
+        <div id="history-list"></div>
+        <div id="history-empty" class="auth-placeholder hidden">
           <div class="auth-placeholder-icon">🕐</div>
           <p class="auth-placeholder-text">Your completed walks will be logged here automatically.</p>
         </div>
       </div>
 
-      <!-- View 7: Saved Routes (placeholder) -->
+      <!-- View 7: Saved Routes -->
       <div id="auth-saved-routes-view" class="hidden">
         <div class="auth-header">
           <button class="auth-back-btn" id="auth-saved-routes-back-btn">←</button>
           <span class="auth-title">Saved Routes</span>
           <button class="auth-close-btn" id="auth-saved-routes-close-btn">✕</button>
         </div>
-        <div class="auth-placeholder">
+        <div id="saved-routes-loading" class="auth-loading">Loading...</div>
+        <div id="saved-routes-list"></div>
+        <div id="saved-routes-empty" class="auth-placeholder hidden">
           <div class="auth-placeholder-icon">🗺️</div>
-          <p class="auth-placeholder-text">Routes you save will appear here so you can repeat them.</p>
+          <p class="auth-placeholder-text">Tap 🔖 after generating a route to save it here.</p>
         </div>
+        <p class="saved-routes-note hidden" id="saved-routes-note">Move to the route start to activate it.</p>
       </div>
 
       <!-- View 8: Saved Places (functional) -->
@@ -176,6 +184,37 @@
         <div class="auth-placeholder hidden" id="saved-locations-empty">
           <div class="auth-placeholder-icon">📍</div>
           <p class="auth-placeholder-text">Tap anywhere on the map, then tap the bookmark to save that place.</p>
+        </div>
+      </div>
+
+      <!-- View 9: Help -->
+      <div id="auth-help-view" class="hidden">
+        <div class="auth-header">
+          <button class="auth-back-btn" id="auth-help-back-btn">←</button>
+          <span class="auth-title">How it works</span>
+          <button class="auth-close-btn" id="auth-help-close-btn">✕</button>
+        </div>
+        <div class="auth-view-body">
+          <div class="help-row">
+            <span class="help-icon">🔄</span>
+            <div class="help-text"><strong>Loop</strong> — Pick a distance or time, and generate a circular walking route.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">↗️</span>
+            <div class="help-text"><strong>A→B</strong> — Search a destination to get walking directions.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">📍</span>
+            <div class="help-text">Tap <strong>📍</strong> to use your location. Tap and hold the map to drop a pin.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">🔖</span>
+            <div class="help-text">Tap <strong>🔖</strong> on a generated route or map pin to save it to your account.</div>
+          </div>
+          <div class="help-row">
+            <span class="help-icon">↺</span>
+            <div class="help-text">On a loop route, tap <strong>↺</strong> to instantly reverse the direction of travel.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -241,6 +280,9 @@
     <!-- Loop regenerate button (floats above route-panel, loop mode only) -->
     <button class="primary-btn green-btn hidden" id="loop-regen-btn">New Route</button>
 
+    <!-- Loop direction reverse (floats above route-panel, loop mode only) -->
+    <button class="hidden" id="loop-reverse-btn">↺</button>
+
     <!-- Re-centre button (floats left, any context, shown when map is panned) -->
     <button class="primary-btn green-btn hidden" id="nav-recentre-btn">Re-centre</button>
 
@@ -255,6 +297,7 @@
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="route-back">←</button>
+        <button class="route-save-btn" id="route-save-btn" title="Save this route">🔖</button>
         <button class="primary-btn green-btn" id="start-btn">Start</button>
       </div>
     </div>
@@ -319,6 +362,28 @@
     <div id="mode-bar">
       <button class="mode-tab active" id="ab-tab">A→B</button>
       <button class="mode-tab" id="loop-tab">Loop</button>
+    </div>
+
+    <!-- Onboarding Card -->
+    <div id="onboarding-backdrop" class="onboarding-backdrop"></div>
+    <div id="onboarding-card" class="onboarding-card">
+      <button class="onboarding-close" id="onboarding-close">✕</button>
+      <div class="onboarding-title">Welcome to Stride Guide</div>
+      <div class="onboarding-rows">
+        <div class="onboarding-row">
+          <span class="onboarding-icon">🔄</span>
+          <div class="onboarding-text"><strong>Loop</strong> — Pick a distance or time, and generate a circular walking route.</div>
+        </div>
+        <div class="onboarding-row">
+          <span class="onboarding-icon">↗️</span>
+          <div class="onboarding-text"><strong>A→B</strong> — Search a destination to get walking directions.</div>
+        </div>
+        <div class="onboarding-row">
+          <span class="onboarding-icon">📍</span>
+          <div class="onboarding-text">Tap <strong>📍</strong> to use your location. Tap and hold the map to drop a pin.</div>
+        </div>
+      </div>
+      <button class="onboarding-got-it" id="onboarding-got-it">Got it, don't show again</button>
     </div>
 
     <!-- Scripts — order matters! -->

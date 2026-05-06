@@ -1347,4 +1347,261 @@ button {
   display: none !important;
 }
 
+/* ─── Walk History ────────────────────────────────── */
+
+.walk-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.walk-item:last-child { border-bottom: none; }
+.walk-date { font-size: 14px; color: #333; font-weight: 600; }
+.walk-stats { display: flex; align-items: center; gap: 10px; }
+.walk-stat { font-size: 13px; color: #777; }
+.walk-mode { font-size: 16px; }
+
+/* ─── Stride Stats ────────────────────────────────── */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.stat-card {
+  background: #f8f8f8;
+  border-radius: 14px;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Saved Routes ────────────────────────────────── */
+
+.saved-route-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.saved-route-item:last-child { border-bottom: none; }
+
+.saved-route-go {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.saved-route-far { opacity: 0.45; cursor: default; }
+.saved-route-icon { font-size: 20px; flex-shrink: 0; }
+.saved-route-info { display: flex; flex-direction: column; gap: 2px; }
+.saved-route-name { font-size: 15px; color: #333; font-weight: 500; }
+.saved-route-dist { font-size: 13px; color: #999; }
+
+.saved-routes-note {
+  font-size: 12px;
+  color: #aaa;
+  text-align: center;
+  padding: 8px 0 0;
+}
+
+/* ─── Route Save Button ───────────────────────────── */
+
+.route-save-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f0f0;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.route-save-btn:active { opacity: 0.6; }
+.route-save-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ─── Loop Reverse Button ─────────────────────────── */
+
+#loop-reverse-btn {
+  position: fixed;
+  left: 20px;
+  bottom: 150px;
+  z-index: 1050;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 20px;
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Onboarding Card ─────────────────────────────── */
+
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.onboarding-backdrop.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.onboarding-card {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 20px;
+  padding: 22px 20px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  z-index: 2300;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.onboarding-card.visible {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.onboarding-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.onboarding-close:active { opacity: 0.6; }
+
+.onboarding-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+  padding-right: 32px;
+}
+
+.onboarding-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.onboarding-row { display: flex; align-items: flex-start; gap: 12px; }
+.onboarding-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.onboarding-text { font-size: 14px; color: #555; line-height: 1.5; }
+.onboarding-text strong { color: #333; }
+
+.onboarding-got-it {
+  width: 100%;
+  padding: 13px;
+  background: #4A90D9;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: inherit;
+}
+
+.onboarding-got-it:active { opacity: 0.8; }
+
+/* ─── Help View ───────────────────────────────────── */
+
+.auth-view-body {
+  padding: 4px 0;
+}
+
+.help-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.help-row:last-child { border-bottom: none; }
+.help-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.help-text { font-size: 15px; color: #555; line-height: 1.5; }
+.help-text strong { color: #333; }
+
+/* ─── Help Link Button ────────────────────────────── */
+
+.auth-help-link {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  text-align: center;
+  font-family: inherit;
+  width: 100%;
+  transition: color 0.15s;
+  display: block;
+  margin-bottom: 4px;
+  touch-action: manipulation;
+}
+
+.auth-help-link:active { color: #4A90D9; }
 

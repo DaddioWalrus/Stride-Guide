@@ -16,6 +16,7 @@ const authStatsView          = document.getElementById('auth-stats-view');
 const authHistoryView        = document.getElementById('auth-history-view');
 const authSavedRoutesView    = document.getElementById('auth-saved-routes-view');
 const authSavedLocationsView = document.getElementById('auth-saved-locations-view');
+const authHelpView           = document.getElementById('auth-help-view');
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
@@ -33,17 +34,18 @@ function closeAccountPanel() {
 
 function showAuthView(view) {
   [authSigninView, authCodeView, authProfileView, authEditView,
-   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView]
+   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView, authHelpView]
     .forEach(function (v) { v.classList.add('hidden'); });
 
   if (view === 'signin')             authSigninView.classList.remove('hidden');
   else if (view === 'code')          authCodeView.classList.remove('hidden');
   else if (view === 'profile')       { authProfileView.classList.remove('hidden'); renderProfile(); }
   else if (view === 'edit')          { authEditView.classList.remove('hidden'); renderEditView(); }
-  else if (view === 'stats')         authStatsView.classList.remove('hidden');
-  else if (view === 'history')       authHistoryView.classList.remove('hidden');
-  else if (view === 'saved-routes')  authSavedRoutesView.classList.remove('hidden');
+  else if (view === 'stats')         { authStatsView.classList.remove('hidden');       loadStrideStats(); }
+  else if (view === 'history')       { authHistoryView.classList.remove('hidden');     loadWalkHistory(); }
+  else if (view === 'saved-routes')  { authSavedRoutesView.classList.remove('hidden'); loadSavedRoutes(); }
   else if (view === 'saved-locations') { authSavedLocationsView.classList.remove('hidden'); loadSavedLocations(); }
+  else if (view === 'help')          authHelpView.classList.remove('hidden');
 }
 
 // ─── Button Wiring ─────────────────────────────────────────────────────────────
@@ -80,6 +82,10 @@ document.getElementById('auth-saved-locations-btn').addEventListener('click', fu
   .forEach(function (id) {
     document.getElementById(id).addEventListener('click', closeAccountPanel);
   });
+
+document.getElementById('auth-help-btn').addEventListener('click', function () { showAuthView('help'); });
+document.getElementById('auth-help-back-btn').addEventListener('click', function () { showAuthView('profile'); });
+document.getElementById('auth-help-close-btn').addEventListener('click', closeAccountPanel);
 
 // ─── Account Button Appearance ─────────────────────────────────────────────────
 
@@ -369,6 +375,209 @@ async function loadSavedLocations() {
       await sbClient.from('saved_locations').delete()
         .eq('id', this.dataset.id).eq('user_id', currentUser.id);
       const item = this.closest('.saved-location-item');
+      item.remove();
+      if (listEl.children.length === 0) emptyEl.classList.remove('hidden');
+    });
+  });
+}
+
+// ─── Walk Logging ──────────────────────────────────────────────────────────────
+
+window.onWalkCompleted = async function (walk) {
+  if (!currentUser) return;
+  await sbClient.from('walk_history').insert({
+    user_id:      currentUser.id,
+    dist_km:      Math.round(walk.distKm * 100) / 100,
+    duration_sec: Math.round(walk.durationSec),
+    mode:         walk.mode,
+    walked_at:    new Date().toISOString(),
+  });
+};
+
+// ─── Walk History ──────────────────────────────────────────────────────────────
+
+async function loadWalkHistory() {
+  const listEl  = document.getElementById('history-list');
+  const emptyEl = document.getElementById('history-empty');
+  const loadEl  = document.getElementById('history-loading');
+  listEl.innerHTML = '';
+  emptyEl.classList.add('hidden');
+  loadEl.classList.remove('hidden');
+
+  const { data, error } = await sbClient.from('walk_history')
+    .select('*').eq('user_id', currentUser.id)
+    .order('walked_at', { ascending: false })
+    .limit(50);
+
+  loadEl.classList.add('hidden');
+  if (error) { showError('Could not load walk history'); return; }
+  if (!data || data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+
+  data.forEach(function (w) {
+    const date  = new Date(w.walked_at);
+    const label = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const km    = w.dist_km.toFixed(2);
+    const mins  = Math.round(w.duration_sec / 60);
+    const item  = document.createElement('div');
+    item.className = 'walk-item';
+    item.innerHTML = `
+      <div class="walk-date">${label}</div>
+      <div class="walk-stats">
+        <span class="walk-stat">${km} km</span>
+        <span class="walk-stat">${mins} min</span>
+        <span class="walk-mode">${w.mode === 'loop' ? '🔄' : '↗️'}</span>
+      </div>`;
+    listEl.appendChild(item);
+  });
+}
+
+// ─── Stride Stats ──────────────────────────────────────────────────────────────
+
+async function loadStrideStats() {
+  const gridEl  = document.getElementById('stats-grid');
+  const emptyEl = document.getElementById('stats-empty');
+  const loadEl  = document.getElementById('stats-loading');
+  gridEl.classList.add('hidden');
+  emptyEl.classList.add('hidden');
+  loadEl.classList.remove('hidden');
+
+  const { data, error } = await sbClient.from('walk_history')
+    .select('dist_km, duration_sec, walked_at')
+    .eq('user_id', currentUser.id);
+
+  loadEl.classList.add('hidden');
+  if (error) { showError('Could not load stats'); return; }
+  if (!data || data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+
+  const totalKm   = data.reduce(function (s, w) { return s + w.dist_km; }, 0);
+  const totalMins = Math.round(data.reduce(function (s, w) { return s + w.duration_sec; }, 0) / 60);
+  const longestKm = Math.max.apply(null, data.map(function (w) { return w.dist_km; }));
+  const weekAgo   = Date.now() - 7 * 24 * 3600 * 1000;
+  const weekKm    = data
+    .filter(function (w) { return new Date(w.walked_at).getTime() >= weekAgo; })
+    .reduce(function (s, w) { return s + w.dist_km; }, 0);
+
+  const stats = [
+    { label: 'Total distance', value: totalKm.toFixed(1) + ' km' },
+    { label: 'Total walks',    value: String(data.length) },
+    { label: 'Longest walk',   value: longestKm.toFixed(2) + ' km' },
+    { label: 'This week',      value: weekKm.toFixed(1) + ' km' },
+    { label: 'Time on feet',   value: totalMins + ' min' },
+  ];
+
+  gridEl.innerHTML = '';
+  stats.forEach(function (s) {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.innerHTML = `<div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div>`;
+    gridEl.appendChild(card);
+  });
+  gridEl.classList.remove('hidden');
+}
+
+// ─── Saved Routes ──────────────────────────────────────────────────────────────
+
+window.onSaveRouteRequest = async function (route) {
+  if (!currentUser) { showError('Sign in to save routes'); return; }
+  const btn = document.getElementById('route-save-btn');
+  btn.disabled = true;
+  const { error } = await sbClient.from('saved_routes').insert({
+    user_id:         currentUser.id,
+    name:            route.name,
+    mode:            route.mode,
+    coords:          route.coords,
+    dist_km:         Math.round(route.distKm * 100) / 100,
+    loop_mode:       route.loopMode || null,
+    loop_value:      route.loopValue || null,
+    loop_use_metric: route.loopUseMetric !== false,
+    dest_lat:        route.destLat || null,
+    dest_lng:        route.destLng || null,
+    start_lat:       route.startLat || null,
+    start_lng:       route.startLng || null,
+  });
+  if (error) {
+    showError('Could not save route');
+    btn.disabled = false;
+  } else {
+    btn.textContent = '✓';
+    setTimeout(function () { btn.textContent = '🔖'; btn.disabled = false; }, 2000);
+  }
+};
+
+function isRouteNearby(route, userLoc) {
+  if (!userLoc) return false;
+  if (route.mode === 'ab' && route.start_lat) {
+    return haversineKm(userLoc.lat, userLoc.lng, route.start_lat, route.start_lng) <= 0.5;
+  }
+  if (route.mode === 'loop' && route.coords && route.coords.length) {
+    return route.coords.some(function (c) {
+      return haversineKm(userLoc.lat, userLoc.lng, c[0], c[1]) <= 0.5;
+    });
+  }
+  return false;
+}
+
+async function loadSavedRoutes() {
+  const listEl  = document.getElementById('saved-routes-list');
+  const emptyEl = document.getElementById('saved-routes-empty');
+  const loadEl  = document.getElementById('saved-routes-loading');
+  const noteEl  = document.getElementById('saved-routes-note');
+  listEl.innerHTML = '';
+  emptyEl.classList.add('hidden');
+  noteEl.classList.add('hidden');
+  loadEl.classList.remove('hidden');
+
+  const { data, error } = await sbClient.from('saved_routes')
+    .select('*').eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  loadEl.classList.add('hidden');
+  if (error) { showError('Could not load saved routes'); return; }
+  if (!data || data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+
+  const userLoc = (typeof userLocation !== 'undefined') ? userLocation : null;
+  let anyNearby = false;
+
+  data.forEach(function (route) {
+    const nearby = isRouteNearby(route, userLoc);
+    if (nearby) anyNearby = true;
+    const km   = route.dist_km ? route.dist_km.toFixed(1) + ' km' : '';
+    const icon = route.mode === 'loop' ? '🔄' : '↗️';
+    const item = document.createElement('div');
+    item.className = 'saved-route-item';
+    item.innerHTML = `
+      <button class="saved-route-go${nearby ? '' : ' saved-route-far'}" data-id="${route.id}">
+        <span class="saved-route-icon">${icon}</span>
+        <div class="saved-route-info">
+          <span class="saved-route-name">${escapeHtml(route.name)}</span>
+          ${km ? `<span class="saved-route-dist">${km}</span>` : ''}
+        </div>
+      </button>
+      <button class="saved-location-delete" data-id="${route.id}">✕</button>`;
+    listEl.appendChild(item);
+  });
+
+  if (!anyNearby && userLoc) noteEl.classList.remove('hidden');
+
+  listEl.querySelectorAll('.saved-route-go').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const routeId = this.dataset.id;
+      const route   = data.find(function (r) { return r.id === routeId; });
+      if (!route) return;
+      closeAccountPanel();
+      if (route.mode === 'ab') {
+        if (typeof window.onLoadSavedABRoute === 'function') window.onLoadSavedABRoute(route);
+      } else {
+        if (typeof window.onLoadSavedLoopRoute === 'function') window.onLoadSavedLoopRoute(route);
+      }
+    });
+  });
+
+  listEl.querySelectorAll('.saved-location-delete').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      await sbClient.from('saved_routes').delete()
+        .eq('id', this.dataset.id).eq('user_id', currentUser.id);
+      const item = this.closest('.saved-route-item');
       item.remove();
       if (listEl.children.length === 0) emptyEl.classList.remove('hidden');
     });

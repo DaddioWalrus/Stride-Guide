@@ -281,6 +281,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
     loopRegenBtn.classList.remove('hidden');
+    loopReverseBtn.classList.remove('hidden');
     showPhase('route-panel');
   } catch {
     showError('Could not generate route — please try again');
@@ -713,6 +714,7 @@ navRecentreBtn.addEventListener('click', function () {
 
 routeBack.addEventListener('click', function () {
   loopRegenBtn.classList.add('hidden');
+  loopReverseBtn.classList.add('hidden');
   navRecentreBtn.classList.add('hidden');
   clearRoute();
   clearStartMarker();
@@ -741,6 +743,7 @@ loopRegenBtn.addEventListener('click', async function () {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
+    loopReverseBtn.classList.remove('hidden');
     navRecentreBtn.classList.add('hidden');
     navFreeCamera = false;
     showPhase('route-panel');
@@ -768,6 +771,7 @@ async function runLoopRegen(distKm) {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
+    loopReverseBtn.classList.remove('hidden');
     navFreeCamera = false;
     navRecentreBtn.classList.add('hidden');
     showPhase('route-panel');
@@ -938,7 +942,13 @@ function haltNavigation() {
 }
 
 function doStopNavigation() {
+  var walkedKm   = navTotalDistKm;
+  var walkedSec  = navStartTime ? (Date.now() - navStartTime) / 1000 : 0;
+  var walkedMode = currentMode;
   haltNavigation();
+  if (walkedKm >= 0.05 && typeof window.onWalkCompleted === 'function') {
+    window.onWalkCompleted({ distKm: walkedKm, durationSec: walkedSec, mode: walkedMode });
+  }
   pinCard.classList.add('hidden');
   pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
@@ -952,6 +962,7 @@ function doStopNavigation() {
   destInput.value = '';
   hideNavPrompt();
   loopRegenBtn.classList.add('hidden');
+  loopReverseBtn.classList.add('hidden');
   navRecentreBtn.classList.add('hidden');
   mapDefaultZoom = 15;
   map.setZoom(15);
@@ -985,3 +996,101 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
   window.visualViewport.addEventListener('scroll', adjustSearchPanel);
 }
+
+// ─── Loop Reverse ─────────────────────────────────────────────────────────────
+
+var loopReverseBtn = document.getElementById('loop-reverse-btn');
+
+loopReverseBtn.addEventListener('click', function () {
+  if (!navRouteCoords || navRouteCoords.length < 2) return;
+  navRouteCoords = navRouteCoords.slice().reverse();
+  drawRoute(navRouteCoords);
+  drawRouteArrows(navRouteCoords);
+});
+
+// ─── Route Save ───────────────────────────────────────────────────────────────
+
+document.getElementById('route-save-btn').addEventListener('click', function () {
+  if (typeof window.onSaveRouteRequest === 'function') {
+    window.onSaveRouteRequest({
+      mode:          currentMode,
+      coords:        navRouteCoords,
+      distKm:        navRouteDistKm,
+      name:          currentMode === 'loop' ? 'Loop route' : (destination && destination.name || 'Route'),
+      loopMode:      loopMode,
+      loopValue:     loopValue,
+      loopUseMetric: loopUseMetric,
+      destLat:       destination && destination.lat,
+      destLng:       destination && destination.lng,
+      startLat:      startLocation && startLocation.lat,
+      startLng:      startLocation && startLocation.lng,
+    });
+  }
+});
+
+// ─── Load Saved Routes ────────────────────────────────────────────────────────
+
+window.onLoadSavedABRoute = function (route) {
+  currentMode = 'ab';
+  abTab.classList.add('active');
+  loopTab.classList.remove('active');
+  loopRegenBtn.classList.add('hidden');
+  loopReverseBtn.classList.add('hidden');
+  clearRoute();
+  clearDestination();
+  clearStartMarker();
+  destination = { lat: route.dest_lat, lng: route.dest_lng, name: route.name };
+  placeDestinationPin(route.dest_lat, route.dest_lng);
+  map.flyTo([route.dest_lat, route.dest_lng], 15, { duration: 1.5 });
+  previewDest.textContent = route.name;
+  showPhase('preview-panel');
+  acquireStartLocation();
+};
+
+window.onLoadSavedLoopRoute = function (route) {
+  currentMode = 'loop';
+  loopTab.classList.add('active');
+  abTab.classList.remove('active');
+  loopMode = route.loop_mode || 'time';
+  loopValue = route.loop_value || 30;
+  loopUseMetric = route.loop_use_metric !== false;
+  clearRoute();
+  clearDestination();
+  clearStartMarker();
+  clearPinMarker();
+  pinCard.classList.add('hidden');
+  pinLocationLabel.classList.add('hidden');
+  pinLat = null; pinLng = null; pinName = null;
+  destination = null;
+  startLocation = null;
+  loopTimeBtn.classList.toggle('active', loopMode === 'time');
+  loopDistBtn.classList.toggle('active', loopMode === 'distance');
+  loopStepRow.classList.remove('hidden');
+  updateLoopStepValue();
+  updateLoopGenerateBtn();
+  showPhase('loop-panel');
+  loopGenerateBtn.click();
+};
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+(function () {
+  var backdrop = document.getElementById('onboarding-backdrop');
+  var card     = document.getElementById('onboarding-card');
+
+  if (!localStorage.getItem('strideGuideSeen')) {
+    backdrop.classList.add('visible');
+    card.classList.add('visible');
+  }
+
+  document.getElementById('onboarding-close').addEventListener('click', function () {
+    backdrop.classList.remove('visible');
+    card.classList.remove('visible');
+  });
+
+  document.getElementById('onboarding-got-it').addEventListener('click', function () {
+    localStorage.setItem('strideGuideSeen', '1');
+    backdrop.classList.remove('visible');
+    card.classList.remove('visible');
+  });
+}());
