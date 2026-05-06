@@ -8,7 +8,6 @@ let codeEmail = '';
 const accountBtn             = document.getElementById('account-btn');
 const accountBackdrop        = document.getElementById('account-backdrop');
 const accountPanel           = document.getElementById('account-panel');
-const authLandingView        = document.getElementById('auth-landing-view');
 const authSigninView         = document.getElementById('auth-signin-view');
 const authCodeView           = document.getElementById('auth-code-view');
 const authProfileView        = document.getElementById('auth-profile-view');
@@ -24,7 +23,7 @@ const authHelpView           = document.getElementById('auth-help-view');
 function openAccountPanel() {
   accountBackdrop.classList.add('open');
   accountPanel.classList.add('open');
-  showAuthView(currentUser ? 'profile' : 'landing');
+  showAuthView('profile');
 }
 
 function closeAccountPanel() {
@@ -34,12 +33,11 @@ function closeAccountPanel() {
 }
 
 function showAuthView(view) {
-  [authLandingView, authSigninView, authCodeView, authProfileView, authEditView,
+  [authSigninView, authCodeView, authProfileView, authEditView,
    authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView, authHelpView]
     .forEach(function (v) { v.classList.add('hidden'); });
 
-  if (view === 'landing')            authLandingView.classList.remove('hidden');
-  else if (view === 'signin')        authSigninView.classList.remove('hidden');
+  if (view === 'signin')             authSigninView.classList.remove('hidden');
   else if (view === 'code')          authCodeView.classList.remove('hidden');
   else if (view === 'profile')       { authProfileView.classList.remove('hidden'); renderProfile(); }
   else if (view === 'edit')          { authEditView.classList.remove('hidden'); renderEditView(); }
@@ -55,19 +53,22 @@ function showAuthView(view) {
 accountBtn.addEventListener('click', openAccountPanel);
 accountBackdrop.addEventListener('click', closeAccountPanel);
 
-document.getElementById('auth-landing-close-btn').addEventListener('click', closeAccountPanel);
-document.getElementById('auth-landing-signin-btn').addEventListener('click', function () { showAuthView('signin'); });
-
 document.getElementById('auth-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-code-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-profile-close-btn').addEventListener('click', closeAccountPanel);
 document.getElementById('auth-edit-close-btn').addEventListener('click', closeAccountPanel);
 
+document.getElementById('auth-signin-back-btn').addEventListener('click', function () {
+  showAuthView('profile');
+});
 document.getElementById('auth-code-back-btn').addEventListener('click', function () {
   showAuthView('signin');
 });
 document.getElementById('auth-edit-back-btn').addEventListener('click', function () {
   showAuthView('profile');
+});
+document.getElementById('auth-profile-signin-btn').addEventListener('click', function () {
+  showAuthView('signin');
 });
 document.getElementById('auth-edit-profile-btn').addEventListener('click', function () {
   showAuthView('edit');
@@ -206,12 +207,32 @@ document.getElementById('auth-code-input').addEventListener('keydown', function 
 // ─── Profile View ──────────────────────────────────────────────────────────────
 
 async function renderProfile() {
-  if (!currentUser) return;
+  const avatarEl    = document.getElementById('auth-profile-avatar');
+  const signInBtn   = document.getElementById('auth-profile-signin-btn');
+  const editBtn     = document.getElementById('auth-edit-profile-btn');
+  const signOutBtn  = document.getElementById('auth-signout-btn');
+  const helpBtn     = document.getElementById('auth-help-btn');
+  const deleteBtn   = document.getElementById('auth-delete-btn');
+  const navBtns     = document.querySelectorAll('.auth-nav-btn');
+
+  if (!currentUser) {
+    avatarEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="#ccc" aria-hidden="true"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>';
+    document.getElementById('auth-user-name').textContent = 'Guest';
+    document.getElementById('auth-user-email').textContent = '';
+    document.getElementById('auth-tier-badge').textContent = '';
+    signInBtn.classList.remove('hidden');
+    editBtn.classList.add('hidden');
+    signOutBtn.classList.add('hidden');
+    deleteBtn.classList.add('hidden');
+    document.getElementById('auth-delete-confirm').classList.add('hidden');
+    navBtns.forEach(function (b) { b.disabled = true; });
+    return;
+  }
+
   const meta = currentUser.user_metadata || {};
   const name = meta.full_name || meta.name || currentUser.email.split('@')[0];
   const avatarUrl = meta.avatar_url || meta.picture;
 
-  const avatarEl = document.getElementById('auth-profile-avatar');
   if (avatarUrl) {
     avatarEl.innerHTML = `<img src="${avatarUrl}" alt="" />`;
   } else {
@@ -221,6 +242,11 @@ async function renderProfile() {
   document.getElementById('auth-user-name').textContent = name;
   document.getElementById('auth-user-email').textContent = currentUser.email;
   document.getElementById('auth-tier-badge').textContent = 'Free';
+  signInBtn.classList.add('hidden');
+  editBtn.classList.remove('hidden');
+  signOutBtn.classList.remove('hidden');
+  deleteBtn.classList.remove('hidden');
+  navBtns.forEach(function (b) { b.disabled = false; });
 
   const { data: profile } = await sbClient
     .from('profiles')
