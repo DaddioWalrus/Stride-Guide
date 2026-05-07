@@ -96,7 +96,20 @@ const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel'];
 
 function positionRecentreBtn() {
-  // position is fixed via CSS (right: 20px, bottom: 150px)
+  requestAnimationFrame(function () {
+    var anchor = null;
+    if (!loopRegenBtn.classList.contains('hidden')) {
+      anchor = loopRegenBtn;
+    } else {
+      for (var i = 0; i < phases.length; i++) {
+        var el = document.getElementById(phases[i]);
+        if (!el.classList.contains('hidden')) { anchor = el; break; }
+      }
+    }
+    if (!anchor) return;
+    var rect = anchor.getBoundingClientRect();
+    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+  });
 }
 
 function showPhase(id) {
@@ -161,6 +174,7 @@ loopTab.addEventListener('click', function () {
   startLocation = null;
   suggestionsList.classList.add('hidden');
   showPhase('loop-panel');
+  if (!loopMode) { loopTimeBtn.click(); }
 });
 
 // ─── Loop Planning ────────────────────────────────────────────────────────────
