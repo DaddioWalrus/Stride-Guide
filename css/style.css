@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   height: 100vh;
@@ -63,7 +68,7 @@ body {
 
 .panel {
   position: fixed;
-  bottom: 30px;
+  bottom: calc(30px + var(--sab));
   left: 20px;
   right: 20px;
   background: white;
@@ -86,15 +91,17 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 54px;
+  height: calc(54px + var(--sab));
   background: white;
   border-top: 1px solid #e8e8e8;
   display: flex;
+  align-items: flex-start;
   z-index: 1100;
 }
 
 .mode-tab {
   flex: 1;
+  height: 54px;
   border: none;
   background: transparent;
   font-size: 15px;
@@ -246,7 +253,7 @@ button {
 #search-panel,
 #preview-panel,
 #loop-panel {
-  bottom: 64px;
+  bottom: calc(64px + var(--sab));
 }
 
 #preview-panel {
@@ -446,7 +453,8 @@ button {
 
 #route-dest-label {
   position: fixed;
-  bottom: 150px;  left: 20px;
+  bottom: calc(150px + var(--sab));
+  left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
@@ -468,7 +476,7 @@ button {
 
 #instruction-pill {
   position: fixed;
-  bottom: 150px;
+  bottom: calc(150px + var(--sab));
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
@@ -509,7 +517,7 @@ button {
 
 #loading-box {
   position: fixed;
-  bottom: 120px;
+  bottom: calc(120px + var(--sab));
   left: 50%;
   transform: translateX(-50%);
   background: white;
@@ -534,7 +542,7 @@ button {
 
 #error-toast {
   position: fixed;
-  bottom: 120px;
+  bottom: calc(120px + var(--sab));
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.8);
@@ -557,7 +565,7 @@ button {
 
 #arrival-toast {
   position: fixed;
-  bottom: 120px;
+  bottom: calc(120px + var(--sab));
   left: 50%;
   transform: translateX(-50%);
   background: #27ae60;
@@ -642,7 +650,7 @@ button {
 #loop-regen-btn {
   position: fixed;
   right: 20px;
-  bottom: 150px;
+  bottom: calc(150px + var(--sab));
   z-index: 1050;
   width: 110px;
 }
@@ -650,7 +658,7 @@ button {
 #nav-recentre-btn {
   position: fixed;
   right: 20px;
-  bottom: 204px;
+  bottom: calc(204px + var(--sab));
   z-index: 1050;
   width: 110px;
 }
@@ -811,7 +819,7 @@ button {
 
 #pin-location-label {
   position: fixed;
-  bottom: 150px;
+  bottom: calc(150px + var(--sab));
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
@@ -832,11 +840,11 @@ button {
 
 #route-panel,
 #nav-panel {
-  bottom: 64px;
+  bottom: calc(64px + var(--sab));
 }
 
 #pin-card {
-  bottom: 64px;
+  bottom: calc(64px + var(--sab));
 }
 
 #pin-card .nav-eta { flex: 1; }
@@ -861,7 +869,7 @@ button {
 
 #account-btn {
   position: fixed;
-  top: 16px;
+  top: calc(16px + var(--sat));
   right: 16px;
   width: 44px;
   height: 44px;
@@ -1463,7 +1471,7 @@ button {
 #loop-reverse-btn {
   position: fixed;
   left: 20px;
-  bottom: 150px;
+  bottom: calc(150px + var(--sab));
   z-index: 1050;
   width: 44px;
   height: 44px;
@@ -1495,7 +1503,7 @@ button {
 
 .onboarding-card {
   position: fixed;
-  bottom: 30px;
+  bottom: calc(30px + var(--sab));
   left: 20px;
   right: 20px;
   background: white;
