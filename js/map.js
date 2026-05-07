@@ -16,9 +16,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Start on Witney as fallback
 map.setView([51.7851, -1.4842], 15);
 
-// position:fixed containers need invalidateSize after layout paint
-window.addEventListener('load', function () { map.invalidateSize(); });
-
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let userLocation = null;
