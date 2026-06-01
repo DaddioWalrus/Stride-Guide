@@ -102,7 +102,7 @@ body {
 
 #mode-bar {
   position: fixed;
-  bottom: var(--sab);
+  bottom: 0;
   left: 0;
   right: 0;
   height: 54px;
