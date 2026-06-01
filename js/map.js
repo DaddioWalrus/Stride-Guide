@@ -15,6 +15,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // Start on Witney as fallback
 map.setView([51.7851, -1.4842], 15);
+setTimeout(function () { map.invalidateSize(); }, 300);
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
