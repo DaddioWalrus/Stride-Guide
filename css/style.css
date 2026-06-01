@@ -267,7 +267,7 @@ button {
 #search-panel,
 #preview-panel,
 #loop-panel {
-  bottom: calc(64px + var(--sab));
+  bottom: 74px;
 }
 
 #preview-panel {
