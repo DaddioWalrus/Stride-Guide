@@ -986,8 +986,12 @@ const searchPanel = document.getElementById('search-panel');
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+  if (offsetFromBottom <= 0) {
+    searchPanel.style.bottom = '';
+    return;
+  }
   const bottomPad = document.activeElement === destInput ? 10 : 64;
-  searchPanel.style.bottom = (Math.max(offsetFromBottom, 0) + bottomPad) + 'px';
+  searchPanel.style.bottom = (offsetFromBottom + bottomPad) + 'px';
 }
 
 destInput.addEventListener('focus', function () {
@@ -997,7 +1001,7 @@ destInput.addEventListener('focus', function () {
 
 destInput.addEventListener('blur', function () {
   modeBar.classList.remove('hidden');
-  searchPanel.style.bottom = '64px';
+  searchPanel.style.bottom = '';
 });
 
 if (window.visualViewport) {
