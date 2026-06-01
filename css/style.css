@@ -23,6 +23,19 @@ body {
   height: 100vh;
 }
 
+/* Dark gradient behind the Dynamic Island / status bar */
+#map::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--sat) + 20px);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.45), transparent);
+  pointer-events: none;
+  z-index: 400;
+}
+
 /* ─── Leaflet overrides ───────────────────────────── */
 
 .leaflet-control-attribution { display: none !important; }
