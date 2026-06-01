@@ -672,7 +672,7 @@ button {
 #nav-recentre-btn {
   position: fixed;
   right: 20px;
-  bottom: calc(204px + var(--sab));
+  bottom: 218px;
   z-index: 1050;
   width: 110px;
 }
@@ -833,7 +833,7 @@ button {
 
 #pin-location-label {
   position: fixed;
-  bottom: calc(150px + var(--sab));
+  bottom: 160px;
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);
@@ -858,7 +858,7 @@ button {
 }
 
 #pin-card {
-  bottom: calc(64px + var(--sab));
+  bottom: 74px;
 }
 
 #pin-card .nav-eta { flex: 1; }
