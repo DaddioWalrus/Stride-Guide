@@ -905,6 +905,35 @@ button {
 
 #account-btn:active { opacity: 0.7; }
 
+#terrain-btn {
+  position: fixed;
+  top: calc(70px + var(--sat));
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  cursor: pointer;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-size: 20px;
+  touch-action: manipulation;
+  transition: opacity 0.2s;
+}
+
+#terrain-btn:active { opacity: 0.7; }
+
+#terrain-btn.active {
+  background: rgba(74, 144, 217, 0.85);
+}
+
 .account-btn-initial {
   font-size: 16px;
   font-weight: 700;

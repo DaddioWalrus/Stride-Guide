@@ -9,9 +9,26 @@ const map = L.map('map', {
 
 map.zoomControl.setPosition('topleft');
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
-}).addTo(map);
+});
+const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenTopoMap contributors',
+});
+streetLayer.addTo(map);
+
+let terrainActive = false;
+document.getElementById('terrain-btn').addEventListener('click', function () {
+  terrainActive = !terrainActive;
+  if (terrainActive) {
+    streetLayer.remove();
+    terrainLayer.addTo(map);
+  } else {
+    terrainLayer.remove();
+    streetLayer.addTo(map);
+  }
+  this.classList.toggle('active', terrainActive);
+});
 
 // Start on Witney as fallback
 map.setView([51.7851, -1.4842], 15);
