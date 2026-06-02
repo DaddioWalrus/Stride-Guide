@@ -97,6 +97,15 @@ const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'n
 
 function positionRecentreBtn() {
   requestAnimationFrame(function () {
+    if (!pinCard.classList.contains('hidden')) {
+      var cardRect = pinCard.getBoundingClientRect();
+      var gap = 10;
+      var labelH = pinLocationLabel.offsetHeight;
+      var labelBottom = (window.innerHeight - cardRect.top) + gap;
+      pinLocationLabel.style.bottom = labelBottom + 'px';
+      navRecentreBtn.style.bottom = (labelBottom + labelH + gap) + 'px';
+      return;
+    }
     var anchor = null;
     if (!loopRegenBtn.classList.contains('hidden')) {
       anchor = loopRegenBtn;
@@ -105,9 +114,6 @@ function positionRecentreBtn() {
         var el = document.getElementById(phases[i]);
         if (!el.classList.contains('hidden')) { anchor = el; break; }
       }
-    }
-    if (!anchor && !pinLocationLabel.classList.contains('hidden')) {
-      anchor = pinLocationLabel;
     }
     if (!anchor) return;
     var rect = anchor.getBoundingClientRect();
