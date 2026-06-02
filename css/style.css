@@ -854,7 +854,7 @@ button {
 
 #route-panel,
 #nav-panel {
-  bottom: calc(64px + var(--sab));
+  bottom: 74px;
 }
 
 #pin-card {

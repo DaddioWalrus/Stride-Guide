@@ -97,15 +97,17 @@ const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'n
 
 function positionRecentreBtn() {
   requestAnimationFrame(function () {
+    var gap = 10;
+
     if (!pinCard.classList.contains('hidden')) {
       var cardRect = pinCard.getBoundingClientRect();
-      var gap = 10;
       var labelH = pinLocationLabel.offsetHeight;
       var labelBottom = (window.innerHeight - cardRect.top) + gap;
       pinLocationLabel.style.bottom = labelBottom + 'px';
       navRecentreBtn.style.bottom = (labelBottom + labelH + gap) + 'px';
       return;
     }
+
     var anchor = null;
     if (!loopRegenBtn.classList.contains('hidden')) {
       anchor = loopRegenBtn;
@@ -116,8 +118,22 @@ function positionRecentreBtn() {
       }
     }
     if (!anchor) return;
-    var rect = anchor.getBoundingClientRect();
-    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    var anchorTopFromBottom = window.innerHeight - anchor.getBoundingClientRect().top;
+
+    var overlayEl = null;
+    if (anchor.id === 'route-panel' && !routeDestLabel.classList.contains('hidden')) {
+      overlayEl = routeDestLabel;
+    } else if (anchor.id === 'nav-panel' && !instructionPill.classList.contains('hidden')) {
+      overlayEl = instructionPill;
+    }
+
+    if (overlayEl) {
+      var overlayBottom = anchorTopFromBottom + gap;
+      overlayEl.style.bottom = overlayBottom + 'px';
+      navRecentreBtn.style.bottom = (overlayBottom + overlayEl.offsetHeight + gap) + 'px';
+    } else {
+      navRecentreBtn.style.bottom = (anchorTopFromBottom + gap) + 'px';
+    }
   });
 }
 
