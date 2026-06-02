@@ -12,19 +12,40 @@ map.zoomControl.setPosition('topleft');
 const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
 });
-const terrainLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  attribution: '© Esri, Maxar, Earthstar Geographics',
-});
 streetLayer.addTo(map);
 
+let satelliteLayer = null;
 let terrainActive = false;
-document.getElementById('terrain-btn').addEventListener('click', function () {
+
+async function getSatelliteLayer() {
+  if (satelliteLayer) return satelliteLayer;
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    if (cfg.mapboxToken) {
+      satelliteLayer = L.tileLayer(
+        'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=' + cfg.mapboxToken,
+        { tileSize: 512, zoomOffset: -1, attribution: '© Mapbox © OpenStreetMap' }
+      );
+    }
+  } catch (_) {}
+  if (!satelliteLayer) {
+    satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: '© Esri, Maxar, Earthstar Geographics' }
+    );
+  }
+  return satelliteLayer;
+}
+
+document.getElementById('terrain-btn').addEventListener('click', async function () {
   terrainActive = !terrainActive;
   if (terrainActive) {
+    const layer = await getSatelliteLayer();
     streetLayer.remove();
-    terrainLayer.addTo(map);
+    layer.addTo(map);
   } else {
-    terrainLayer.remove();
+    if (satelliteLayer) satelliteLayer.remove();
     streetLayer.addTo(map);
   }
   this.classList.toggle('active', terrainActive);
