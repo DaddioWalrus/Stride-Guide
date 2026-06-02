@@ -514,6 +514,7 @@ pinCloseBtn.addEventListener('click', function () {
   pinCard.classList.add('hidden');
   pinLocationLabel.classList.add('hidden');
   clearPinMarker();
+  clearRoute();
   pinLat = null; pinLng = null; pinName = null;
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'search-panel');
 });
