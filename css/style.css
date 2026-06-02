@@ -833,7 +833,7 @@ button {
 
 #pin-location-label {
   position: fixed;
-  bottom: 170px;
+  bottom: 160px;
   left: 20px;
   right: 20px;
   background: rgba(0, 0, 0, 0.55);

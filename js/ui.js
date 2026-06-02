@@ -111,7 +111,7 @@ function positionRecentreBtn() {
     }
     if (!anchor) return;
     var rect = anchor.getBoundingClientRect();
-    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
   });
 }
 
@@ -465,6 +465,7 @@ window.onPinDropped = async function (lat, lng) {
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
   pinLocationLabel.classList.remove('hidden');
+  positionRecentreBtn();
 
   if (userLocation) {
     const fromLat = userLocation.lat, fromLng = userLocation.lng;
