@@ -106,9 +106,12 @@ function positionRecentreBtn() {
         if (!el.classList.contains('hidden')) { anchor = el; break; }
       }
     }
+    if (!anchor && !pinLocationLabel.classList.contains('hidden')) {
+      anchor = pinLocationLabel;
+    }
     if (!anchor) return;
     var rect = anchor.getBoundingClientRect();
-    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    navRecentreBtn.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
   });
 }
 
