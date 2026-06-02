@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4A90D9",
-  "orientation": "portrait",
+  "orientation": "any",
   "icons": [
     {
       "src": "https://via.placeholder.com/192x192.png?text=SG",
