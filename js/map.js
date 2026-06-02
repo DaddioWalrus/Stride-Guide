@@ -24,7 +24,7 @@ async function getSatelliteLayer() {
     const cfg = await res.json();
     if (cfg.mapboxToken) {
       satelliteLayer = L.tileLayer(
-        'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=' + cfg.mapboxToken,
+        'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=' + cfg.mapboxToken,
         { tileSize: 512, zoomOffset: -1, attribution: '© Mapbox © OpenStreetMap' }
       );
     }
