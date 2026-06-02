@@ -110,7 +110,13 @@ function positionRecentreBtn() {
 
     var anchor = null;
     if (!loopRegenBtn.classList.contains('hidden')) {
-      anchor = loopRegenBtn;
+      var routeEl = document.getElementById('route-panel');
+      var routeTopFromBottom = window.innerHeight - routeEl.getBoundingClientRect().top;
+      var loopBtnBottom = routeTopFromBottom + gap;
+      loopRegenBtn.style.bottom = loopBtnBottom + 'px';
+      loopReverseBtn.style.bottom = loopBtnBottom + 'px';
+      navRecentreBtn.style.bottom = (loopBtnBottom + loopRegenBtn.offsetHeight + gap) + 'px';
+      return;
     } else {
       for (var i = 0; i < phases.length; i++) {
         var el = document.getElementById(phases[i]);
