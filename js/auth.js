@@ -204,6 +204,10 @@ document.getElementById('auth-code-input').addEventListener('keydown', function 
   if (e.key === 'Enter') handleVerifyCode();
 });
 
+document.getElementById('auth-code-input').addEventListener('input', function () {
+  if (this.value.trim().length === 6) handleVerifyCode();
+});
+
 // ─── Profile View ──────────────────────────────────────────────────────────────
 
 async function renderProfile() {
