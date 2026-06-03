@@ -499,6 +499,7 @@ window.onPinDropped = async function (lat, lng) {
     const fromLat = userLocation.lat, fromLng = userLocation.lng;
     pinRoutePromise = generateABRoute(fromLat, fromLng, lat, lng)
       .then(function (result) {
+        if (pinCard.classList.contains('hidden')) return;
         pinRouteResult = result;
         const distKm = result.summary.distance / 1000;
         navRouteDistKm = distKm;
@@ -877,13 +878,15 @@ async function triggerReroute() {
 
   try {
     const result = await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
-    navRouteCoords = result.coords;
-    navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
-    drawRoute(result.coords);
-    initSteps(result.steps || [], navTotalDistKm);
-    updateInstruction();
+    if (navStartTime) {
+      navRouteCoords = result.coords;
+      navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
+      drawRoute(result.coords);
+      initSteps(result.steps || [], navTotalDistKm);
+      updateInstruction();
+    }
   } catch (e) {
-    updateInstruction();
+    if (navStartTime) updateInstruction();
   }
 
   navRerouting = false;

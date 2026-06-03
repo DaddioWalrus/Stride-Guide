@@ -178,6 +178,7 @@ async function handleVerifyCode() {
   if (token.length < 6) return;
 
   const btn = document.getElementById('auth-verify-btn');
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Signing in...';
 
@@ -191,6 +192,8 @@ async function handleVerifyCode() {
   btn.textContent = 'Sign in';
 
   if (error) {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) { showAuthView('profile'); return; }
     showError('Invalid or expired code — try again or request a new one');
     return;
   }
