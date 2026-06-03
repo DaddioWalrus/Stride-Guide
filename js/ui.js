@@ -751,7 +751,19 @@ navRecentreBtn.addEventListener('click', function () {
   navFreeCamera = false;
   navRecentreBtn.classList.add('hidden');
   if (typeof map.setBearing === 'function') map.setBearing(0);
-  if (userLocation) map.flyTo([userLocation.lat, userLocation.lng], mapDefaultZoom, { duration: 0.4 });
+  if (userLocation) {
+    map.flyTo([userLocation.lat, userLocation.lng], mapDefaultZoom, { duration: 0.4 });
+  } else {
+    requestGPS(
+      function (loc) {
+        userLocation = loc;
+        map.flyTo([loc.lat, loc.lng], mapDefaultZoom, { duration: 0.4 });
+      },
+      function () {
+        showError('Location access is blocked — enable it in your browser or device settings');
+      }
+    );
+  }
 });
 
 routeBack.addEventListener('click', function () {
