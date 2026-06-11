@@ -624,7 +624,7 @@ async function handleSearch() {
     suggestionsList.innerHTML = '';
     results.forEach(function (result) {
       const li = document.createElement('li');
-      li.innerHTML = `<div class="place-name">${result.name}</div><div class="place-detail">${result.detail}</div>`;
+      li.innerHTML = `<div class="place-name">${escapeHtml(result.name)}</div><div class="place-detail">${escapeHtml(result.detail)}</div>`;
       li.addEventListener('click', function () { selectDestination(result); });
       suggestionsList.appendChild(li);
     });
@@ -847,6 +847,14 @@ document.getElementById('nav-prompt-fresh').addEventListener('click', function (
   hideNavPrompt();
   runLoopRegen(loopLastDistKm);
 });
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
