@@ -101,7 +101,15 @@ function updateAccountBtn(user) {
     const name = meta.full_name || meta.name || user.email || 'U';
     const avatarUrl = meta.avatar_url || meta.picture;
     if (avatarUrl) {
-      accountBtn.innerHTML = `<img src="${avatarUrl}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`;
+      accountBtn.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = avatarUrl;
+      img.alt = '';
+      img.style.width = '32px';
+      img.style.height = '32px';
+      img.style.borderRadius = '50%';
+      img.style.objectFit = 'cover';
+      accountBtn.appendChild(img);
     } else {
       accountBtn.innerHTML = `<span class="account-btn-initial">${name.charAt(0).toUpperCase()}</span>`;
     }
@@ -241,7 +249,11 @@ async function renderProfile() {
   const avatarUrl = meta.avatar_url || meta.picture;
 
   if (avatarUrl) {
-    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="" />`;
+    avatarEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = '';
+    avatarEl.appendChild(img);
   } else {
     avatarEl.textContent = name.charAt(0).toUpperCase();
   }
@@ -278,7 +290,11 @@ function renderEditView() {
 
   const avatarEl = document.getElementById('auth-edit-avatar');
   if (avatarUrl) {
-    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="" />`;
+    avatarEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = '';
+    avatarEl.appendChild(img);
   } else {
     avatarEl.textContent = (name || currentUser.email || 'U').charAt(0).toUpperCase();
   }
@@ -290,8 +306,12 @@ function renderEditView() {
 document.getElementById('auth-avatar-input').addEventListener('change', function () {
   const file = this.files[0];
   if (!file) return;
-  document.getElementById('auth-edit-avatar').innerHTML =
-    `<img src="${URL.createObjectURL(file)}" alt="" />`;
+  const avatarEl = document.getElementById('auth-edit-avatar');
+  avatarEl.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = URL.createObjectURL(file);
+  img.alt = '';
+  avatarEl.appendChild(img);
 });
 
 document.getElementById('auth-save-btn').addEventListener('click', async function () {
