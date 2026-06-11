@@ -398,7 +398,21 @@ document.getElementById('auth-delete-yes-btn').addEventListener('click', async f
   const btn = this;
   btn.disabled = true;
   btn.textContent = '...';
-  try { await sbClient.rpc('delete_user'); } catch { /* fall through */ }
+
+  let error = null;
+  try {
+    ({ error } = await sbClient.rpc('delete_user'));
+  } catch (err) {
+    error = err;
+  }
+
+  if (error) {
+    showError('Could not delete account — please try again');
+    btn.disabled = false;
+    btn.textContent = 'Delete';
+    return;
+  }
+
   await sbClient.auth.signOut();
   closeAccountPanel();
 });
