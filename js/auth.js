@@ -3,6 +3,15 @@
 let currentUser = null;
 let codeEmail = '';
 
+const AVATAR_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+};
+const AVATAR_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+
 // ─── Element References ────────────────────────────────────────────────────────
 
 const accountBtn             = document.getElementById('account-btn');
@@ -319,6 +328,23 @@ document.getElementById('auth-save-btn').addEventListener('click', async functio
   const file = document.getElementById('auth-avatar-input').files[0];
   if (!name && !file) { showAuthView('profile'); return; }
 
+  let avatarExt = null;
+  if (file) {
+    avatarExt = AVATAR_TYPES[file.type];
+    if (!avatarExt) {
+      const fileExt = file.name.split('.').pop().toLowerCase();
+      if (AVATAR_EXTS.includes(fileExt)) avatarExt = fileExt;
+    }
+    if (!avatarExt) {
+      showError('Please choose a JPG, PNG, GIF or WebP image');
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      showError('Image too large — max 5 MB');
+      return;
+    }
+  }
+
   const btn = this;
   btn.disabled = true;
   btn.textContent = 'Saving...';
@@ -327,8 +353,7 @@ document.getElementById('auth-save-btn').addEventListener('click', async functio
     let avatarUrl = null;
 
     if (file) {
-      const ext = file.name.split('.').pop();
-      const path = `${currentUser.id}/avatar.${ext}`;
+      const path = `${currentUser.id}/avatar.${avatarExt}`;
       const { error: uploadError } = await sbClient.storage
         .from('avatars')
         .upload(path, file, { upsert: true });
