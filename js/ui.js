@@ -72,7 +72,6 @@ const navRecentreBtn = document.getElementById('nav-recentre-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
-const navDistLabel = document.getElementById('nav-dist-label');
 const navUnitEl = document.getElementById('nav-unit');
 const navCenterEl = document.getElementById('nav-center');
 const stopBtn = document.getElementById('stop-btn');
@@ -387,7 +386,6 @@ function updateNavDisplay() {
   } else {
     navDistEl.textContent = `${(remainingKm * 0.621371).toFixed(2)} mi`;
   }
-  navDistLabel.textContent = useMetric ? 'km left' : 'mi left';
   renderUnitSeg(navUnitEl, useMetric);
 }
 
@@ -559,7 +557,7 @@ pinDirectionsBtn.addEventListener('click', async function () {
 
   if (!pinRouteResult) {
     pinDirectionsBtn.disabled = true;
-    pinDirectionsBtn.textContent = 'Loading...';
+    pinDirectionsBtn.textContent = 'Loading…';
     try {
       if (pinRoutePromise) await pinRoutePromise;
       if (!pinRouteResult) {
@@ -573,7 +571,7 @@ pinDirectionsBtn.addEventListener('click', async function () {
     } catch {
       showError('Could not find route — try again');
       pinDirectionsBtn.disabled = false;
-      pinDirectionsBtn.textContent = 'Start';
+      pinDirectionsBtn.textContent = 'Start walk';
       return;
     }
     pinDirectionsBtn.disabled = false;
@@ -622,7 +620,7 @@ async function handleSearch() {
   if (!query) return;
 
   searchBtn.disabled = true;
-  searchBtn.textContent = '...';
+  searchBtn.classList.add('loading');
 
   try {
     const results = await searchAddressSuggestions(query);
@@ -635,7 +633,7 @@ async function handleSearch() {
     suggestionsList.innerHTML = '';
     results.forEach(function (result) {
       const li = document.createElement('li');
-      li.innerHTML = `<div class="place-name">${escapeHtml(result.name)}</div><div class="place-detail">${escapeHtml(result.detail)}</div>`;
+      li.innerHTML = `<span class="place-icon">${ICONS.place}</span><div class="place-text"><div class="place-name">${escapeHtml(result.name)}</div><div class="place-detail">${escapeHtml(result.detail)}</div></div>`;
       li.addEventListener('click', function () { selectDestination(result); });
       suggestionsList.appendChild(li);
     });
@@ -644,7 +642,7 @@ async function handleSearch() {
     showError('Search failed — please try again');
   } finally {
     searchBtn.disabled = false;
-    searchBtn.textContent = 'Search';
+    searchBtn.classList.remove('loading');
   }
 }
 

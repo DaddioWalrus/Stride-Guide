@@ -272,8 +272,11 @@
         <span class="preview-title">Where to?</span>
       </div>
       <div class="search-bar">
-        <input id="dest-input" class="search-input" type="text" placeholder="Search a place or address" />
-        <button class="search-btn" id="search-btn">Search</button>
+        <div class="search-field">
+          <svg class="fl search-lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg>
+          <input id="dest-input" class="search-input" type="text" placeholder="Search a place or address" />
+        </div>
+        <button class="search-btn" id="search-btn" aria-label="Search"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg></button>
       </div>
       <ul id="suggestions" class="suggestions hidden"></ul>
     </div>
@@ -283,6 +286,10 @@
       <div class="preview-header">
         <span class="preview-title">Loop walk</span>
       </div>
+      <div class="loop-mode-row">
+        <button class="mode-btn" id="loop-time-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5v3"/></svg>Time</button>
+        <button class="mode-btn" id="loop-dist-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="1.5"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v3"/></svg>Distance</button>
+      </div>
       <div class="step-row hidden" id="loop-step-row">
         <button class="step-btn" id="loop-step-down" aria-label="Decrease">−</button>
         <div class="step-center" id="loop-step-center">
@@ -290,10 +297,6 @@
           <div class="unit-seg hidden" id="loop-unit-hint"><span class="on">km</span><span>mi</span></div>
         </div>
         <button class="step-btn" id="loop-step-up" aria-label="Increase">+</button>
-      </div>
-      <div class="loop-mode-row">
-        <button class="mode-btn" id="loop-time-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5v3"/></svg>Time</button>
-        <button class="mode-btn" id="loop-dist-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="1.5"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v3"/></svg>Distance</button>
       </div>
       <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate loop</button>
     </div>
@@ -320,36 +323,42 @@
     </div>
 
     <!-- Phase 3: Route overview -->
-    <div id="route-panel" class="panel row-panel hidden">
-      <div class="nav-eta">
-        <div id="route-time">…</div>
-        <div class="bar-label">est. time</div>
-      </div>
-      <div class="nav-center" id="route-center">
-        <div id="route-dist">…</div>
+    <div id="route-panel" class="panel info-card hidden">
+      <div class="info-metrics">
+        <div class="metric">
+          <div class="metric-num" id="route-time">…</div>
+          <div class="bar-label">est. time</div>
+        </div>
+        <div class="metric metric-tap" id="route-center">
+          <div class="metric-num" id="route-dist">…</div>
+          <div class="bar-label">distance</div>
+        </div>
         <div class="unit-seg" id="route-unit-hint"><span class="on">km</span><span>mi</span></div>
       </div>
-      <div class="pin-card-actions">
-        <button class="pin-close-btn" id="route-back" aria-label="Back">←</button>
-        <button class="route-save-btn" id="route-save-btn" title="Save this route" aria-label="Save this route"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
-        <button class="primary-btn green-btn" id="start-btn">Start</button>
+      <div class="info-actions">
+        <button class="icon-btn" id="route-back" aria-label="Back"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="icon-btn" id="route-save-btn" title="Save this route" aria-label="Save this route"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
+        <button class="primary-btn green-btn info-primary" id="start-btn">Start walk</button>
       </div>
     </div>
 
     <!-- Pin Card -->
-    <div id="pin-card" class="panel row-panel hidden">
-      <div class="nav-eta">
-        <div id="pin-time">…</div>
-        <div class="bar-label">walk time</div>
-      </div>
-      <div class="nav-center" id="pin-center">
-        <div id="pin-dist">…</div>
+    <div id="pin-card" class="panel info-card hidden">
+      <div class="info-metrics">
+        <div class="metric">
+          <div class="metric-num" id="pin-time">…</div>
+          <div class="bar-label">walk time</div>
+        </div>
+        <div class="metric metric-tap" id="pin-center">
+          <div class="metric-num" id="pin-dist">…</div>
+          <div class="bar-label">distance</div>
+        </div>
         <div class="unit-seg hidden" id="pin-unit-hint"><span class="on">km</span><span>mi</span></div>
       </div>
-      <div class="pin-card-actions">
-        <button class="pin-close-btn" id="pin-close-btn" aria-label="Back">←</button>
-        <button class="pin-save-btn" id="pin-save-btn" title="Save this place" aria-label="Save this place"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
-        <button class="start-nav-btn" id="pin-directions-btn">Start</button>
+      <div class="info-actions">
+        <button class="icon-btn" id="pin-close-btn" aria-label="Back"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="icon-btn" id="pin-save-btn" title="Save this place" aria-label="Save this place"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
+        <button class="primary-btn green-btn info-primary" id="pin-directions-btn">Start walk</button>
       </div>
     </div>
 
@@ -361,14 +370,14 @@
       </div>
       <div class="nav-center" id="nav-center">
         <div id="nav-dist">…</div>
-        <div class="bar-label" id="nav-dist-label">km left</div>
+        <div class="bar-label">remaining</div>
       </div>
       <div class="nav-controls" id="nav-controls-wrap">
         <div class="unit-seg" id="nav-unit"><span class="on">km</span><span>mi</span></div>
         <button class="stop-btn" id="stop-btn" title="Stop" aria-label="Stop"><svg class="icn-solid" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button>
       </div>
       <div id="nav-prompt" class="hidden">
-        <button class="pin-close-btn" id="nav-prompt-cancel" aria-label="Cancel">✕</button>
+        <button class="icon-btn" id="nav-prompt-cancel" aria-label="Cancel"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <button class="primary-btn" id="nav-prompt-adjust">Distance left</button>
         <button class="primary-btn green-btn" id="nav-prompt-fresh">Full loop</button>
       </div>
@@ -387,8 +396,8 @@
 
     <!-- Mode selector -->
     <div id="mode-bar">
-      <button class="mode-tab active" id="ab-tab">Destination</button>
-      <button class="mode-tab" id="loop-tab">Loop</button>
+      <button class="mode-tab active" id="ab-tab"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5"/><path d="M12 5h7v7"/></svg><span>Destination</span></button>
+      <button class="mode-tab" id="loop-tab"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg><span>Loop</span></button>
     </div>
 
     <!-- Onboarding Card -->
