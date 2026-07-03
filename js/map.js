@@ -153,9 +153,9 @@ function clearDestination() {
 function drawRoute(coords) {
   if (currentRoute) currentRoute.remove();
   currentRoute = L.polyline(coords, {
-    color: '#4A90D9',
+    color: '#2F5FE0',
     weight: 5,
-    opacity: 0.8,
+    opacity: 0.85,
   }).addTo(map);
   map.fitBounds(currentRoute.getBounds(), { padding: [40, 40] });
 }

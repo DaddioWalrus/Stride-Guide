@@ -29,6 +29,7 @@ let mapDefaultZoom = 15;
 
 // ─── Element References ───────────────────────────────────────────────────────
 
+const dockEl = document.getElementById('dock');
 const destInput = document.getElementById('dest-input');
 const searchBtn = document.getElementById('search-btn');
 const suggestionsList = document.getElementById('suggestions');
@@ -95,54 +96,6 @@ const pinDirectionsBtn = document.getElementById('pin-directions-btn');
 
 const phases = ['search-panel', 'preview-panel', 'loop-panel', 'route-panel', 'nav-panel'];
 
-function positionRecentreBtn() {
-  requestAnimationFrame(function () {
-    var gap = 10;
-
-    if (!pinCard.classList.contains('hidden')) {
-      var cardRect = pinCard.getBoundingClientRect();
-      var labelH = pinLocationLabel.offsetHeight;
-      var labelBottom = (window.innerHeight - cardRect.top) + gap;
-      pinLocationLabel.style.bottom = labelBottom + 'px';
-      navRecentreBtn.style.bottom = (labelBottom + labelH + gap) + 'px';
-      return;
-    }
-
-    var anchor = null;
-    if (!loopRegenBtn.classList.contains('hidden')) {
-      var routeEl = document.getElementById('route-panel');
-      var routeTopFromBottom = window.innerHeight - routeEl.getBoundingClientRect().top;
-      var loopBtnBottom = routeTopFromBottom + gap;
-      loopRegenBtn.style.bottom = loopBtnBottom + 'px';
-      loopReverseBtn.style.bottom = loopBtnBottom + 'px';
-      navRecentreBtn.style.bottom = (loopBtnBottom + loopRegenBtn.offsetHeight + gap) + 'px';
-      return;
-    } else {
-      for (var i = 0; i < phases.length; i++) {
-        var el = document.getElementById(phases[i]);
-        if (!el.classList.contains('hidden')) { anchor = el; break; }
-      }
-    }
-    if (!anchor) return;
-    var anchorTopFromBottom = window.innerHeight - anchor.getBoundingClientRect().top;
-
-    var overlayEl = null;
-    if (anchor.id === 'route-panel' && !routeDestLabel.classList.contains('hidden')) {
-      overlayEl = routeDestLabel;
-    } else if (anchor.id === 'nav-panel' && !instructionPill.classList.contains('hidden')) {
-      overlayEl = instructionPill;
-    }
-
-    if (overlayEl) {
-      var overlayBottom = anchorTopFromBottom + gap;
-      overlayEl.style.bottom = overlayBottom + 'px';
-      navRecentreBtn.style.bottom = (overlayBottom + overlayEl.offsetHeight + gap) + 'px';
-    } else {
-      navRecentreBtn.style.bottom = (anchorTopFromBottom + gap) + 'px';
-    }
-  });
-}
-
 function showPhase(id) {
   phases.forEach(function (p) {
     document.getElementById(p).classList.add('hidden');
@@ -151,7 +104,7 @@ function showPhase(id) {
   if (id !== 'route-panel') routeDestLabel.classList.add('hidden');
   const barVisible = id === 'search-panel' || id === 'preview-panel' || id === 'loop-panel';
   modeBar.classList.toggle('hidden', !barVisible);
-  positionRecentreBtn();
+  dockEl.classList.toggle('with-bar', barVisible);
 }
 
 function showNavPrompt() {
@@ -218,7 +171,6 @@ loopTimeBtn.addEventListener('click', function () {
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
-  positionRecentreBtn();
 });
 
 loopDistBtn.addEventListener('click', function () {
@@ -230,7 +182,6 @@ loopDistBtn.addEventListener('click', function () {
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
-  positionRecentreBtn();
 });
 
 function collapseLoopStepRow() {
@@ -239,7 +190,6 @@ function collapseLoopStepRow() {
   loopDistBtn.classList.remove('active');
   loopStepRow.classList.add('hidden');
   updateLoopGenerateBtn();
-  positionRecentreBtn();
 }
 
 loopStepCenter.addEventListener('click', function () {
@@ -276,20 +226,15 @@ function updateLoopStepValue() {
   if (loopMode === 'time') {
     loopStepValue.textContent = `${loopValue} min`;
     loopUnitHint.classList.add('hidden');
-  } else if (loopUseMetric) {
-    loopStepValue.textContent = `${loopValue} km`;
-    loopUnitHint.textContent = 'Metric';
-    loopUnitHint.classList.remove('hidden');
   } else {
-    loopStepValue.textContent = `${loopValue} mi`;
-    loopUnitHint.textContent = 'Imperial';
+    loopStepValue.textContent = loopUseMetric ? `${loopValue} km` : `${loopValue} mi`;
+    renderUnitSeg(loopUnitHint, loopUseMetric);
     loopUnitHint.classList.remove('hidden');
   }
 }
 
 function updateLoopGenerateBtn() {
   loopGenerateBtn.classList.toggle('hidden', !loopMode);
-  positionRecentreBtn();
 }
 
 loopGenerateBtn.addEventListener('click', async function () {
@@ -405,6 +350,11 @@ function advanceStep() {
   }
 }
 
+function renderUnitSeg(el, metric) {
+  el.children[0].classList.toggle('on', metric);
+  el.children[1].classList.toggle('on', !metric);
+}
+
 function updateNavDisplay() {
   if (!navStartTime) return;
   const elapsedHr = (Date.now() - navStartTime) / 3600000;
@@ -417,7 +367,7 @@ function updateNavDisplay() {
   } else {
     navDistEl.textContent = `${(remainingKm * 0.621371).toFixed(2)} mi`;
   }
-  navUnitEl.textContent = useMetric ? 'imperial' : 'metric';
+  renderUnitSeg(navUnitEl, useMetric);
 }
 
 navCenterEl.addEventListener('click', function () {
@@ -429,16 +379,59 @@ navCenterEl.addEventListener('click', function () {
 function updateRouteDist() {
   if (useMetric) {
     routeDistEl.textContent = `${navRouteDistKm.toFixed(1)} km`;
-    routeUnitHint.textContent = 'imperial';
   } else {
     routeDistEl.textContent = `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
-    routeUnitHint.textContent = 'metric';
   }
+  renderUnitSeg(routeUnitHint, useMetric);
 }
 
 routeCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
   updateRouteDist();
+});
+
+// Direct taps on a km/mi segment set that unit explicitly
+function bindUnitSeg(el, setMetric) {
+  Array.prototype.forEach.call(el.children, function (span, i) {
+    span.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMetric(i === 0);
+    });
+  });
+}
+
+bindUnitSeg(navUnitEl, function (metric) {
+  if (useMetric === metric) return;
+  useMetric = metric;
+  updateNavDisplay();
+  updateInstruction();
+});
+
+bindUnitSeg(routeUnitHint, function (metric) {
+  if (useMetric === metric) return;
+  useMetric = metric;
+  updateRouteDist();
+});
+
+bindUnitSeg(loopUnitHint, function (metric) {
+  if (loopMode !== 'distance' || loopUseMetric === metric) return;
+  if (metric) {
+    loopValue = Math.round(loopValue / 0.621371 * 2) / 2;
+  } else {
+    loopValue = Math.round(loopValue * 0.621371 * 2) / 2;
+  }
+  loopUseMetric = metric;
+  updateLoopStepValue();
+});
+
+bindUnitSeg(pinUnitHint, function (metric) {
+  if (pinLat === null || !userLocation) return;
+  if (pinUseMetric === metric) return;
+  pinUseMetric = metric;
+  const d = pinRouteResult
+    ? pinRouteResult.summary.distance / 1000
+    : haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
+  updatePinDist(d);
 });
 
 // ─── Pin Card ────────────────────────────────────────────────────────────────
@@ -448,11 +441,10 @@ let pinLat = null, pinLng = null, pinName = null;
 function updatePinDist(d) {
   if (pinUseMetric) {
     pinDistEl.textContent = `${d.toFixed(1)} km`;
-    pinUnitHint.textContent = 'imperial';
   } else {
     pinDistEl.textContent = `${(d * 0.621371).toFixed(1)} mi`;
-    pinUnitHint.textContent = 'metric';
   }
+  renderUnitSeg(pinUnitHint, pinUseMetric);
   pinUnitHint.classList.remove('hidden');
 }
 
@@ -493,7 +485,6 @@ window.onPinDropped = async function (lat, lng) {
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
   pinLocationLabel.classList.remove('hidden');
-  positionRecentreBtn();
 
   if (userLocation) {
     const fromLat = userLocation.lat, fromLng = userLocation.lng;
@@ -588,7 +579,6 @@ let suppressMapClick = false;
 map.getContainer().addEventListener('touchstart', function () {
   if (document.activeElement === destInput) suppressMapClick = true;
   navFreeCamera = true;
-  positionRecentreBtn();
   navRecentreBtn.classList.remove('hidden');
 }, { passive: true });
 
@@ -728,9 +718,7 @@ directionsBtn.addEventListener('click', function () {
       navRouteDistKm = result.summary.distance / 1000;
       const mins = Math.round(result.summary.duration / 60);
       routeTimeEl.textContent = `${mins} min`;
-      routeDistEl.textContent = useMetric
-        ? `${navRouteDistKm.toFixed(1)} km`
-        : `${(navRouteDistKm * 0.621371).toFixed(1)} mi`;
+      updateRouteDist();
       navRouteCoords = result.coords;
       initSteps(result.steps || []);
       drawRoute(result.coords);
@@ -1035,29 +1023,27 @@ function doStopNavigation() {
 
 stopBtn.addEventListener('click', doStopNavigation);
 
-// ─── Keyboard tracking — keeps search panel above the keyboard ────────────────
-
-const searchPanel = document.getElementById('search-panel');
+// ─── Keyboard tracking — keeps the dock above the keyboard ───────────────────
 
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
   if (offsetFromBottom <= 0) {
-    searchPanel.style.bottom = '';
+    dockEl.style.bottom = '';
     return;
   }
   const bottomPad = document.activeElement === destInput ? 10 : 64;
-  searchPanel.style.bottom = (offsetFromBottom + bottomPad) + 'px';
+  dockEl.style.bottom = (offsetFromBottom + bottomPad) + 'px';
 }
 
 destInput.addEventListener('focus', function () {
   modeBar.classList.add('hidden');
-  searchPanel.style.bottom = '10px';
+  dockEl.style.bottom = '10px';
 });
 
 destInput.addEventListener('blur', function () {
   modeBar.classList.remove('hidden');
-  searchPanel.style.bottom = '';
+  dockEl.style.bottom = '';
 });
 
 if (window.visualViewport) {
@@ -1161,4 +1147,40 @@ window.onLoadSavedLoopRoute = function (route) {
     backdrop.classList.remove('visible');
     card.classList.remove('visible');
   });
+}());
+
+// ─── Appearance (theme) ───────────────────────────────────────────────────────
+// Defaults to the system setting; Light/Dark override it and persist.
+
+(function () {
+  var seg = document.getElementById('theme-seg');
+  if (!seg) return;
+  var KEY = 'sgTheme';
+
+  function apply(pref) {
+    if (pref === 'light' || pref === 'dark') {
+      document.documentElement.setAttribute('data-theme', pref);
+    } else {
+      pref = 'system';
+      document.documentElement.removeAttribute('data-theme');
+    }
+    Array.prototype.forEach.call(seg.children, function (b) {
+      b.classList.toggle('on', b.dataset.themeOpt === pref);
+    });
+  }
+
+  seg.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-theme-opt]');
+    if (!btn) return;
+    var pref = btn.dataset.themeOpt;
+    try {
+      if (pref === 'system') localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, pref);
+    } catch (err) {}
+    apply(pref);
+  });
+
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (err) {}
+  apply(stored);
 }());

@@ -11,7 +11,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Stride Guide" />
-    <meta name="theme-color" content="#4A90D9" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#2F5FE0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#10151F" />
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.1/dist/umd/supabase.js"></script>
@@ -21,6 +22,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 
+    <!-- Apply saved theme before first paint -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('sgTheme');
+          if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      }());
+    </script>
     <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
@@ -101,6 +111,15 @@
             <span class="auth-nav-label">Saved Places</span>
             <span class="auth-nav-arrow">›</span>
           </button>
+        </div>
+
+        <div class="appearance-row">
+          <span class="appearance-label">Appearance</span>
+          <div class="appearance-seg" id="theme-seg" role="group" aria-label="Colour theme">
+            <button type="button" data-theme-opt="system">Auto</button>
+            <button type="button" data-theme-opt="light">Light</button>
+            <button type="button" data-theme-opt="dark">Dark</button>
+          </div>
         </div>
 
         <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
@@ -224,7 +243,37 @@
       </div>
     </div>
 
-    <!-- A→B search panel -->
+    <!-- Bottom dock: floating actions, overlays, and phase panels -->
+    <div id="dock" class="with-bar">
+
+      <div class="dock-row">
+        <div class="dock-left">
+          <button class="hidden" id="loop-reverse-btn" aria-label="Reverse loop direction">↺</button>
+        </div>
+        <div class="dock-right">
+          <button class="primary-btn green-btn hidden" id="nav-recentre-btn">Re-centre</button>
+          <button class="primary-btn green-btn hidden" id="loop-regen-btn">New loop</button>
+        </div>
+      </div>
+
+      <!-- Route destination label (sits above route-panel) -->
+      <div id="route-dest-label" class="hidden">
+        <span id="route-dest-name"></span>
+      </div>
+
+      <!-- Pin location label (sits above pin card) -->
+      <div id="pin-location-label" class="hidden">
+        <span id="pin-location-name">Locating...</span>
+      </div>
+
+      <!-- Turn-by-turn maneuver card -->
+      <div id="instruction-pill" class="hidden">
+        <span id="instruction-arrow">↑</span>
+        <span id="instruction-text"></span>
+        <span id="instruction-dist"></span>
+      </div>
+
+    <!-- Destination search panel -->
     <div id="search-panel" class="panel">
       <div class="preview-header">
         <span class="preview-title">Where to?</span>
@@ -245,7 +294,7 @@
         <button class="step-btn" id="loop-step-down" aria-label="Decrease">−</button>
         <div class="step-center" id="loop-step-center">
           <div class="step-value" id="loop-step-value">30 min</div>
-          <div class="step-unit-hint hidden" id="loop-unit-hint">Metric</div>
+          <div class="unit-seg hidden" id="loop-unit-hint"><span class="on">km</span><span>mi</span></div>
         </div>
         <button class="step-btn" id="loop-step-up" aria-label="Increase">+</button>
       </div>
@@ -277,28 +326,15 @@
       <button class="primary-btn full-btn" id="directions-btn">Get directions</button>
     </div>
 
-    <!-- Route destination label (sits above route-panel) -->
-    <div id="route-dest-label" class="hidden">
-      <span id="route-dest-name"></span>
-    </div>
-
-    <!-- Loop regenerate button (floats above route-panel, loop mode only) -->
-    <button class="primary-btn green-btn hidden" id="loop-regen-btn">New loop</button>
-
-    <!-- Loop direction reverse (floats above route-panel, loop mode only) -->
-    <button class="hidden" id="loop-reverse-btn" aria-label="Reverse loop direction">↺</button>
-
-    <!-- Re-centre button (floats left, any context, shown when map is panned) -->
-    <button class="primary-btn green-btn hidden" id="nav-recentre-btn">Re-centre</button>
-
     <!-- Phase 3: Route overview -->
     <div id="route-panel" class="panel row-panel hidden">
       <div class="nav-eta">
         <div id="route-time">…</div>
+        <div class="bar-label">est. time</div>
       </div>
       <div class="nav-center" id="route-center">
         <div id="route-dist">…</div>
-        <div class="step-unit-hint" id="route-unit-hint">metric</div>
+        <div class="unit-seg" id="route-unit-hint"><span class="on">km</span><span>mi</span></div>
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="route-back" aria-label="Back">←</button>
@@ -307,19 +343,15 @@
       </div>
     </div>
 
-    <!-- Pin location label (floats above pin card) -->
-    <div id="pin-location-label" class="hidden">
-      <span id="pin-location-name">Locating...</span>
-    </div>
-
     <!-- Pin Card -->
     <div id="pin-card" class="panel row-panel hidden">
       <div class="nav-eta">
         <div id="pin-time">…</div>
+        <div class="bar-label">walk time</div>
       </div>
       <div class="nav-center" id="pin-center">
         <div id="pin-dist">…</div>
-        <div class="step-unit-hint hidden" id="pin-unit-hint">imperial</div>
+        <div class="unit-seg hidden" id="pin-unit-hint"><span class="on">km</span><span>mi</span></div>
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="pin-close-btn" aria-label="Back">←</button>
@@ -332,10 +364,11 @@
     <div id="nav-panel" class="panel row-panel hidden">
       <div class="nav-eta" id="nav-eta-wrap">
         <div id="nav-time">…</div>
+        <div class="bar-label">time left</div>
       </div>
       <div class="nav-center" id="nav-center">
         <div id="nav-dist">…</div>
-        <div id="nav-unit">metric</div>
+        <div class="unit-seg" id="nav-unit"><span class="on">km</span><span>mi</span></div>
       </div>
       <div class="nav-controls" id="nav-controls-wrap">
         <button class="stop-btn" id="stop-btn">Stop</button>
@@ -347,18 +380,13 @@
       </div>
     </div>
 
+    </div><!-- /dock -->
+
     <!-- Loading box (floats above panels while route is calculating) -->
     <div id="loading-box">Planning route...</div>
 
     <!-- Error toast (floats above all panels) -->
     <div id="error-toast"></div>
-
-    <!-- Turn-by-turn instruction pill -->
-    <div id="instruction-pill" class="hidden">
-      <span id="instruction-arrow">↑</span>
-      <span id="instruction-text"></span>
-      <span id="instruction-dist"></span>
-    </div>
 
     <!-- Arrival toast -->
     <div id="arrival-toast"></div>
