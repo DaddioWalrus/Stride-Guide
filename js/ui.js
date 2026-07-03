@@ -478,7 +478,7 @@ window.onPinDropped = async function (lat, lng) {
   saveBtn.textContent = '🔖';
   saveBtn.disabled = false;
 
-  pinTimeEl.textContent = '-- min';
+  pinTimeEl.textContent = '…';
   pinLocationName.textContent = 'Locating...';
 
   if (userLocation) {
@@ -486,7 +486,7 @@ window.onPinDropped = async function (lat, lng) {
     updatePinDist(d);
     pinTimeEl.textContent = `~${Math.round(d / 5 * 60)} min`;
   } else {
-    pinDistEl.textContent = '-- km';
+    pinDistEl.textContent = '…';
     pinUnitHint.classList.add('hidden');
   }
 

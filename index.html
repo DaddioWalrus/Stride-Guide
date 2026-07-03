@@ -31,7 +31,7 @@
     <button id="account-btn" aria-label="Account"></button>
 
     <!-- Terrain toggle button (below account button) -->
-    <button id="terrain-btn" title="Toggle satellite view">🛰️</button>
+    <button id="terrain-btn" title="Toggle satellite view" aria-label="Toggle satellite view">🛰️</button>
 
     <!-- Account panel backdrop -->
     <div id="account-backdrop"></div>
@@ -43,9 +43,9 @@
       <!-- View 1: Sign in -->
       <div id="auth-signin-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-signin-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-signin-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Sign in</span>
-          <button class="auth-close-btn" id="auth-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-close-btn" aria-label="Close">✕</button>
         </div>
         <p class="auth-body">Enter your email and we'll send a 6-digit code — no password needed.</p>
         <input class="auth-input" type="email" id="auth-email-input" placeholder="your@email.com" autocomplete="email" />
@@ -55,9 +55,9 @@
       <!-- View 2: Enter 6-digit code -->
       <div id="auth-code-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-code-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-code-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Check your email</span>
-          <button class="auth-close-btn" id="auth-code-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-code-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="auth-sent-icon">✉️</div>
         <p class="auth-body">We sent a 6-digit code to</p>
@@ -71,7 +71,7 @@
       <div id="auth-profile-view" class="hidden">
         <div class="auth-header">
           <span class="auth-title">Account</span>
-          <button class="auth-close-btn" id="auth-profile-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-profile-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="auth-profile-avatar" id="auth-profile-avatar"></div>
         <div class="auth-user-name" id="auth-user-name"></div>
@@ -104,7 +104,7 @@
         </div>
 
         <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
-        <button class="auth-help-link" id="auth-help-btn">❓ How it works</button>
+        <button class="auth-help-link" id="auth-help-btn">How it works</button>
         <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
         <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
           <p>Are you sure? This cannot be undone.</p>
@@ -118,9 +118,9 @@
       <!-- View 4: Edit profile -->
       <div id="auth-edit-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-edit-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-edit-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Edit profile</span>
-          <button class="auth-close-btn" id="auth-edit-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-edit-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="auth-avatar-upload">
           <div class="auth-profile-avatar" id="auth-edit-avatar"></div>
@@ -135,9 +135,9 @@
       <!-- View 5: Stride Stats -->
       <div id="auth-stats-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-stats-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-stats-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Stride Stats</span>
-          <button class="auth-close-btn" id="auth-stats-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-stats-close-btn" aria-label="Close">✕</button>
         </div>
         <div id="stats-loading" class="auth-loading">Loading...</div>
         <div id="stats-empty" class="auth-placeholder hidden">
@@ -150,9 +150,9 @@
       <!-- View 6: Walk History -->
       <div id="auth-history-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-history-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-history-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Walk History</span>
-          <button class="auth-close-btn" id="auth-history-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-history-close-btn" aria-label="Close">✕</button>
         </div>
         <div id="history-loading" class="auth-loading">Loading...</div>
         <div id="history-list"></div>
@@ -165,9 +165,9 @@
       <!-- View 7: Saved Routes -->
       <div id="auth-saved-routes-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-saved-routes-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-saved-routes-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Saved Routes</span>
-          <button class="auth-close-btn" id="auth-saved-routes-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-saved-routes-close-btn" aria-label="Close">✕</button>
         </div>
         <div id="saved-routes-loading" class="auth-loading">Loading...</div>
         <div id="saved-routes-list"></div>
@@ -181,9 +181,9 @@
       <!-- View 8: Saved Places (functional) -->
       <div id="auth-saved-locations-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-saved-locations-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-saved-locations-back-btn" aria-label="Back">←</button>
           <span class="auth-title">Saved Places</span>
-          <button class="auth-close-btn" id="auth-saved-locations-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-saved-locations-close-btn" aria-label="Close">✕</button>
         </div>
         <div id="saved-locations-list"></div>
         <div class="auth-placeholder hidden" id="saved-locations-empty">
@@ -195,9 +195,9 @@
       <!-- View 9: Help -->
       <div id="auth-help-view" class="hidden">
         <div class="auth-header">
-          <button class="auth-back-btn" id="auth-help-back-btn">←</button>
+          <button class="auth-back-btn" id="auth-help-back-btn" aria-label="Back">←</button>
           <span class="auth-title">How it works</span>
-          <button class="auth-close-btn" id="auth-help-close-btn">✕</button>
+          <button class="auth-close-btn" id="auth-help-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="auth-view-body">
           <div class="help-row">
@@ -206,7 +206,7 @@
           </div>
           <div class="help-row">
             <span class="help-icon">↗️</span>
-            <div class="help-text"><strong>A→B</strong> — Search a destination to get walking directions.</div>
+            <div class="help-text"><strong>Destination</strong> — Search a place to get walking directions.</div>
           </div>
           <div class="help-row">
             <span class="help-icon">📍</span>
@@ -227,10 +227,10 @@
     <!-- A→B search panel -->
     <div id="search-panel" class="panel">
       <div class="preview-header">
-        <span class="preview-title">Plan a Route</span>
+        <span class="preview-title">Where to?</span>
       </div>
       <div class="search-bar">
-        <input id="dest-input" class="search-input" type="text" placeholder="Where to?" />
+        <input id="dest-input" class="search-input" type="text" placeholder="Search a place or address" />
         <button class="search-btn" id="search-btn">Search</button>
       </div>
       <ul id="suggestions" class="suggestions hidden"></ul>
@@ -239,34 +239,34 @@
     <!-- Loop planning panel -->
     <div id="loop-panel" class="panel hidden">
       <div class="preview-header">
-        <span class="preview-title">Plan a Loop</span>
+        <span class="preview-title">Loop walk</span>
       </div>
       <div class="step-row hidden" id="loop-step-row">
-        <button class="step-btn" id="loop-step-down">−</button>
+        <button class="step-btn" id="loop-step-down" aria-label="Decrease">−</button>
         <div class="step-center" id="loop-step-center">
           <div class="step-value" id="loop-step-value">30 min</div>
           <div class="step-unit-hint hidden" id="loop-unit-hint">Metric</div>
         </div>
-        <button class="step-btn" id="loop-step-up">+</button>
+        <button class="step-btn" id="loop-step-up" aria-label="Increase">+</button>
       </div>
       <div class="loop-mode-row">
         <button class="mode-btn" id="loop-time-btn">⏱ Time</button>
         <button class="mode-btn" id="loop-dist-btn">📏 Distance</button>
       </div>
-      <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate Route</button>
+      <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate loop</button>
     </div>
 
     <!-- Phase 2: Destination preview -->
     <div id="preview-panel" class="panel hidden">
       <div class="preview-header">
-        <button class="back-btn" id="preview-back">←</button>
+        <button class="back-btn" id="preview-back" aria-label="Back">←</button>
         <span class="preview-title">Directions</span>
       </div>
       <div class="route-setup">
         <div class="route-field">
           <span class="field-label">From</span>
           <input class="field-input" id="start-input" type="text" placeholder="Getting your location..." />
-          <button class="gps-btn small-gps" id="start-gps-btn">📍</button>
+          <button class="gps-btn small-gps" id="start-gps-btn" aria-label="Use my location">📍</button>
         </div>
         <div class="route-divider"></div>
         <div class="route-field">
@@ -274,7 +274,7 @@
           <div class="field-value" id="preview-dest"></div>
         </div>
       </div>
-      <button class="primary-btn full-btn" id="directions-btn">Get Directions</button>
+      <button class="primary-btn full-btn" id="directions-btn">Get directions</button>
     </div>
 
     <!-- Route destination label (sits above route-panel) -->
@@ -283,10 +283,10 @@
     </div>
 
     <!-- Loop regenerate button (floats above route-panel, loop mode only) -->
-    <button class="primary-btn green-btn hidden" id="loop-regen-btn">New Route</button>
+    <button class="primary-btn green-btn hidden" id="loop-regen-btn">New loop</button>
 
     <!-- Loop direction reverse (floats above route-panel, loop mode only) -->
-    <button class="hidden" id="loop-reverse-btn">↺</button>
+    <button class="hidden" id="loop-reverse-btn" aria-label="Reverse loop direction">↺</button>
 
     <!-- Re-centre button (floats left, any context, shown when map is panned) -->
     <button class="primary-btn green-btn hidden" id="nav-recentre-btn">Re-centre</button>
@@ -294,15 +294,15 @@
     <!-- Phase 3: Route overview -->
     <div id="route-panel" class="panel row-panel hidden">
       <div class="nav-eta">
-        <div id="route-time">-- min</div>
+        <div id="route-time">…</div>
       </div>
       <div class="nav-center" id="route-center">
-        <div id="route-dist">0.0 km</div>
+        <div id="route-dist">…</div>
         <div class="step-unit-hint" id="route-unit-hint">metric</div>
       </div>
       <div class="pin-card-actions">
-        <button class="pin-close-btn" id="route-back">←</button>
-        <button class="route-save-btn" id="route-save-btn" title="Save this route">🔖</button>
+        <button class="pin-close-btn" id="route-back" aria-label="Back">←</button>
+        <button class="route-save-btn" id="route-save-btn" title="Save this route" aria-label="Save this route">🔖</button>
         <button class="primary-btn green-btn" id="start-btn">Start</button>
       </div>
     </div>
@@ -315,15 +315,15 @@
     <!-- Pin Card -->
     <div id="pin-card" class="panel row-panel hidden">
       <div class="nav-eta">
-        <div id="pin-time">-- min</div>
+        <div id="pin-time">…</div>
       </div>
       <div class="nav-center" id="pin-center">
-        <div id="pin-dist">-- km</div>
+        <div id="pin-dist">…</div>
         <div class="step-unit-hint hidden" id="pin-unit-hint">imperial</div>
       </div>
       <div class="pin-card-actions">
-        <button class="pin-close-btn" id="pin-close-btn">←</button>
-        <button class="pin-save-btn" id="pin-save-btn" title="Save this place">🔖</button>
+        <button class="pin-close-btn" id="pin-close-btn" aria-label="Back">←</button>
+        <button class="pin-save-btn" id="pin-save-btn" title="Save this place" aria-label="Save this place">🔖</button>
         <button class="start-nav-btn" id="pin-directions-btn">Start</button>
       </div>
     </div>
@@ -331,19 +331,19 @@
     <!-- Phase 4: Navigation -->
     <div id="nav-panel" class="panel row-panel hidden">
       <div class="nav-eta" id="nav-eta-wrap">
-        <div id="nav-time">-- min</div>
+        <div id="nav-time">…</div>
       </div>
       <div class="nav-center" id="nav-center">
-        <div id="nav-dist">0.00 km</div>
+        <div id="nav-dist">…</div>
         <div id="nav-unit">metric</div>
       </div>
       <div class="nav-controls" id="nav-controls-wrap">
         <button class="stop-btn" id="stop-btn">Stop</button>
       </div>
       <div id="nav-prompt" class="hidden">
-        <button class="pin-close-btn" id="nav-prompt-cancel">✕</button>
-        <button class="primary-btn" id="nav-prompt-adjust">Adjust route</button>
-        <button class="primary-btn green-btn" id="nav-prompt-fresh">Reset</button>
+        <button class="pin-close-btn" id="nav-prompt-cancel" aria-label="Cancel">✕</button>
+        <button class="primary-btn" id="nav-prompt-adjust">Distance left</button>
+        <button class="primary-btn green-btn" id="nav-prompt-fresh">Full loop</button>
       </div>
     </div>
 
@@ -365,14 +365,14 @@
 
     <!-- Mode selector -->
     <div id="mode-bar">
-      <button class="mode-tab active" id="ab-tab">A→B</button>
+      <button class="mode-tab active" id="ab-tab">Destination</button>
       <button class="mode-tab" id="loop-tab">Loop</button>
     </div>
 
     <!-- Onboarding Card -->
     <div id="onboarding-backdrop" class="onboarding-backdrop"></div>
     <div id="onboarding-card" class="onboarding-card">
-      <button class="onboarding-close" id="onboarding-close">✕</button>
+      <button class="onboarding-close" id="onboarding-close" aria-label="Close">✕</button>
       <div class="onboarding-title">Welcome to Stride Guide</div>
       <div class="onboarding-rows">
         <div class="onboarding-row">
@@ -381,7 +381,7 @@
         </div>
         <div class="onboarding-row">
           <span class="onboarding-icon">↗️</span>
-          <div class="onboarding-text"><strong>A→B</strong> — Search a destination to get walking directions.</div>
+          <div class="onboarding-text"><strong>Destination</strong> — Search a place to get walking directions.</div>
         </div>
         <div class="onboarding-row">
           <span class="onboarding-icon">📍</span>
