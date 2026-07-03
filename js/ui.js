@@ -27,6 +27,25 @@ let pinRoutePromise = null;
 let loopLastDistKm = 0;
 let mapDefaultZoom = 15;
 
+// ─── Fieldline icon set (inline SVG, stroke = currentColor) ───────────────────
+
+const ICONS = {
+  locate:   '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.4"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22"/></svg>',
+  place:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s6.5-6.8 6.5-12A6.5 6.5 0 0 0 5.5 9.5c0 5.2 6.5 12 6.5 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>',
+  bookmark: '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg>',
+  check:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>',
+  layers:   '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8.5 4.6L12 12 3.5 7.6 12 3z"/><path d="M4 12l8 4.4 8-4.4"/><path d="M4 16.4l8 4.4 8-4.4"/></svg>',
+  loop:     '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg>',
+  dest:     '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5"/><path d="M12 5h7v7"/></svg>',
+  stats:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-6"/></svg>',
+  clock:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
+  map:      '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg>',
+  mail:     '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>',
+  timer:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5v3"/></svg>',
+  ruler:    '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="1.5"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v3"/></svg>',
+  reverse:  '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4 9"/><path d="M4 3.5V9h5.5"/></svg>',
+};
+
 // ─── Element References ───────────────────────────────────────────────────────
 
 const dockEl = document.getElementById('dock');
@@ -467,7 +486,7 @@ window.onPinDropped = async function (lat, lng) {
   pinRoutePromise = null;
 
   const saveBtn = document.getElementById('pin-save-btn');
-  saveBtn.textContent = '🔖';
+  saveBtn.innerHTML = ICONS.bookmark;
   saveBtn.disabled = false;
 
   pinTimeEl.textContent = '…';
@@ -644,7 +663,7 @@ function acquireStartLocation() {
   startInput.value = '';
   startInput.placeholder = 'Getting your location...';
   startInput.disabled = true;
-  startGpsBtn.textContent = '⏳';
+  startGpsBtn.classList.add('loading');
   directionsBtn.disabled = true;
 
   requestGPS(
@@ -652,13 +671,13 @@ function acquireStartLocation() {
       startLocation = loc;
       startInput.value = 'My Location';
       startInput.disabled = true;
-      startGpsBtn.textContent = '📍';
+      startGpsBtn.classList.remove('loading');
       directionsBtn.disabled = false;
     },
     function () {
       startInput.placeholder = 'Enter a start address...';
       startInput.disabled = false;
-      startGpsBtn.textContent = '📍';
+      startGpsBtn.classList.remove('loading');
     }
   );
 }

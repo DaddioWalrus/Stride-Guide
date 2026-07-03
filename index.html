@@ -41,7 +41,7 @@
     <button id="account-btn" aria-label="Account"></button>
 
     <!-- Terrain toggle button (below account button) -->
-    <button id="terrain-btn" title="Toggle satellite view" aria-label="Toggle satellite view">🛰️</button>
+    <button id="terrain-btn" title="Toggle satellite view" aria-label="Toggle satellite view"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8.5 4.6L12 12 3.5 7.6 12 3z"/><path d="M4 12l8 4.4 8-4.4"/><path d="M4 16.4l8 4.4 8-4.4"/></svg></button>
 
     <!-- Account panel backdrop -->
     <div id="account-backdrop"></div>
@@ -69,7 +69,7 @@
           <span class="auth-title">Check your email</span>
           <button class="auth-close-btn" id="auth-code-close-btn" aria-label="Close">✕</button>
         </div>
-        <div class="auth-sent-icon">✉️</div>
+        <div class="auth-sent-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg></div>
         <p class="auth-body">We sent a 6-digit code to</p>
         <p class="auth-sent-email" id="auth-sent-email"></p>
         <input class="auth-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000" id="auth-code-input" autocomplete="one-time-code" />
@@ -92,22 +92,22 @@
 
         <div class="auth-nav-section">
           <button class="auth-nav-btn" id="auth-stats-btn">
-            <span class="auth-nav-icon">📊</span>
+            <span class="auth-nav-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span>
             <span class="auth-nav-label">Stride Stats</span>
             <span class="auth-nav-arrow">›</span>
           </button>
           <button class="auth-nav-btn" id="auth-history-btn">
-            <span class="auth-nav-icon">🕐</span>
+            <span class="auth-nav-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span>
             <span class="auth-nav-label">Walk History</span>
             <span class="auth-nav-arrow">›</span>
           </button>
           <button class="auth-nav-btn" id="auth-saved-routes-btn">
-            <span class="auth-nav-icon">🗺️</span>
+            <span class="auth-nav-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span>
             <span class="auth-nav-label">Saved Routes</span>
             <span class="auth-nav-arrow">›</span>
           </button>
           <button class="auth-nav-btn" id="auth-saved-locations-btn">
-            <span class="auth-nav-icon">📍</span>
+            <span class="auth-nav-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s6.5-6.8 6.5-12A6.5 6.5 0 0 0 5.5 9.5c0 5.2 6.5 12 6.5 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span>
             <span class="auth-nav-label">Saved Places</span>
             <span class="auth-nav-arrow">›</span>
           </button>
@@ -160,7 +160,7 @@
         </div>
         <div id="stats-loading" class="auth-loading">Loading...</div>
         <div id="stats-empty" class="auth-placeholder hidden">
-          <div class="auth-placeholder-icon">📊</div>
+          <div class="auth-placeholder-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></div>
           <p class="auth-placeholder-text">Complete your first walk to see stats here.</p>
         </div>
         <div id="stats-grid" class="stat-grid hidden"></div>
@@ -176,7 +176,7 @@
         <div id="history-loading" class="auth-loading">Loading...</div>
         <div id="history-list"></div>
         <div id="history-empty" class="auth-placeholder hidden">
-          <div class="auth-placeholder-icon">🕐</div>
+          <div class="auth-placeholder-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></div>
           <p class="auth-placeholder-text">Your completed walks will be logged here automatically.</p>
         </div>
       </div>
@@ -191,8 +191,8 @@
         <div id="saved-routes-loading" class="auth-loading">Loading...</div>
         <div id="saved-routes-list"></div>
         <div id="saved-routes-empty" class="auth-placeholder hidden">
-          <div class="auth-placeholder-icon">🗺️</div>
-          <p class="auth-placeholder-text">Tap 🔖 after generating a route to save it here.</p>
+          <div class="auth-placeholder-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></div>
+          <p class="auth-placeholder-text">Tap the bookmark after generating a route to save it here.</p>
         </div>
         <p class="saved-routes-note hidden" id="saved-routes-note">Move to the route start to activate it.</p>
       </div>
@@ -206,7 +206,7 @@
         </div>
         <div id="saved-locations-list"></div>
         <div class="auth-placeholder hidden" id="saved-locations-empty">
-          <div class="auth-placeholder-icon">📍</div>
+          <div class="auth-placeholder-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s6.5-6.8 6.5-12A6.5 6.5 0 0 0 5.5 9.5c0 5.2 6.5 12 6.5 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg></div>
           <p class="auth-placeholder-text">Tap anywhere on the map, then tap the bookmark to save that place.</p>
         </div>
       </div>
@@ -220,24 +220,24 @@
         </div>
         <div class="auth-view-body">
           <div class="help-row">
-            <span class="help-icon">🔄</span>
+            <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg></span>
             <div class="help-text"><strong>Loop</strong> — Pick a distance or time, and generate a circular walking route.</div>
           </div>
           <div class="help-row">
-            <span class="help-icon">↗️</span>
+            <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5"/><path d="M12 5h7v7"/></svg></span>
             <div class="help-text"><strong>Destination</strong> — Search a place to get walking directions.</div>
           </div>
           <div class="help-row">
-            <span class="help-icon">📍</span>
-            <div class="help-text">Tap <strong>📍</strong> to use your location. Tap and hold the map to drop a pin.</div>
+            <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.4"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22"/></svg></span>
+            <div class="help-text">Tap the <strong>location button</strong> to use your position. Tap and hold the map to drop a pin.</div>
           </div>
           <div class="help-row">
-            <span class="help-icon">🔖</span>
-            <div class="help-text">Tap <strong>🔖</strong> on a generated route or map pin to save it to your account.</div>
+            <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></span>
+            <div class="help-text">Tap the <strong>bookmark</strong> on a generated route or map pin to save it to your account.</div>
           </div>
           <div class="help-row">
-            <span class="help-icon">↺</span>
-            <div class="help-text">On a loop route, tap <strong>↺</strong> to instantly reverse the direction of travel.</div>
+            <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4 9"/><path d="M4 3.5V9h5.5"/></svg></span>
+            <div class="help-text">On a loop route, tap the <strong>reverse button</strong> to change the direction of travel.</div>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@
 
       <div class="dock-row">
         <div class="dock-left">
-          <button class="hidden" id="loop-reverse-btn" aria-label="Reverse loop direction">↺</button>
+          <button class="hidden" id="loop-reverse-btn" aria-label="Reverse loop direction"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4 9"/><path d="M4 3.5V9h5.5"/></svg></button>
         </div>
         <div class="dock-right">
           <button class="primary-btn green-btn hidden" id="nav-recentre-btn">Re-centre</button>
@@ -299,8 +299,8 @@
         <button class="step-btn" id="loop-step-up" aria-label="Increase">+</button>
       </div>
       <div class="loop-mode-row">
-        <button class="mode-btn" id="loop-time-btn">⏱ Time</button>
-        <button class="mode-btn" id="loop-dist-btn">📏 Distance</button>
+        <button class="mode-btn" id="loop-time-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5v3"/></svg>Time</button>
+        <button class="mode-btn" id="loop-dist-btn"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="1.5"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v3"/></svg>Distance</button>
       </div>
       <button class="primary-btn full-btn hidden" id="loop-generate-btn">Generate loop</button>
     </div>
@@ -315,7 +315,7 @@
         <div class="route-field">
           <span class="field-label">From</span>
           <input class="field-input" id="start-input" type="text" placeholder="Getting your location..." />
-          <button class="gps-btn small-gps" id="start-gps-btn" aria-label="Use my location">📍</button>
+          <button class="gps-btn small-gps" id="start-gps-btn" aria-label="Use my location"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.4"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22"/></svg></button>
         </div>
         <div class="route-divider"></div>
         <div class="route-field">
@@ -338,7 +338,7 @@
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="route-back" aria-label="Back">←</button>
-        <button class="route-save-btn" id="route-save-btn" title="Save this route" aria-label="Save this route">🔖</button>
+        <button class="route-save-btn" id="route-save-btn" title="Save this route" aria-label="Save this route"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
         <button class="primary-btn green-btn" id="start-btn">Start</button>
       </div>
     </div>
@@ -355,7 +355,7 @@
       </div>
       <div class="pin-card-actions">
         <button class="pin-close-btn" id="pin-close-btn" aria-label="Back">←</button>
-        <button class="pin-save-btn" id="pin-save-btn" title="Save this place" aria-label="Save this place">🔖</button>
+        <button class="pin-save-btn" id="pin-save-btn" title="Save this place" aria-label="Save this place"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></button>
         <button class="start-nav-btn" id="pin-directions-btn">Start</button>
       </div>
     </div>
@@ -404,16 +404,16 @@
       <div class="onboarding-title">Welcome to Stride Guide</div>
       <div class="onboarding-rows">
         <div class="onboarding-row">
-          <span class="onboarding-icon">🔄</span>
+          <span class="onboarding-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg></span>
           <div class="onboarding-text"><strong>Loop</strong> — Pick a distance or time, and generate a circular walking route.</div>
         </div>
         <div class="onboarding-row">
-          <span class="onboarding-icon">↗️</span>
+          <span class="onboarding-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5"/><path d="M12 5h7v7"/></svg></span>
           <div class="onboarding-text"><strong>Destination</strong> — Search a place to get walking directions.</div>
         </div>
         <div class="onboarding-row">
-          <span class="onboarding-icon">📍</span>
-          <div class="onboarding-text">Tap <strong>📍</strong> to use your location. Tap and hold the map to drop a pin.</div>
+          <span class="onboarding-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.4"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22"/></svg></span>
+          <div class="onboarding-text">Tap the <strong>location button</strong> to use your position. Tap and hold the map to drop a pin.</div>
         </div>
       </div>
       <button class="onboarding-got-it" id="onboarding-got-it">Got it, don't show again</button>

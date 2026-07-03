@@ -429,8 +429,8 @@ window.onSaveLocationRequest = async function (lat, lng, name) {
     showError('Could not save place');
     btn.disabled = false;
   } else {
-    btn.textContent = '✓';
-    setTimeout(function () { btn.textContent = '🔖'; btn.disabled = false; }, 2000);
+    btn.innerHTML = ICONS.check;
+    setTimeout(function () { btn.innerHTML = ICONS.bookmark; btn.disabled = false; }, 2000);
   }
 };
 
@@ -454,7 +454,7 @@ async function loadSavedLocations() {
     item.className = 'saved-location-item';
     item.innerHTML = `
       <button class="saved-location-go" data-lat="${loc.lat}" data-lng="${loc.lng}" data-name="${escapeHtml(loc.name)}">
-        <span class="saved-location-icon">📍</span>
+        <span class="saved-location-icon">${ICONS.place}</span>
         <span class="saved-location-name">${escapeHtml(loc.name)}</span>
       </button>
       <button class="saved-location-delete" data-id="${loc.id}">✕</button>`;
@@ -527,7 +527,7 @@ async function loadWalkHistory() {
       <div class="walk-stats">
         <span class="walk-stat">${km} km</span>
         <span class="walk-stat">${mins} min</span>
-        <span class="walk-mode">${w.mode === 'loop' ? '🔄' : '↗️'}</span>
+        <span class="walk-mode">${w.mode === 'loop' ? ICONS.loop : ICONS.dest}</span>
       </div>`;
     listEl.appendChild(item);
   });
@@ -601,8 +601,8 @@ window.onSaveRouteRequest = async function (route) {
     showError('Could not save route');
     btn.disabled = false;
   } else {
-    btn.textContent = '✓';
-    setTimeout(function () { btn.textContent = '🔖'; btn.disabled = false; }, 2000);
+    btn.innerHTML = ICONS.check;
+    setTimeout(function () { btn.innerHTML = ICONS.bookmark; btn.disabled = false; }, 2000);
   }
 };
 
@@ -644,7 +644,7 @@ async function loadSavedRoutes() {
     const nearby = isRouteNearby(route, userLoc);
     if (nearby) anyNearby = true;
     const km   = route.dist_km ? route.dist_km.toFixed(1) + ' km' : '';
-    const icon = route.mode === 'loop' ? '🔄' : '↗️';
+    const icon = route.mode === 'loop' ? ICONS.loop : ICONS.dest;
     const item = document.createElement('div');
     item.className = 'saved-route-item';
     item.innerHTML = `
