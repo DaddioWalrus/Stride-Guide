@@ -1,0 +1,283 @@
+<title>Horizon — Light Canvas Concepts</title>
+<style>
+  :root{
+    --paper:#ECEEEA; --raised:#F6F7F3; --sunk:#E3E6DF;
+    --ink:#1A241F; --muted:#59635B; --faint:#869084;
+    --line:#D3D8CF; --line-strong:#C2C8BC;
+    --accent:#B85C38; --accent-ink:#8f4527;
+    --good:#2E7D57; --crit:#B23A28;
+    --shadow:22px 30px 56px -32px rgba(26,36,31,.45);
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+    /* fixed Horizon light UI tokens for the specimens */
+    --h-accent:#2F5FE0; --h-ink:#111826; --h-mut:#5A6478; --h-go:#FF6B4A;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+      --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+      --line:#2C352E; --line-strong:#3A443B;
+      --accent:#E4844F; --accent-ink:#E9976A;
+      --good:#4DAE7D; --crit:#E0644F; --shadow:22px 30px 56px -30px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+    --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+    --line:#2C352E; --line-strong:#3A443B;
+    --accent:#E4844F; --accent-ink:#E9976A;
+    --good:#4DAE7D; --crit:#E0644F; --shadow:22px 30px 56px -30px rgba(0,0,0,.7);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:17px; overflow-x:hidden; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 28px; }
+
+  .theme-toggle{
+    position:fixed; top:18px; right:18px; z-index:50; font-family:var(--mono); font-size:11px;
+    letter-spacing:.14em; text-transform:uppercase; background:var(--raised); color:var(--muted);
+    border:1px solid var(--line); padding:9px 13px; border-radius:999px; cursor:pointer;
+  }
+  .theme-toggle:hover{ color:var(--ink); border-color:var(--line-strong); }
+
+  .eyebrow{ font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:10px; }
+  .eyebrow::before{ content:""; width:26px; height:1px; background:var(--accent); display:inline-block; }
+
+  header.hero{ padding:66px 0 38px; border-bottom:1px solid var(--line); }
+  .hero h1{ font-size:clamp(36px,6vw,62px); line-height:1.02; letter-spacing:-.035em; font-weight:800; margin:18px 0 0; text-wrap:balance; max-width:17ch; }
+  .hero h1 em{ font-style:normal; color:var(--accent); }
+  .hero .lede{ margin:18px 0 0; max-width:62ch; font-size:18.5px; color:var(--muted); }
+  .hero .meta{ margin-top:24px; display:flex; flex-wrap:wrap; gap:10px 26px; font-family:var(--mono); font-size:12.5px; color:var(--faint); letter-spacing:.04em; }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  section{ padding:56px 0; }
+  section > .wrap > .eyebrow{ margin-bottom:15px; }
+  h2{ font-size:clamp(25px,3.2vw,34px); letter-spacing:-.02em; font-weight:800; margin:0 0 8px; }
+  .section-note{ color:var(--muted); max-width:64ch; margin:0 0 30px; }
+  .section-note code{ font-family:var(--mono); font-size:13px; background:var(--sunk); padding:1px 6px; border-radius:5px; color:var(--accent-ink); }
+
+  .rack{ display:grid; grid-template-columns:repeat(5,1fr); gap:18px; }
+  @media (max-width:1000px){ .rack{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:680px){ .rack{ grid-template-columns:repeat(2,1fr); max-width:420px; } }
+
+  .concept{ display:flex; flex-direction:column; }
+  .concept.rec .cn .nm::after{ content:"★"; color:var(--accent); margin-left:6px; }
+  .concept.ref{ opacity:.92; }
+  .cn{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; gap:8px; }
+  .cn .nm{ font-size:16px; font-weight:800; letter-spacing:-.01em; }
+  .cn .hx{ font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .concept.ref .cn .nm{ color:var(--crit); }
+
+  /* specimen phone — account panel, fixed light */
+  .phone{ width:100%; border-radius:26px; padding:7px; background:#23262b; box-shadow:var(--shadow); }
+  .scr{ border-radius:20px; overflow:hidden; aspect-ratio:300/500; position:relative; background:#dfe4ea; }
+  .scr .map{ position:absolute; inset:0; background:#e4e8ee; }
+  .scr .map::after{
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(0deg,transparent 49.5%,rgba(90,105,140,.18) 49.5% 50.5%,transparent 50.5%),
+      linear-gradient(90deg,transparent 49.5%,rgba(90,105,140,.15) 49.5% 50.5%,transparent 50.5%);
+    background-size:38px 38px,38px 38px;
+  }
+  .scr .scrim{ position:absolute; inset:0; background:rgba(17,24,38,.28); }
+
+  .sheet{
+    position:absolute; left:0; right:0; bottom:0; height:82%;
+    background:var(--c-bg); border-radius:22px 22px 0 0; padding:14px 14px 0;
+    display:flex; flex-direction:column; gap:11px;
+  }
+  .handle{ width:34px; height:4px; border-radius:2px; background:rgba(17,24,38,.16); margin:2px auto 4px; }
+  .head{ display:flex; align-items:center; justify-content:space-between; }
+  .head .t{ font-size:15px; font-weight:800; color:var(--h-ink); letter-spacing:-.01em; }
+  .head .x{ width:26px; height:26px; border-radius:50%; background:var(--c-surf); display:flex; align-items:center; justify-content:center; color:var(--h-mut); box-shadow:0 1px 3px rgba(17,24,38,.1); }
+  .head .x svg{ width:13px; height:13px; }
+
+  .id{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0 2px; }
+  .id .av{ width:52px; height:52px; border-radius:50%; background:var(--h-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; box-shadow:0 5px 14px rgba(47,95,224,.4); margin-bottom:3px; }
+  .id .nm2{ font-size:15px; font-weight:800; color:var(--h-ink); }
+  .id .ml{ font-size:11px; color:var(--h-mut); }
+  .id .badge{ margin-top:4px; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--h-accent); background:color-mix(in srgb,var(--h-accent) 12%,transparent); padding:3px 9px; border-radius:999px; }
+
+  .edit{ height:34px; border:1px solid var(--c-line); border-radius:11px; background:var(--c-surf); color:var(--h-ink); font-weight:700; font-size:12px; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .edit svg{ width:13px; height:13px; stroke:var(--h-mut); }
+
+  .rows{ display:flex; flex-direction:column; gap:8px; }
+  .row{
+    display:flex; align-items:center; gap:10px; height:42px; padding:0 12px; border-radius:12px;
+    background:var(--c-surf); box-shadow:0 1px 3px rgba(17,24,38,.06);
+  }
+  .row .ri{ width:26px; height:26px; border-radius:8px; background:color-mix(in srgb,var(--h-accent) 11%,transparent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .row .ri svg{ width:15px; height:15px; stroke:var(--h-accent); fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .row .rl{ flex:1; font-size:12.5px; font-weight:700; color:var(--h-ink); }
+  .row .rc{ color:var(--h-mut); display:flex; }
+  .row .rc svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  .fl svg{ fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+  .meta2{ margin-top:12px; }
+  .swatch{ height:34px; border-radius:8px; border:1px solid var(--line); margin-bottom:8px; }
+  .desc{ font-size:12.5px; color:var(--muted); }
+  .desc b{ color:var(--ink); font-weight:600; }
+
+  .callout{ margin-top:30px; background:var(--raised); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:12px; padding:16px 20px; font-size:15px; color:var(--muted); }
+  .callout b{ color:var(--ink); }
+  .callout code{ font-family:var(--mono); font-size:13px; color:var(--accent-ink); }
+
+  footer{ padding:36px 0 66px; border-top:1px solid var(--line); }
+  footer .wrap{ display:flex; flex-wrap:wrap; gap:16px 40px; align-items:baseline; justify-content:space-between; }
+  footer .q{ max-width:56ch; color:var(--muted); font-size:15px; }
+  footer .q b{ color:var(--ink); }
+  footer .sig{ font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em; }
+</style>
+
+<button class="theme-toggle" id="tt" aria-label="Toggle colour theme">◐ Theme · follows system</button>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Horizon · light-mode canvas</span>
+    <h1>Taking the <em>indigo</em> out of the background.</h1>
+    <p class="lede">You were right — the old <code style="font-family:var(--mono);font-size:.9em">#F4F7FB</code> canvas leaned into the accent and read as tinted, not neutral. Here are four alternatives on the account panel, where the canvas fills the frame beside white cards, so the neutrality is judged honestly. The indigo accent, ink and icons are held constant.</p>
+    <div class="meta">
+      <span>DECISION&nbsp; <b>light canvas only</b></span>
+      <span>HELD CONSTANT&nbsp; <b>#2F5FE0 accent · Fieldline icons</b></span>
+      <span>DARK CANVAS&nbsp; <b>already settled</b></span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Compare</span>
+    <h2>Four canvases, one panel</h2>
+    <p class="section-note">The leftmost is the current tinted value for reference. Each card names the canvas hex; white cards (<code>#FFFFFF</code>) stay constant so you can see how much each ground separates from them.</p>
+
+    <div class="rack">
+
+      <!-- reference: current -->
+      <div class="concept ref" style="--c-bg:#F4F7FB;--c-surf:#FFFFFF;--c-line:#E3E9F2">
+        <div class="cn"><span class="nm">Current</span><span class="hx">#F4F7FB</span></div>
+        <div class="phone"><div class="scr">
+          <div class="map"></div><div class="scrim"></div>
+          <div class="sheet fl">
+            <div class="handle"></div>
+            <div class="head"><span class="t">Account</span><span class="x"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="id"><div class="av">J</div><div class="nm2">Jamie Campbell</div><div class="ml">jamie@email.com</div><div class="badge">Free</div></div>
+            <button class="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>Edit profile</button>
+            <div class="rows">
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span><span class="rl">Stride Stats</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rl">Walk History</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span><span class="rl">Saved Routes</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="meta2"><div class="swatch" style="background:#F4F7FB"></div><div class="desc"><b>Too indigo.</b> The blue cast is visible against white — the thing we're fixing.</div></div>
+      </div>
+
+      <!-- Porcelain -->
+      <div class="concept" style="--c-bg:#FAFAFA;--c-surf:#FFFFFF;--c-line:#ECECEC">
+        <div class="cn"><span class="nm">Porcelain</span><span class="hx">#FAFAFA</span></div>
+        <div class="phone"><div class="scr">
+          <div class="map"></div><div class="scrim"></div>
+          <div class="sheet fl">
+            <div class="handle"></div>
+            <div class="head"><span class="t">Account</span><span class="x"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="id"><div class="av">J</div><div class="nm2">Jamie Campbell</div><div class="ml">jamie@email.com</div><div class="badge">Free</div></div>
+            <button class="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>Edit profile</button>
+            <div class="rows">
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span><span class="rl">Stride Stats</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rl">Walk History</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span><span class="rl">Saved Routes</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="meta2"><div class="swatch" style="background:#FAFAFA"></div><div class="desc"><b>Near-white, achromatic.</b> Ultra-clean and airy. Cards barely separate — best with a hairline border.</div></div>
+      </div>
+
+      <!-- Cloud (recommended) -->
+      <div class="concept rec" style="--c-bg:#F5F6F7;--c-surf:#FFFFFF;--c-line:#E7E9EB">
+        <div class="cn"><span class="nm">Cloud</span><span class="hx">#F5F6F7</span></div>
+        <div class="phone"><div class="scr">
+          <div class="map"></div><div class="scrim"></div>
+          <div class="sheet fl">
+            <div class="handle"></div>
+            <div class="head"><span class="t">Account</span><span class="x"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="id"><div class="av">J</div><div class="nm2">Jamie Campbell</div><div class="ml">jamie@email.com</div><div class="badge">Free</div></div>
+            <button class="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>Edit profile</button>
+            <div class="rows">
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span><span class="rl">Stride Stats</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rl">Walk History</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span><span class="rl">Saved Routes</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="meta2"><div class="swatch" style="background:#F5F6F7"></div><div class="desc"><b>Neutral, whisper of cool.</b> Reads grey-neutral — no indigo — yet still "chosen". Clean card separation. My pick.</div></div>
+      </div>
+
+      <!-- Paper (warm) -->
+      <div class="concept" style="--c-bg:#F7F6F3;--c-surf:#FFFFFF;--c-line:#EAE8E3">
+        <div class="cn"><span class="nm">Paper</span><span class="hx">#F7F6F3</span></div>
+        <div class="phone"><div class="scr">
+          <div class="map"></div><div class="scrim"></div>
+          <div class="sheet fl">
+            <div class="handle"></div>
+            <div class="head"><span class="t">Account</span><span class="x"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="id"><div class="av">J</div><div class="nm2">Jamie Campbell</div><div class="ml">jamie@email.com</div><div class="badge">Free</div></div>
+            <button class="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>Edit profile</button>
+            <div class="rows">
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span><span class="rl">Stride Stats</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rl">Walk History</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span><span class="rl">Saved Routes</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="meta2"><div class="swatch" style="background:#F7F6F3"></div><div class="desc"><b>Faint warmth.</b> A hair of warm-grey complements the cool indigo and makes it pop. Calm, premium — not cold.</div></div>
+      </div>
+
+      <!-- Fog (deeper) -->
+      <div class="concept" style="--c-bg:#EDEFF1;--c-surf:#FFFFFF;--c-line:#E0E3E6">
+        <div class="cn"><span class="nm">Fog</span><span class="hx">#EDEFF1</span></div>
+        <div class="phone"><div class="scr">
+          <div class="map"></div><div class="scrim"></div>
+          <div class="sheet fl">
+            <div class="handle"></div>
+            <div class="head"><span class="t">Account</span><span class="x"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="id"><div class="av">J</div><div class="nm2">Jamie Campbell</div><div class="ml">jamie@email.com</div><div class="badge">Free</div></div>
+            <button class="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>Edit profile</button>
+            <div class="rows">
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg></span><span class="rl">Stride Stats</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rl">Walk History</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+              <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg></span><span class="rl">Saved Routes</span><span class="rc"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="meta2"><div class="swatch" style="background:#EDEFF1"></div><div class="desc"><b>Deeper neutral grey.</b> Strongest card elevation, still hue-neutral. Slightly more "utility app" in feel.</div></div>
+      </div>
+
+    </div>
+
+    <div class="callout">
+      <b>Recommendation — Cloud <code>#F5F6F7</code>.</b> It's genuinely neutral (no indigo), keeps a whisper of cool so it reads deliberate rather than dead grey, and separates cleanly from white cards without needing borders. If you want a touch more warmth to make the blue sing, <b>Paper <code>#F7F6F3</code></b> is the alternative. Whichever you pick, I'll set it as <code>--h-bg</code> across the spec and the earlier mockups, and derive the matching field/segment fills and hairlines from it.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="q"><b>Pick a canvas</b> — Porcelain / <b>Cloud ★</b> / Paper / Fog — and I'll lock it into Horizon. Then we move to the tier discussion.</div>
+    <div class="sig">STRIDE GUIDE · horizon canvas · main</div>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var tt=document.getElementById('tt'), root=document.documentElement;
+    function label(){ var t=root.getAttribute('data-theme'); tt.textContent=t?'◐ Theme · '+t:'◐ Theme · follows system'; }
+    tt.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      if(!cur) cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      root.setAttribute('data-theme',cur==='dark'?'light':'dark'); label();
+    });
+    label();
+  })();
+</script>
