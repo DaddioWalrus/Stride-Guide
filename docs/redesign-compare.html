@@ -1,0 +1,470 @@
+<title>Stride Guide — Palette & Icon Comparison</title>
+<style>
+  :root {
+    --paper:#ECEEEA; --raised:#F6F7F3; --sunk:#E3E6DF;
+    --ink:#1A241F; --muted:#59635B; --faint:#869084;
+    --line:#D3D8CF; --line-strong:#C2C8BC;
+    --accent:#B85C38; --accent-ink:#8f4527;
+    --good:#2E7D57; --warn:#B7852A; --crit:#B23A28;
+    --shadow:24px 32px 60px -32px rgba(26,36,31,.45);
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+      --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+      --line:#2C352E; --line-strong:#3A443B;
+      --accent:#E4844F; --accent-ink:#E9976A;
+      --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+      --shadow:24px 32px 60px -30px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+    --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+    --line:#2C352E; --line-strong:#3A443B;
+    --accent:#E4844F; --accent-ink:#E9976A;
+    --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+    --shadow:24px 32px 60px -30px rgba(0,0,0,.7);
+  }
+
+  /* ═══ per-palette token sets ═══ */
+  .pal-trailhead{
+    --p-bg:#F3F1EA; --p-surface:#FFFFFF; --p-ink:#1B2A24; --p-muted:#5C6B60;
+    --p-accent:#1F6F5C; --p-go:#2E9E6B; --p-stop:#C6412B; --p-line:#E4E1D6;
+    --p-route:#1F6F5C; --p-mapbg:#E7E9E0; --p-mapgrid:rgba(120,130,110,.28);
+    --p-mcard:#17251F; --p-mgo:#3FB98A;
+  }
+  .pal-horizon{
+    --p-bg:#F4F7FB; --p-surface:#FFFFFF; --p-ink:#111826; --p-muted:#5A6478;
+    --p-accent:#2F5FE0; --p-go:#FF6B4A; --p-stop:#E23D3D; --p-line:#E3E9F2;
+    --p-route:#2F5FE0; --p-mapbg:#EAEEF5; --p-mapgrid:rgba(90,105,140,.24);
+    --p-mcard:#111826; --p-mgo:#FF7E60;
+  }
+  .pal-nocturne{
+    --p-bg:#F2F4F1; --p-surface:#FFFFFF; --p-ink:#14180F; --p-muted:#59634F;
+    --p-accent:#5F8A00; --p-go:#5F8A00; --p-stop:#E0473B; --p-line:#E2E6DB;
+    --p-route:#6B9E12; --p-mapbg:#E9ECE4; --p-mapgrid:rgba(110,125,95,.24);
+    --p-mcard:#0C0F0E; --p-mgo:#B8F24A;
+  }
+  @media (prefers-color-scheme:dark){
+   :root:not([data-theme]) .pal-trailhead{
+    --p-bg:#101613; --p-surface:#18201B; --p-ink:#E9EDE5; --p-muted:#93A08F;
+    --p-accent:#38A784; --p-go:#3FB985; --p-stop:#E0654E; --p-line:#26302A;
+    --p-route:#4FC79E; --p-mapbg:#0E1411; --p-mapgrid:rgba(120,140,120,.20);
+    --p-mcard:#0A120E; --p-mgo:#4FC79E;
+   }
+   :root:not([data-theme]) .pal-horizon{
+    --p-bg:#0C111C; --p-surface:#161E2E; --p-ink:#EAEFF9; --p-muted:#8592AB;
+    --p-accent:#5B84F0; --p-go:#FF7E60; --p-stop:#F0574B; --p-line:#253048;
+    --p-route:#5B84F0; --p-mapbg:#0A0F19; --p-mapgrid:rgba(120,140,190,.17);
+    --p-mcard:#080D18; --p-mgo:#FF8E72;
+   }
+   :root:not([data-theme]) .pal-nocturne{
+    --p-bg:#0C0F0E; --p-surface:#161A19; --p-ink:#EAF0EC; --p-muted:#8A968C;
+    --p-accent:#B8F24A; --p-go:#B8F24A; --p-stop:#FF5A4D; --p-line:#232827;
+    --p-route:#B8F24A; --p-mapbg:#0A0D0C; --p-mapgrid:rgba(120,140,120,.18);
+    --p-mcard:#050706; --p-mgo:#C7F76A;
+   }
+  }
+  :root[data-theme="dark"] .pal-trailhead{
+    --p-bg:#101613; --p-surface:#18201B; --p-ink:#E9EDE5; --p-muted:#93A08F;
+    --p-accent:#38A784; --p-go:#3FB985; --p-stop:#E0654E; --p-line:#26302A;
+    --p-route:#4FC79E; --p-mapbg:#0E1411; --p-mapgrid:rgba(120,140,120,.20);
+    --p-mcard:#0A120E; --p-mgo:#4FC79E;
+  }
+  :root[data-theme="dark"] .pal-horizon{
+    --p-bg:#0C111C; --p-surface:#161E2E; --p-ink:#EAEFF9; --p-muted:#8592AB;
+    --p-accent:#5B84F0; --p-go:#FF7E60; --p-stop:#F0574B; --p-line:#253048;
+    --p-route:#5B84F0; --p-mapbg:#0A0F19; --p-mapgrid:rgba(120,140,190,.17);
+    --p-mcard:#080D18; --p-mgo:#FF8E72;
+  }
+  :root[data-theme="dark"] .pal-nocturne{
+    --p-bg:#0C0F0E; --p-surface:#161A19; --p-ink:#EAF0EC; --p-muted:#8A968C;
+    --p-accent:#B8F24A; --p-go:#B8F24A; --p-stop:#FF5A4D; --p-line:#232827;
+    --p-route:#B8F24A; --p-mapbg:#0A0D0C; --p-mapgrid:rgba(120,140,120,.18);
+    --p-mcard:#050706; --p-mgo:#C7F76A;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.6; font-size:17px; overflow-x:hidden;
+  }
+  .wrap{ max-width:1160px; margin:0 auto; padding:0 28px; }
+
+  .theme-toggle{
+    position:fixed; top:18px; right:18px; z-index:50;
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    background:var(--raised); color:var(--muted); border:1px solid var(--line);
+    padding:9px 13px; border-radius:999px; cursor:pointer;
+  }
+  .theme-toggle:hover{ color:var(--ink); border-color:var(--line-strong); }
+
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{ content:""; width:26px; height:1px; background:var(--accent); display:inline-block; }
+
+  header.hero{ padding:70px 0 40px; border-bottom:1px solid var(--line); }
+  .hero h1{ font-size:clamp(38px,6.4vw,68px); line-height:1; letter-spacing:-.035em; font-weight:800; margin:20px 0 0; text-wrap:balance; max-width:16ch; }
+  .hero h1 em{ font-style:normal; color:var(--accent); }
+  .hero .lede{ margin:20px 0 0; max-width:62ch; font-size:19px; color:var(--muted); }
+  .hero .meta{ margin-top:26px; display:flex; flex-wrap:wrap; gap:10px 26px; font-family:var(--mono); font-size:12.5px; color:var(--faint); letter-spacing:.04em; }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  section{ padding:60px 0; border-bottom:1px solid var(--line); }
+  section > .wrap > .eyebrow{ margin-bottom:16px; }
+  h2{ font-size:clamp(26px,3.3vw,36px); letter-spacing:-.02em; font-weight:800; margin:0 0 8px; text-wrap:balance; }
+  .section-note{ color:var(--muted); max-width:64ch; margin:0 0 34px; }
+  .section-note code{ font-family:var(--mono); font-size:13px; background:var(--sunk); padding:1px 6px; border-radius:5px; color:var(--accent-ink); }
+
+  /* ═══ palette comparison ═══ */
+  .board{ display:grid; grid-template-columns:repeat(3,1fr); gap:26px; }
+  @media (max-width:900px){ .board{ grid-template-columns:1fr; max-width:380px; margin:0 auto; } }
+
+  .col-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .col-head .name{ font-size:20px; font-weight:800; letter-spacing:-.01em; }
+  .col-head .tag{ font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .col.rec .col-head .name::after{ content:"★"; color:var(--accent); margin-left:8px; font-size:15px; }
+
+  .phone{
+    width:100%; max-width:330px; margin:0 auto; aspect-ratio:330/500;
+    border-radius:32px; padding:8px; background:#23262b; box-shadow:var(--shadow); position:relative;
+  }
+  .screen{ width:100%; height:100%; border-radius:25px; overflow:hidden; position:relative; background:var(--p-mapbg); }
+  .screen .map{ position:absolute; inset:0; background:var(--p-mapbg); }
+  .screen .map::after{
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(0deg, transparent 49.5%, var(--p-mapgrid) 49.5%, var(--p-mapgrid) 50.5%, transparent 50.5%),
+      linear-gradient(90deg, transparent 49.5%, var(--p-mapgrid) 49.5%, var(--p-mapgrid) 50.5%, transparent 50.5%);
+    background-size:44px 44px,44px 44px;
+  }
+  .screen .route{ position:absolute; inset:0; }
+  .screen .acct{
+    position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+    background:var(--p-accent); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:13px; box-shadow:0 3px 9px rgba(0,0,0,.28);
+  }
+  .screen .chip{
+    position:absolute; top:55px; right:12px; height:31px; padding:0 10px; border-radius:999px;
+    background:var(--p-surface); color:var(--p-muted); display:flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:600; box-shadow:0 3px 10px rgba(0,0,0,.16);
+  }
+  .screen .chip svg{ width:12px; height:12px; }
+
+  .maneuver{
+    position:absolute; left:11px; right:11px; bottom:82px; background:var(--p-mcard); color:#fff;
+    border-radius:20px; padding:14px 15px; display:flex; align-items:center; gap:13px;
+    box-shadow:0 16px 38px -14px rgba(0,0,0,.55);
+  }
+  .maneuver .glyph{ width:42px; height:42px; border-radius:13px; background:rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .maneuver .glyph svg{ width:24px; height:24px; stroke:var(--p-mgo); fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .maneuver .txt{ flex:1; min-width:0; }
+  .maneuver .prep{ font-size:11.5px; color:rgba(255,255,255,.6); font-weight:500; }
+  .maneuver .street{ font-size:16px; font-weight:700; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .maneuver .dist{ text-align:right; flex-shrink:0; }
+  .maneuver .dist .n{ font-size:21px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .maneuver .dist .u{ font-size:10px; color:rgba(255,255,255,.58); font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+
+  .statbar{
+    position:absolute; left:11px; right:11px; bottom:14px; height:58px; background:var(--p-surface);
+    border-radius:17px; box-shadow:0 8px 20px -10px rgba(0,0,0,.3); display:flex; align-items:center; padding:0 8px 0 15px;
+  }
+  .statbar .m{ display:flex; flex-direction:column; }
+  .statbar .m .n{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--p-ink); line-height:1.05; }
+  .statbar .m .l{ font-size:9.5px; font-weight:700; color:var(--p-muted); text-transform:uppercase; letter-spacing:.07em; }
+  .statbar .sep{ width:1px; height:28px; background:var(--p-line); margin:0 13px; }
+  .statbar .unit{ margin-left:auto; margin-right:8px; display:flex; background:var(--p-bg); border-radius:9px; padding:3px; font-size:10.5px; font-weight:700; }
+  .statbar .unit span{ padding:4px 7px; border-radius:6px; color:var(--p-muted); }
+  .statbar .unit span.on{ background:var(--p-surface); color:var(--p-accent); box-shadow:0 1px 4px rgba(0,0,0,.18); }
+  .statbar .stop{ width:42px; height:42px; border-radius:12px; background:var(--p-stop); color:#fff; border:none; display:flex; align-items:center; justify-content:center; }
+  .statbar .stop svg{ width:15px; height:15px; }
+
+  .swatches{ display:flex; height:40px; border-radius:10px; overflow:hidden; border:1px solid var(--line); margin-top:18px; }
+  .swatches i{ flex:1; position:relative; }
+  .swatches i span{ position:absolute; bottom:3px; left:0; right:0; text-align:center; font-family:var(--mono); font-size:7.5px; color:rgba(255,255,255,.85); letter-spacing:.02em; }
+  .pc{ display:flex; flex-direction:column; gap:7px; font-size:13.5px; margin-top:14px; }
+  .pc div{ display:flex; gap:8px; align-items:flex-start; }
+  .pc b{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; flex-shrink:0; width:32px; padding-top:3px; }
+  .pc .p b{ color:var(--good); }
+  .pc .c b{ color:var(--crit); }
+  .pc span{ color:var(--muted); }
+
+  .callout{
+    margin-top:30px; background:var(--raised); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; padding:16px 20px; font-size:15px; color:var(--muted);
+  }
+  .callout b{ color:var(--ink); }
+
+  /* ═══ icon comparison ═══ */
+  .iconsets{ display:flex; flex-direction:column; gap:26px; }
+  .iset{ background:var(--raised); border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+  .iset.rec{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .iset-head{ display:flex; align-items:center; gap:16px; padding:20px 24px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .iset-head .h{ display:flex; flex-direction:column; }
+  .iset-head .h .n{ font-size:20px; font-weight:800; letter-spacing:-.01em; display:flex; align-items:center; gap:10px; }
+  .iset-head .h .n .star{ color:var(--accent); font-size:15px; }
+  .iset-head .h .d{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+  .iset-head .spec{ margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--faint); text-align:right; line-height:1.7; }
+
+  .grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:0; }
+  @media (max-width:900px){ .grid{ grid-template-columns:repeat(6,1fr); } }
+  @media (max-width:520px){ .grid{ grid-template-columns:repeat(4,1fr); } }
+  .cell{
+    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    border-right:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink);
+  }
+  .cell svg{ width:26px; height:26px; }
+  .cell .cl{ font-family:var(--mono); font-size:8.5px; letter-spacing:.03em; color:var(--faint); text-transform:uppercase; }
+
+  .iset-foot{ display:flex; gap:24px; padding:20px 24px; flex-wrap:wrap; align-items:center; }
+  .incontext{ display:flex; gap:10px; align-items:center; }
+  .ic-field{ display:flex; align-items:center; gap:9px; height:40px; padding:0 14px; border-radius:12px; background:var(--sunk); color:var(--muted); font-size:13px; font-weight:600; }
+  .ic-field svg{ width:16px; height:16px; }
+  .ic-btn{ width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; }
+  .ic-btn.accent{ background:var(--accent); color:#fff; }
+  .ic-btn.ghost{ background:var(--sunk); color:var(--ink); }
+  .ic-btn svg{ width:18px; height:18px; }
+  .iset-foot .pc{ margin-top:0; flex:1; min-width:220px; }
+
+  .fieldline svg{ stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .survey svg{ stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:butt; stroke-linejoin:miter; }
+
+  footer{ padding:42px 0 70px; }
+  footer .wrap{ display:flex; flex-wrap:wrap; gap:18px 40px; align-items:baseline; justify-content:space-between; }
+  footer .q{ max-width:56ch; color:var(--muted); font-size:15px; }
+  footer .q b{ color:var(--ink); }
+  footer .sig{ font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em; }
+</style>
+
+<button class="theme-toggle" id="tt" aria-label="Toggle colour theme">◐ Theme · follows system</button>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Stride Guide · comparison round</span>
+    <h1>Three palettes, two icon sets — <em>side by side</em>.</h1>
+    <p class="lede">The same navigation screen rendered in each identity direction, plus two complete bespoke icon sets to weigh against each other. This sheet defaults to your system theme and the toggle (top-right) overrides it — the exact dark-mode behaviour we agreed to build.</p>
+    <div class="meta">
+      <span>COMPARE&nbsp; <b>Trailhead · Horizon · Nocturne</b></span>
+      <span>ICONS&nbsp; <b>Fieldline vs Survey</b></span>
+      <span>THEME&nbsp; <b>system default + manual toggle</b></span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ PALETTES ═══ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Identity · rendered</span>
+    <h2>The same walk, three ways</h2>
+    <p class="section-note">One screen — mid-navigation, the design's headline moment — skinned in each direction so the accent, the go/stop semantics, and the route line compare directly. Flip the theme toggle to see each palette's light and dark variant. <b>Nocturne is designed dark-first</b>, so give it a look in dark mode especially.</p>
+    <div class="board">
+
+      <!-- Trailhead -->
+      <div class="col">
+        <div class="col-head"><span class="name">Trailhead</span><span class="tag">nature-forward</span></div>
+        <div class="phone pal-trailhead"><div class="screen">
+          <div class="map"></div>
+          <svg class="route" viewBox="0 0 330 500"><path d="M62 460 C120 372 96 300 182 250 S292 150 274 78" fill="none" stroke="var(--p-route)" stroke-width="5" stroke-linecap="round"/></svg>
+          <div class="acct">J</div>
+          <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/></svg>Layers</div>
+          <div class="maneuver">
+            <div class="glyph"><svg viewBox="0 0 24 24"><path d="M15 20V9a4 4 0 0 0-4-4H6"/><path d="M9 8L5 5l4-3"/></svg></div>
+            <div class="txt"><div class="prep">Turn left onto</div><div class="street">Canal Path</div></div>
+            <div class="dist"><div class="n">120</div><div class="u">m</div></div>
+          </div>
+          <div class="statbar">
+            <div class="m"><span class="n">18</span><span class="l">min</span></div>
+            <div class="sep"></div>
+            <div class="m"><span class="n">1.4</span><span class="l">km left</span></div>
+            <div class="unit"><span class="on">km</span><span>mi</span></div>
+            <button class="stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+          </div>
+        </div></div>
+        <div class="swatches pal-trailhead">
+          <i style="background:#1F6F5C"><span>accent</span></i><i style="background:#2E9E6B"><span>go</span></i><i style="background:#E4712B"><span>cta</span></i><i style="background:#C6412B"><span>stop</span></i><i style="background:#1B2A24"><span>ink</span></i>
+        </div>
+        <div class="pc">
+          <div class="p"><b>Pro</b><span>Most distinctive; unmistakably outdoors.</span></div>
+          <div class="c"><b>Con</b><span>Spruce can blend into green map tiles.</span></div>
+        </div>
+      </div>
+
+      <!-- Horizon -->
+      <div class="col rec">
+        <div class="col-head"><span class="name">Horizon</span><span class="tag">recommended</span></div>
+        <div class="phone pal-horizon"><div class="screen">
+          <div class="map"></div>
+          <svg class="route" viewBox="0 0 330 500"><path d="M62 460 C120 372 96 300 182 250 S292 150 274 78" fill="none" stroke="var(--p-route)" stroke-width="5" stroke-linecap="round"/></svg>
+          <div class="acct">J</div>
+          <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/></svg>Layers</div>
+          <div class="maneuver">
+            <div class="glyph"><svg viewBox="0 0 24 24"><path d="M15 20V9a4 4 0 0 0-4-4H6"/><path d="M9 8L5 5l4-3"/></svg></div>
+            <div class="txt"><div class="prep">Turn left onto</div><div class="street">Canal Path</div></div>
+            <div class="dist"><div class="n">120</div><div class="u">m</div></div>
+          </div>
+          <div class="statbar">
+            <div class="m"><span class="n">18</span><span class="l">min</span></div>
+            <div class="sep"></div>
+            <div class="m"><span class="n">1.4</span><span class="l">km left</span></div>
+            <div class="unit"><span class="on">km</span><span>mi</span></div>
+            <button class="stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+          </div>
+        </div></div>
+        <div class="swatches pal-horizon">
+          <i style="background:#2F5FE0"><span>accent</span></i><i style="background:#FF6B4A"><span>go</span></i><i style="background:#111826"><span>ink</span></i><i style="background:#E23D3D"><span>stop</span></i><i style="background:#F4F7FB"><span style="color:#556">bg</span></i>
+        </div>
+        <div class="pc">
+          <div class="p"><b>Pro</b><span>Familiar evolution; blue stays distinct from map; superb dark mode.</span></div>
+          <div class="c"><b>Con</b><span>Closest to today — leans on type + hierarchy.</span></div>
+        </div>
+      </div>
+
+      <!-- Nocturne -->
+      <div class="col">
+        <div class="col-head"><span class="name">Nocturne</span><span class="tag">dark-first</span></div>
+        <div class="phone pal-nocturne"><div class="screen">
+          <div class="map"></div>
+          <svg class="route" viewBox="0 0 330 500"><path d="M62 460 C120 372 96 300 182 250 S292 150 274 78" fill="none" stroke="var(--p-route)" stroke-width="5" stroke-linecap="round"/></svg>
+          <div class="acct" style="color:#0C0F0E">J</div>
+          <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/></svg>Layers</div>
+          <div class="maneuver">
+            <div class="glyph"><svg viewBox="0 0 24 24"><path d="M15 20V9a4 4 0 0 0-4-4H6"/><path d="M9 8L5 5l4-3"/></svg></div>
+            <div class="txt"><div class="prep">Turn left onto</div><div class="street">Canal Path</div></div>
+            <div class="dist"><div class="n">120</div><div class="u">m</div></div>
+          </div>
+          <div class="statbar">
+            <div class="m"><span class="n">18</span><span class="l">min</span></div>
+            <div class="sep"></div>
+            <div class="m"><span class="n">1.4</span><span class="l">km left</span></div>
+            <div class="unit"><span class="on">km</span><span>mi</span></div>
+            <button class="stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+          </div>
+        </div></div>
+        <div class="swatches pal-nocturne">
+          <i style="background:#0C0F0E"><span>canvas</span></i><i style="background:#161A19"><span>surface</span></i><i style="background:#B8F24A"><span style="color:#0C0F0E">accent</span></i><i style="background:#38E1D0"><span style="color:#0C0F0E">alt</span></i><i style="background:#FF5A4D"><span>stop</span></i>
+        </div>
+        <div class="pc">
+          <div class="p"><b>Pro</b><span>Best for night, glare + battery; most premium.</span></div>
+          <div class="c"><b>Con</b><span>Light variant needs care — accent dims to olive.</span></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="callout">
+      <b>My read:</b> Horizon is the safest confident choice for the shipping identity, and pulling <b>Nocturne's palette in as the dark theme</b> gives you the night-walk quality without betting the whole brand on lime. Trailhead stays on the table if you want a sharper break from "a blue app". Toggle this page to dark to see how close Horizon-dark and Nocturne already sit.
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ICON SETS ═══ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Iconography · two bespoke sets</span>
+    <h2>Replacing the emoji</h2>
+    <p class="section-note">Both are complete, single-weight, grid-aligned line sets covering the app's core glyphs — every one recolourable, scalable and screen-reader-labelled, unlike 🛰️🔖↺. The choice is a matter of <b>character</b>: friendly-rounded, or technical-cartographic. Open-licensed sets (Lucide, Feather) sit near the Survey end — faster to adopt, but less ownable.</p>
+
+    <div class="iconsets">
+
+      <!-- Fieldline -->
+      <div class="iset fieldline rec">
+        <div class="iset-head">
+          <div class="h"><span class="n">Fieldline <span class="star">★</span></span><span class="d">rounded · friendly · sporty</span></div>
+          <div class="spec">stroke 1.9 · round caps<br>pairs with Horizon</div>
+        </div>
+        <div class="grid">
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5-5"/></svg><span class="cl">search</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.4"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22"/></svg><span class="cl">locate</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 21.5s6.5-6.8 6.5-12A6.5 6.5 0 0 0 5.5 9.5c0 5.2 6.5 12 6.5 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg><span class="cl">place</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg><span class="cl">save</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 3l8.5 4.6L12 12 3.5 7.6 12 3z"/><path d="M4 12l8 4.4 8-4.4"/><path d="M4 16.4l8 4.4 8-4.4"/></svg><span class="cl">layers</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg><span class="cl">reverse</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-6"/></svg><span class="cl">stats</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span class="cl">history</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 7v12.5L9 17l6 2.5 5.5-2.5V4.5L15 7 9 4.5z"/><path d="M9 4.5V17M15 7v12.5"/></svg><span class="cl">map</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><rect x="2.5" y="8.5" width="19" height="7" rx="1.5"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v3"/></svg><span class="cl">distance</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5v3"/></svg><span class="cl">time</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5V5.5z"/></svg><span class="cl">start</span></div>
+        </div>
+        <div class="iset-foot">
+          <div class="incontext">
+            <div class="ic-field"><svg viewBox="0 0 24 24"><path d="M12 21.5s6.5-6.8 6.5-12A6.5 6.5 0 0 0 5.5 9.5c0 5.2 6.5 12 6.5 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Search a place</div>
+            <div class="ic-btn accent"><svg viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5V5.5z"/></svg></div>
+            <div class="ic-btn ghost"><svg viewBox="0 0 24 24"><path d="M6.5 4.5h11a1 1 0 0 1 1 1V20l-6.5-4.2L5.5 20V5.5a1 1 0 0 1 1-1z"/></svg></div>
+          </div>
+          <div class="pc">
+            <div class="p"><b>Pro</b><span>Warm and approachable; the rounding echoes Horizon's coral energy and reads friendly at small sizes.</span></div>
+            <div class="c"><b>Con</b><span>Less "instrument"; a touch softer than the map-tech feel.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survey -->
+      <div class="iset survey">
+        <div class="iset-head">
+          <div class="h"><span class="n">Survey</span><span class="d">technical · sharp · cartographic</span></div>
+          <div class="spec">stroke 1.6 · butt caps · graticule<br>pairs with Trailhead / Nocturne</div>
+        </div>
+        <div class="grid">
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l6 6"/></svg><span class="cl">search</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M5 5l2 2M19 5l-2 2M5 19l2-2M19 19l-2-2"/></svg><span class="cl">locate</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 22l5-8.5a5.7 5.7 0 1 0-10 0L12 22z"/><path d="M12 6.6l2.1 2.2L12 11l-2.1-2.2L12 6.6z"/></svg><span class="cl">place</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20V4z"/></svg><span class="cl">save</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 16.5l9 4.5 9-4.5"/></svg><span class="cl">layers</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 12-5"/><path d="M17 3v4h-4"/><path d="M19 12a7 7 0 0 1-12 5"/><path d="M7 21v-4h4"/></svg><span class="cl">reverse</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M8 20v-6M12 20v-10M16 20v-4M20 20V7"/></svg><span class="cl">stats</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v1.6M18.4 12H20M12 18.4V20M4 12h1.6"/><path d="M12 12l3.5 2M12 12V8"/></svg><span class="cl">history</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14"/><path d="M9 5v14M15 5v14M3 10h18M3 15h18"/></svg><span class="cl">map</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="6"/><path d="M6 9v3M9 9v2M12 9v3M15 9v2M18 9v3"/></svg><span class="cl">distance</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M9 3h6M12 3v3M12 13V8M12 13l3 2"/></svg><span class="cl">time</span></div>
+          <div class="cell"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5z"/></svg><span class="cl">start</span></div>
+        </div>
+        <div class="iset-foot">
+          <div class="incontext">
+            <div class="ic-field"><svg viewBox="0 0 24 24"><path d="M12 22l5-8.5a5.7 5.7 0 1 0-10 0L12 22z"/><path d="M12 6.6l2.1 2.2L12 11l-2.1-2.2L12 6.6z"/></svg>Search a place</div>
+            <div class="ic-btn accent"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5z"/></svg></div>
+            <div class="ic-btn ghost"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20V4z"/></svg></div>
+          </div>
+          <div class="pc">
+            <div class="p"><b>Pro</b><span>Precise, map-instrument character; the graticule map + reticle locate feel purpose-built for wayfinding.</span></div>
+            <div class="c"><b>Con</b><span>Sharper corners read colder; closer to off-the-shelf open sets.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="callout">
+      <b>My read:</b> pair the icons to the palette you pick — <b>Fieldline with Horizon</b> (the rounding and the coral belong together), <b>Survey with Trailhead or Nocturne</b> (the technical edge suits the cartographic and dark-first directions). If speed matters more than ownership, Survey can be swapped for an open-licensed set with near-zero authoring — but the bespoke sets are only ~14 glyphs and give you full control.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="q"><b>Two picks to lock:</b> a palette (Trailhead / <b>Horizon ★</b> / Nocturne, with Nocturne's palette as the dark theme either way) and an icon set (<b>Fieldline ★</b> / Survey). Once those are chosen, we move to the tier discussion.</div>
+    <div class="sig">STRIDE GUIDE · comparison round · main</div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tt = document.getElementById('tt');
+    var root = document.documentElement;
+    function label(){
+      var t = root.getAttribute('data-theme');
+      tt.textContent = t ? '◐ Theme · ' + t : '◐ Theme · follows system';
+    }
+    tt.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+      label();
+    });
+    label();
+  })();
+</script>
