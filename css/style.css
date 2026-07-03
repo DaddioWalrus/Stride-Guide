@@ -693,25 +693,55 @@ button {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 10px;
 }
 
-/* ─── Stop Button ─────────────────────────────────── */
+/* Navigation bar — compact metrics so the maneuver card stays the hero */
+#nav-panel { gap: 12px; }
+
+#nav-panel #nav-time,
+#nav-panel #nav-dist {
+  font-size: 20px;
+}
+
+#nav-panel #nav-eta-wrap {
+  flex: 0 0 auto;
+}
+
+#nav-panel #nav-center {
+  flex: 0 0 auto;
+  align-items: flex-start;
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+
+/* ─── Stop Button (icon square) ───────────────────── */
 
 .stop-btn {
+  width: 48px;
   height: 48px;
-  padding: 0 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--stop);
   color: var(--on-stop);
   border: none;
   border-radius: var(--r-md);
-  font-size: var(--fs-md);
-  font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
   transition: transform 0.12s, opacity 0.2s;
 }
 
-.stop-btn:active { transform: scale(0.97); opacity: 0.9; }
+.stop-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.stop-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+.icn-solid { fill: currentColor; stroke: none; display: block; }
 
 /* ─── Route Destination / Pin Location labels ─────── */
 

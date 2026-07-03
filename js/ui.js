@@ -72,6 +72,7 @@ const navRecentreBtn = document.getElementById('nav-recentre-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
+const navDistLabel = document.getElementById('nav-dist-label');
 const navUnitEl = document.getElementById('nav-unit');
 const navCenterEl = document.getElementById('nav-center');
 const stopBtn = document.getElementById('stop-btn');
@@ -386,6 +387,7 @@ function updateNavDisplay() {
   } else {
     navDistEl.textContent = `${(remainingKm * 0.621371).toFixed(2)} mi`;
   }
+  navDistLabel.textContent = useMetric ? 'km left' : 'mi left';
   renderUnitSeg(navUnitEl, useMetric);
 }
 

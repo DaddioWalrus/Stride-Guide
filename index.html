@@ -357,14 +357,15 @@
     <div id="nav-panel" class="panel row-panel hidden">
       <div class="nav-eta" id="nav-eta-wrap">
         <div id="nav-time">…</div>
-        <div class="bar-label">time left</div>
+        <div class="bar-label">min left</div>
       </div>
       <div class="nav-center" id="nav-center">
         <div id="nav-dist">…</div>
-        <div class="unit-seg" id="nav-unit"><span class="on">km</span><span>mi</span></div>
+        <div class="bar-label" id="nav-dist-label">km left</div>
       </div>
       <div class="nav-controls" id="nav-controls-wrap">
-        <button class="stop-btn" id="stop-btn">Stop</button>
+        <div class="unit-seg" id="nav-unit"><span class="on">km</span><span>mi</span></div>
+        <button class="stop-btn" id="stop-btn" title="Stop" aria-label="Stop"><svg class="icn-solid" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button>
       </div>
       <div id="nav-prompt" class="hidden">
         <button class="pin-close-btn" id="nav-prompt-cancel" aria-label="Cancel">✕</button>
