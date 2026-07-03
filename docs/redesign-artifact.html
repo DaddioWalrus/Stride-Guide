@@ -1,0 +1,667 @@
+<title>Stride Guide — Redesign Direction</title>
+<style>
+  :root {
+    --paper: #ECEEEA;
+    --raised: #F6F7F3;
+    --sunk: #E3E6DF;
+    --ink: #1A241F;
+    --muted: #59635B;
+    --faint: #869084;
+    --line: #D3D8CF;
+    --line-strong: #C2C8BC;
+    --accent: #B85C38;
+    --accent-ink: #8f4527;
+    --good: #2E7D57;
+    --warn: #B7852A;
+    --crit: #B23A28;
+    --shadow: 24px 32px 60px -32px rgba(26,36,31,.45);
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+
+    /* app palette tokens — Horizon (recommended) */
+    --h-bg:#F4F7FB; --h-surface:#FFFFFF; --h-ink:#111826; --h-mut:#5A6478;
+    --h-accent:#2F5FE0; --h-go:#FF6B4A; --h-stop:#E23D3D; --h-line:#E3E9F2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #141A16; --raised: #1C241E; --sunk: #10150F;
+      --ink: #E7EAE3; --muted: #99A399; --faint: #6E786E;
+      --line: #2C352E; --line-strong: #3A443B;
+      --accent: #E4844F; --accent-ink: #E9976A;
+      --good: #4DAE7D; --warn: #D6A748; --crit: #E0644F;
+      --shadow: 24px 32px 60px -30px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #ECEEEA; --raised: #F6F7F3; --sunk: #E3E6DF;
+    --ink: #1A241F; --muted: #59635B; --faint: #869084;
+    --line: #D3D8CF; --line-strong:#C2C8BC;
+    --accent: #B85C38; --accent-ink:#8f4527;
+    --good:#2E7D57; --warn:#B7852A; --crit:#B23A28;
+    --shadow: 24px 32px 60px -32px rgba(26,36,31,.45);
+  }
+  :root[data-theme="dark"] {
+    --paper: #141A16; --raised: #1C241E; --sunk:#10150F;
+    --ink: #E7EAE3; --muted: #99A399; --faint:#6E786E;
+    --line: #2C352E; --line-strong:#3A443B;
+    --accent: #E4844F; --accent-ink:#E9976A;
+    --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+    --shadow: 24px 32px 60px -30px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 17px;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+  /* contour ambient texture, drawn once behind hero */
+  .contour {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
+    opacity: .5;
+  }
+  .contour svg { position: absolute; top: -12%; right: -8%; width: 780px; height: 780px; }
+  .contour path { fill: none; stroke: var(--line-strong); stroke-width: 1; }
+
+  /* ── eyebrow / labels ── */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ""; width: 26px; height: 1px; background: var(--accent); display: inline-block;
+  }
+
+  /* ── hero ── */
+  header.hero { position: relative; padding: 74px 0 46px; border-bottom: 1px solid var(--line); }
+  .hero h1 {
+    font-size: clamp(40px, 7vw, 78px);
+    line-height: .98; letter-spacing: -.035em; font-weight: 800;
+    margin: 20px 0 0; text-wrap: balance; max-width: 15ch;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .lede {
+    margin: 22px 0 0; max-width: 60ch; font-size: 19px; color: var(--muted);
+  }
+  .hero .meta {
+    margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px 26px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--faint); letter-spacing: .04em;
+  }
+  .hero .meta b { color: var(--ink); font-weight: 600; }
+
+  .theme-toggle {
+    position: fixed; top: 18px; right: 18px; z-index: 50;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    background: var(--raised); color: var(--muted); border: 1px solid var(--line);
+    padding: 9px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--line-strong); }
+
+  section { padding: 62px 0; border-bottom: 1px solid var(--line); }
+  section > .wrap > .eyebrow { margin-bottom: 16px; }
+  h2 {
+    font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -.02em; font-weight: 800;
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  .section-note { color: var(--muted); max-width: 62ch; margin: 0 0 34px; }
+
+  /* ── mockup stage ── */
+  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+  @media (max-width: 780px) { .stage { grid-template-columns: 1fr; } }
+
+  .plate { position: relative; }
+  .plate-tag {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 9px; margin-bottom: 14px; font-weight: 600;
+  }
+  .plate-tag .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .plate.before .plate-tag { color: var(--faint); }
+  .plate.before .dot { background: var(--faint); }
+  .plate.after .plate-tag { color: var(--accent); }
+  .plate.after .dot { background: var(--accent); }
+  .plate-caption { font-size: 14.5px; color: var(--muted); margin: 15px 2px 0; }
+  .plate-caption b { color: var(--ink); font-weight: 600; }
+
+  /* phone frame */
+  .phone {
+    width: 100%; max-width: 340px; margin: 0 auto; aspect-ratio: 340 / 500;
+    border-radius: 34px; padding: 9px; background: #23262b;
+    box-shadow: var(--shadow); position: relative;
+  }
+  :root[data-theme="dark"] .phone, .phone { background: #23262b; }
+  .screen {
+    width: 100%; height: 100%; border-radius: 26px; overflow: hidden; position: relative;
+    font-family: var(--sans);
+  }
+  /* faux map ground */
+  .map-bg { position: absolute; inset: 0; }
+  .map-before { background:#e7ebe4; }
+  .map-before::after, .map-after::after {
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(0deg, transparent 49.6%, rgba(120,132,120,.28) 49.6%, rgba(120,132,120,.28) 50.4%, transparent 50.4%),
+      linear-gradient(90deg, transparent 49.6%, rgba(120,132,120,.22) 49.6%, rgba(120,132,120,.22) 50.4%, transparent 50.4%);
+    background-size: 46px 46px, 46px 46px;
+  }
+  .map-after { background:#eef1f6; }
+
+  /* route line motif */
+  .route-line { position:absolute; inset:0; }
+  .route-line path { fill:none; stroke-linecap:round; }
+
+  /* ── BEFORE app skin ── */
+  .b { --b-blue:#4A90D9; --b-green:#27ae60; --b-red:#e74c3c; }
+  .b .sheet {
+    position:absolute; left:14px; right:14px; bottom:66px; background:#fff;
+    border-radius:20px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,.15);
+    font-size:13px; color:#333;
+  }
+  .b .modebar {
+    position:absolute; left:0; right:0; bottom:0; height:48px; background:#fff;
+    border-top:1px solid #e8e8e8; display:flex;
+  }
+  .b .modebar button {
+    flex:1; border:none; background:none; font-size:13px; font-weight:600; color:#aaa;
+    border-top:3px solid transparent;
+  }
+  .b .modebar .on { color:var(--b-blue); border-top-color:var(--b-blue); }
+  .b .title { font-size:14px; font-weight:700; color:#333; margin-bottom:10px; }
+  .b .searchrow { display:flex; gap:7px; }
+  .b .searchrow input {
+    flex:1; border:2px solid #e0e0e0; border-radius:11px; padding:8px 11px; font-size:13px; color:#999;
+    font-family:inherit;
+  }
+  .b .searchrow .go {
+    background:var(--b-blue); color:#fff; border:none; border-radius:11px; padding:0 15px;
+    font-weight:600; font-size:13px;
+  }
+  .b .acct {
+    position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+    background:var(--b-blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+  .b .sat { position:absolute; top:54px; right:12px; width:34px; height:34px; border-radius:9px;
+    background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; font-size:15px; }
+  /* before nav */
+  .b .pill {
+    position:absolute; left:14px; right:14px; bottom:118px;
+    background:rgba(0,0,0,.55); color:#fff; border-radius:15px; padding:9px 13px;
+    display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600;
+    backdrop-filter: blur(4px);
+  }
+  .b .pill .ar { font-size:15px; }
+  .b .navrow { display:flex; align-items:center; gap:6px; }
+  .b .navrow .t { font-size:22px; font-weight:700; color:#333; font-variant-numeric:tabular-nums; }
+  .b .navrow .c { flex:1; text-align:center; }
+  .b .navrow .c .d { font-size:22px; font-weight:700; color:#333; font-variant-numeric:tabular-nums; }
+  .b .navrow .c .u { font-size:11px; color:#aaa; }
+  .b .navrow .stop { background:var(--b-red); color:#fff; border:none; border-radius:11px; padding:9px 15px; font-weight:700; font-size:12.5px; }
+
+  /* ── AFTER app skin (Horizon) ── */
+  .a { color: var(--h-ink); }
+  .a .acct {
+    position:absolute; top:13px; right:13px; width:36px; height:36px; border-radius:50%;
+    background:var(--h-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+    box-shadow:0 3px 10px rgba(47,95,224,.4);
+  }
+  .a .chip-sat {
+    position:absolute; top:58px; right:13px; height:34px; padding:0 11px; border-radius:999px;
+    background:var(--h-surface); box-shadow:0 3px 12px rgba(17,24,38,.14); display:flex; align-items:center; gap:6px;
+    font-size:11.5px; font-weight:600; color:var(--h-mut);
+  }
+  .a .sheet {
+    position:absolute; left:12px; right:12px; bottom:16px; background:var(--h-surface);
+    border-radius:24px; padding:16px; box-shadow:0 18px 40px -18px rgba(17,24,38,.4), 0 2px 8px rgba(17,24,38,.06);
+  }
+  .a .kicker { font-size:12px; font-weight:700; letter-spacing:.02em; color:var(--h-mut); text-transform:none; margin-bottom:11px;
+    display:flex; align-items:center; gap:7px; }
+  .a .searchrow { display:flex; gap:9px; align-items:center; }
+  .a .searchrow .field {
+    flex:1; display:flex; align-items:center; gap:9px; height:46px; border-radius:14px;
+    background:var(--h-bg); padding:0 13px; font-size:14px; font-weight:600; color:var(--h-mut);
+  }
+  .a .searchrow .go {
+    height:46px; padding:0 18px; border-radius:14px; background:var(--h-accent); color:#fff;
+    border:none; font-weight:700; font-size:14px; box-shadow:0 4px 12px rgba(47,95,224,.32);
+  }
+  .a .segbar { display:flex; gap:6px; margin-top:13px; padding:4px; background:var(--h-bg); border-radius:13px; }
+  .a .segbar button {
+    flex:1; height:36px; border:none; border-radius:10px; background:transparent; font-weight:700; font-size:13px;
+    color:var(--h-mut); display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit;
+  }
+  .a .segbar button.on { background:var(--h-surface); color:var(--h-accent); box-shadow:0 2px 6px rgba(17,24,38,.12); }
+
+  /* after nav — maneuver hero */
+  .a .maneuver {
+    position:absolute; left:12px; right:12px; bottom:88px; background:var(--h-ink); color:#fff;
+    border-radius:22px; padding:16px 18px; display:flex; align-items:center; gap:15px;
+    box-shadow:0 18px 44px -16px rgba(17,24,38,.6);
+  }
+  .a .maneuver .glyph {
+    width:46px; height:46px; border-radius:14px; background:rgba(255,255,255,.14);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .a .maneuver .glyph svg { width:26px; height:26px; stroke:var(--h-go); }
+  .a .maneuver .txt { flex:1; min-width:0; }
+  .a .maneuver .txt .street { font-size:17px; font-weight:700; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .a .maneuver .txt .prep { font-size:12.5px; color:rgba(255,255,255,.62); font-weight:500; }
+  .a .maneuver .dist { text-align:right; flex-shrink:0; }
+  .a .maneuver .dist .n { font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .a .maneuver .dist .u { font-size:11px; color:rgba(255,255,255,.6); font-weight:600; }
+  .a .statbar {
+    position:absolute; left:12px; right:12px; bottom:16px; height:60px; background:var(--h-surface);
+    border-radius:18px; box-shadow:0 8px 22px -10px rgba(17,24,38,.3); display:flex; align-items:center; padding:0 8px 0 16px;
+  }
+  .a .statbar .m { display:flex; flex-direction:column; }
+  .a .statbar .m .n { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--h-ink); line-height:1.05; }
+  .a .statbar .m .l { font-size:10.5px; font-weight:600; color:var(--h-mut); text-transform:uppercase; letter-spacing:.06em; }
+  .a .statbar .sep { width:1px; height:30px; background:var(--h-line); margin:0 15px; }
+  .a .statbar .unit {
+    margin-left:auto; margin-right:9px; display:flex; background:var(--h-bg); border-radius:9px; padding:3px; font-size:11px; font-weight:700;
+  }
+  .a .statbar .unit span { padding:4px 8px; border-radius:6px; color:var(--h-mut); }
+  .a .statbar .unit span.on { background:var(--h-surface); color:var(--h-accent); box-shadow:0 1px 4px rgba(17,24,38,.15); }
+  .a .statbar .stop {
+    width:44px; height:44px; border-radius:13px; background:var(--h-stop); color:#fff; border:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .a .statbar .stop svg { width:16px; height:16px; }
+
+  /* dark screen variant for nav-after to show dark mode */
+  .screen.dark { }
+  .screen.dark .map-after { background:#0f1420; }
+  .screen.dark .map-after::after { opacity:.4; }
+  .a.dark { --h-surface:#1a2233; --h-bg:#131a28; --h-ink:#EAEFF9; --h-mut:#8592ab; --h-line:#26304400; --h-line:#263044; }
+  .a.dark .chip-sat { box-shadow:0 3px 12px rgba(0,0,0,.5); }
+  .a.dark .maneuver { background:#0a0f1a; }
+
+  /* callout flags on mockups */
+  .flags { list-style:none; margin:16px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .flags li { position:relative; padding-left:20px; font-size:13.5px; color:var(--muted); }
+  .flags li::before {
+    content:""; position:absolute; left:0; top:8px; width:9px; height:9px; border-radius:2px;
+    background:var(--accent);
+  }
+  .flags.bad li::before { background:var(--crit); border-radius:50%; }
+
+  /* ── palette directions ── */
+  .dirs { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  @media (max-width:860px){ .dirs{ grid-template-columns:1fr; } }
+  .dir {
+    background:var(--raised); border:1px solid var(--line); border-radius:20px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .dir.rec { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .dir .rec-flag {
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#fff;
+    background:var(--accent); padding:6px 12px; font-weight:600;
+  }
+  .dir .body { padding:20px; display:flex; flex-direction:column; gap:14px; flex:1; }
+  .dir h3 { margin:0; font-size:20px; letter-spacing:-.01em; }
+  .dir h3 span { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; display:block; margin-top:4px; font-weight:500; }
+  .swatches { display:flex; height:52px; border-radius:11px; overflow:hidden; border:1px solid var(--line); }
+  .swatches i { flex:1; }
+  .dir .desc { font-size:14px; color:var(--muted); margin:0; }
+  .pc { display:flex; flex-direction:column; gap:7px; font-size:13px; margin-top:2px; }
+  .pc .p, .pc .c { display:flex; gap:8px; align-items:flex-start; }
+  .pc .p b { color:var(--good); }
+  .pc .c b { color:var(--crit); }
+  .pc b { font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; flex-shrink:0; width:34px; padding-top:2px; }
+  .pc span { color:var(--muted); }
+
+  /* ── findings table ── */
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:16px; }
+  table { border-collapse:collapse; width:100%; min-width:620px; font-size:14.5px; }
+  thead th {
+    text-align:left; font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; padding:14px 16px; background:var(--sunk); border-bottom:1px solid var(--line);
+  }
+  tbody td { padding:14px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:last-child td { border-bottom:none; }
+  td .lbl { color:var(--ink); font-weight:600; }
+  td .sub { color:var(--muted); font-size:13px; }
+  .imp { font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.08em; padding:3px 8px; border-radius:6px; display:inline-block; }
+  .imp.h { background:color-mix(in srgb, var(--crit) 15%, transparent); color:var(--crit); }
+  .imp.m { background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+  .imp.l { background:color-mix(in srgb, var(--good) 15%, transparent); color:var(--good); }
+  td code { font-family:var(--mono); font-size:12.5px; background:var(--sunk); padding:1px 6px; border-radius:5px; color:var(--accent-ink); }
+
+  /* ── roadmap ── */
+  .tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:860px){ .tiers{ grid-template-columns:1fr; } }
+  .tier { background:var(--raised); border:1px solid var(--line); border-radius:18px; padding:22px; }
+  .tier .th { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
+  .tier .th .n { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .tier .th .eff { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .tier h3 { margin:0 0 14px; font-size:19px; letter-spacing:-.01em; }
+  .tier ol { margin:0; padding:0; list-style:none; counter-reset:step; display:flex; flex-direction:column; gap:11px; }
+  .tier li { position:relative; padding-left:30px; font-size:14px; color:var(--muted); }
+  .tier li b { color:var(--ink); font-weight:600; }
+  .tier li::before {
+    counter-increment:step; content:counter(step);
+    position:absolute; left:0; top:0; width:21px; height:21px; border-radius:6px;
+    background:var(--sunk); color:var(--muted); font-family:var(--mono); font-size:11px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tag-imp { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.06em; padding:1px 5px; border-radius:4px; margin-left:5px; }
+  .tag-imp.h { background:color-mix(in srgb, var(--crit) 15%, transparent); color:var(--crit); }
+  .tag-imp.m { background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+
+  footer { padding:44px 0 70px; }
+  footer .wrap { display:flex; flex-wrap:wrap; gap:18px 40px; align-items:baseline; justify-content:space-between; }
+  footer .q { max-width:52ch; color:var(--muted); font-size:15px; }
+  footer .q b { color:var(--ink); }
+  footer .sig { font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .plate, .dir, .tier { transition: transform .2s ease; }
+  }
+</style>
+
+<button class="theme-toggle" id="tt" aria-label="Toggle colour theme">◐ Theme</button>
+
+<header class="hero">
+  <div class="contour" aria-hidden="true">
+    <svg viewBox="0 0 400 400" preserveAspectRatio="none">
+      <path d="M60 340 Q160 300 200 220 T360 120"/>
+      <path d="M40 360 Q150 320 200 240 T380 130"/>
+      <path d="M80 320 Q170 280 200 200 T340 110"/>
+      <path d="M100 300 Q180 260 200 180 T320 100"/>
+      <path d="M120 280 Q190 240 200 160 T300 92"/>
+      <path d="M140 260 Q195 225 200 145 T280 88"/>
+    </svg>
+  </div>
+  <div class="wrap">
+    <span class="eyebrow">Stride Guide · UI/UX redesign</span>
+    <h1>A walking app that looks like it knows <em>the way</em>.</h1>
+    <p class="lede">The flow already works. What holds Stride Guide back is presentation — a default blue, emoji standing in for icons, and a navigation screen that buries the one thing you need mid-walk. Here's the direction.</p>
+    <div class="meta">
+      <span>SCOPE&nbsp; <b>main / production</b></span>
+      <span>METHOD&nbsp; <b>glanceable · outdoor · one-handed</b></span>
+      <span>CONSTRAINT&nbsp; <b>zero loss of function</b></span>
+    </div>
+  </div>
+</header>
+
+<!-- ── SCREEN 1: HOME ── -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Before → After · Home</span>
+    <h2>Planning a walk</h2>
+    <p class="section-note">Same phase, same elements (<code>#search-panel</code>, <code>#mode-bar</code>) — rebuilt with a real type scale, a considered surface, and line-icons instead of emoji.</p>
+    <div class="stage">
+      <div class="plate before">
+        <div class="plate-tag"><span class="dot"></span>Before</div>
+        <div class="phone"><div class="screen">
+          <div class="map-bg map-before"></div>
+          <div class="acct b" style="background:#4A90D9">J</div>
+          <div class="sat">🛰️</div>
+          <div class="b"><div class="sheet">
+            <div class="title">Plan a Route</div>
+            <div class="searchrow">
+              <input value="Where to?" readonly>
+              <button class="go">Search</button>
+            </div>
+          </div>
+          <div class="modebar"><button class="on">A→B</button><button>Loop</button></div></div>
+        </div></div>
+        <ul class="flags bad">
+          <li>Generic blue; "A→B" is engineer-speak</li>
+          <li>🛰️ emoji button — renders differently per device</li>
+          <li>Placeholder greys fail WCAG contrast</li>
+        </ul>
+      </div>
+      <div class="plate after">
+        <div class="plate-tag"><span class="dot"></span>After · Horizon</div>
+        <div class="phone"><div class="screen">
+          <div class="map-bg map-after"></div>
+          <svg class="route-line" viewBox="0 0 340 500"><path d="M60 470 C120 380 90 300 180 250 S300 150 290 70" stroke="#2F5FE0" stroke-width="5" opacity=".9"/></svg>
+          <div class="a"><div class="acct">J</div>
+          <div class="chip-sat">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"/></svg>
+            Satellite
+          </div>
+          <div class="sheet">
+            <div class="kicker">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--h-accent)" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              Where to?
+            </div>
+            <div class="searchrow">
+              <div class="field">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.6 7-12a7 7 0 1 0-14 0c0 5.4 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                Search a place
+              </div>
+              <button class="go">Go</button>
+            </div>
+            <div class="segbar">
+              <button class="on">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19L19 5"/><path d="M12 5h7v7"/></svg>
+                Destination
+              </button>
+              <button>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0z"/><path d="M15 9l1.5-1.5"/></svg>
+                Loop walk
+              </button>
+            </div>
+          </div></div>
+        </div></div>
+        <ul class="flags">
+          <li>Chosen indigo identity; plain-language modes</li>
+          <li>One coherent line-icon set, recolourable + labelled</li>
+          <li>44px targets, AA contrast, elevation tiers</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SCREEN 2: NAVIGATION (the headline) ── -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Before → After · Navigation · the headline change</span>
+    <h2>The glance that matters</h2>
+    <p class="section-note">Mid-walk you look up for under a second. Today the turn instruction is a thin translucent bar <em>above</em> a dense stats panel — the priority is inverted. The redesign promotes the maneuver to the hero and demotes ETA/distance to a slim bar. Shown in dark mode, where a nav app spends its evenings.</p>
+    <div class="stage">
+      <div class="plate before">
+        <div class="plate-tag"><span class="dot"></span>Before</div>
+        <div class="phone"><div class="screen">
+          <div class="map-bg map-before"></div>
+          <svg class="route-line" viewBox="0 0 340 500"><path d="M70 460 C130 370 100 300 190 250 S300 150 280 80" stroke="#4A90D9" stroke-width="5" opacity=".85"/></svg>
+          <div class="b">
+            <div class="pill"><span class="ar">↰</span><span style="flex:1">Turn left onto High Street</span><span>120 m</span></div>
+            <div class="sheet" style="bottom:14px">
+              <div class="navrow">
+                <span class="t">18<span style="font-size:12px">min</span></span>
+                <span class="c"><span class="d">1.4</span><span class="u">imperial</span></span>
+                <button class="stop">Stop</button>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <ul class="flags bad">
+          <li>Maneuver is the smallest text on screen</li>
+          <li>"imperial" hint shows the <em>opposite</em> unit — no affordance it's tappable</li>
+          <li>No dark mode: a wall of white at night</li>
+        </ul>
+      </div>
+      <div class="plate after">
+        <div class="plate-tag"><span class="dot"></span>After · Nocturne dark</div>
+        <div class="phone"><div class="screen dark">
+          <div class="map-bg map-after"></div>
+          <svg class="route-line" viewBox="0 0 340 500"><path d="M70 460 C130 370 100 300 190 250 S300 150 280 80" stroke="#FF6B4A" stroke-width="5"/></svg>
+          <div class="a dark">
+            <div class="acct">J</div>
+            <div class="maneuver">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 20V9a4 4 0 0 0-4-4H5"/><path d="M9 9L5 5l4-4" transform="translate(0 4)"/></svg>
+              </div>
+              <div class="txt">
+                <div class="prep">Turn left onto</div>
+                <div class="street">High Street</div>
+              </div>
+              <div class="dist"><div class="n">120</div><div class="u">metres</div></div>
+            </div>
+            <div class="statbar">
+              <div class="m"><span class="n">18</span><span class="l">min eta</span></div>
+              <div class="sep"></div>
+              <div class="m"><span class="n">1.4</span><span class="l">km left</span></div>
+              <div class="unit"><span class="on">km</span><span>mi</span></div>
+              <button class="stop" aria-label="Stop navigation">
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div></div>
+        <ul class="flags">
+          <li>Maneuver glyph + street name lead the hierarchy</li>
+          <li>Explicit <b>km · mi</b> toggle — no more guessing</li>
+          <li>True dark: legible at night, kinder on battery</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PALETTE DIRECTIONS ── -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Identity · three directions</span>
+    <h2>Pick a point of view</h2>
+    <p class="section-note">All three ship as the same token set — switching direction is a variable swap, not a rebuild — and each ships light + dark. The mockups above use <b>Horizon</b> for the UI and <b>Nocturne</b> as its dark theme.</p>
+    <div class="dirs">
+      <div class="dir">
+        <div class="body">
+          <h3>Trailhead<span>nature-forward</span></h3>
+          <div class="swatches"><i style="background:#1F6F5C"></i><i style="background:#2E9E6B"></i><i style="background:#E4712B"></i><i style="background:#F3F1EA"></i><i style="background:#1B2A24"></i></div>
+          <p class="desc">Spruce green, limestone neutrals, a waymark-orange CTA. OS-map / hiking calm.</p>
+          <div class="pc">
+            <div class="p"><b>Pro</b><span>Most distinctive; unmistakably an outdoors app.</span></div>
+            <div class="c"><b>Con</b><span>Green can compete with parks on the map tiles.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dir rec">
+        <div class="rec-flag">Recommended</div>
+        <div class="body">
+          <h3>Horizon<span>evolved · energetic</span></h3>
+          <div class="swatches"><i style="background:#2F5FE0"></i><i style="background:#FF6B4A"></i><i style="background:#111826"></i><i style="background:#F4F7FB"></i><i style="background:#E23D3D"></i></div>
+          <p class="desc">A confident indigo with a warm coral for go-moments. Familiar lineage, sporty energy.</p>
+          <div class="pc">
+            <div class="p"><b>Pro</b><span>Low-risk evolution; blue stays distinct from map greys; superb dark mode.</span></div>
+            <div class="c"><b>Con</b><span>Closest to today — the wins ride on type + hierarchy.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dir">
+        <div class="body">
+          <h3>Nocturne<span>dark-first</span></h3>
+          <div class="swatches"><i style="background:#0C0F0E"></i><i style="background:#161A19"></i><i style="background:#B8F24A"></i><i style="background:#38E1D0"></i><i style="background:#EAF0EC"></i></div>
+          <p class="desc">Near-black canvas, a luminous lime/cyan that pops on UI and map alike.</p>
+          <div class="pc">
+            <div class="p"><b>Pro</b><span>Best for night + glare + battery; most premium.</span></div>
+            <div class="c"><b>Con</b><span>Light variant needs careful tuning; boldest risk.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINDINGS ── -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Audit · what's holding it back</span>
+    <h2>The findings behind the redesign</h2>
+    <p class="section-note">The full spec carries the complete table with file references; these are the load-bearing ones, ranked by impact on the core task.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th style="width:30%">Finding</th><th>Where</th><th style="width:14%">Impact</th></tr></thead>
+      <tbody>
+        <tr><td><span class="lbl">Emoji as the icon set</span><div class="sub">Renders per-OS, can't recolour or align to grid</div></td><td><code>terrain-btn</code>, save/mode buttons</td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">Nav hierarchy inverted</span><div class="sub">Turn instruction demoted below dense stats</div></td><td><code>#instruction-pill</code> / <code>#nav-panel</code></td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">No dark mode</span><div class="sub">Only ground is <code>background:white</code></div></td><td><code>css/style.css</code></td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">Unit toggle mislabelled & hidden</span><div class="sub">Shows opposite unit, no tap affordance</div></td><td><code>#route-unit-hint</code></td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">Contrast below AA</span><div class="sub"><code>#999</code>/<code>#aaa</code> secondary text on white</div></td><td><code>.field-label</code>, <code>#nav-unit</code></td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">Sub-44px touch targets</span><div class="sub">Used one-handed while moving</div></td><td><code>.small-gps</code> (32px), <code>.back-btn</code></td><td><span class="imp h">High</span></td></tr>
+        <tr><td><span class="lbl">No type scale</span><div class="sub">Sizes sprawl 11–26px with no rhythm</div></td><td><code>css/style.css</code></td><td><span class="imp m">Med</span></td></tr>
+        <tr><td><span class="lbl">"A→B" jargon</span><div class="sub">Engineer-speak in the mode switch</div></td><td><code>#ab-tab</code></td><td><span class="imp m">Med</span></td></tr>
+        <tr><td><span class="lbl">Fragile JS layout</span><div class="sub">Controls pixel-positioned by hand</div></td><td><code>positionRecentreBtn()</code></td><td><span class="imp m">Med</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ── ROADMAP ── -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Roadmap · sequenced by risk</span>
+    <h2>How it ships</h2>
+    <p class="section-note"><code>main</code> deploys straight to production with no staging, so each tier is independently revertable and lands in order. Tier 1 is safe enough to ship today.</p>
+    <div class="tiers">
+      <div class="tier">
+        <div class="th"><span class="n">Tier 1</span><span class="eff">~same day · CSS</span></div>
+        <h3>Quick wins</h3>
+        <ol>
+          <li><b>Contrast fix</b> to AA <span class="tag-imp h">H</span></li>
+          <li><b>44px touch targets</b> <span class="tag-imp h">H</span></li>
+          <li><b>aria-labels</b> on icon buttons <span class="tag-imp h">H</span></li>
+          <li><b>Microcopy pass</b> — modes, verbs, placeholders</li>
+          <li><b>Type-scale tokens</b> — foundation for the rest</li>
+          <li><b>Focus-visible</b> rings</li>
+        </ol>
+      </div>
+      <div class="tier">
+        <div class="th"><span class="n">Tier 2</span><span class="eff">~days · structural</span></div>
+        <h3>The upgrades</h3>
+        <ol>
+          <li><b>Colour tokens + dark mode</b> <span class="tag-imp h">H</span></li>
+          <li><b>Line-icon set</b> replaces emoji <span class="tag-imp h">H</span></li>
+          <li><b>Nav hierarchy flip</b> — maneuver hero <span class="tag-imp h">H</span></li>
+          <li><b>Explicit unit toggle</b> <span class="tag-imp h">H</span></li>
+          <li><b>Retire pixel-positioning</b> for a docked sheet</li>
+        </ol>
+      </div>
+      <div class="tier">
+        <div class="th"><span class="n">Tier 3</span><span class="eff">the reveal</span></div>
+        <h3>Bold identity</h3>
+        <ol>
+          <li><b>Adopt Horizon</b> + Nocturne dark <span class="tag-imp h">H</span></li>
+          <li><b>Motion system</b> — phase transitions, press physics <span class="tag-imp m">M</span></li>
+          <li><b>Elevation tiers</b> — a real depth language</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="q">
+      <b>Four decisions to move forward:</b> the identity direction (Horizon, or see the others rendered first); dark-mode default vs. manual toggle; bespoke vs. open-licensed icons; and whether to land <b>Tier 1</b> on the live app now while we spec the rest.
+    </div>
+    <div class="sig">STRIDE GUIDE · redesign direction · main</div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tt = document.getElementById('tt');
+    var root = document.documentElement;
+    tt.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) {
+        cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
