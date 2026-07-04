@@ -166,16 +166,14 @@ body {
 
 /* ─── Map ─────────────────────────────────────────── */
 
-#map { width: 100vw; height: 100vh; }
-
-#map::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: calc(var(--sat) + 20px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), transparent);
-  pointer-events: none;
-  z-index: 400;
+/* Full-bleed map: runs edge to edge, under the Dynamic Island and
+   home indicator (viewport-fit=cover + black-translucent status bar). */
+#map {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .leaflet-control-attribution { display: none !important; }

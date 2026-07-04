@@ -157,7 +157,25 @@ function drawRoute(coords) {
     weight: 5,
     opacity: 0.85,
   }).addTo(map);
-  map.fitBounds(currentRoute.getBounds(), { padding: [40, 40] });
+  // Defer one frame so the phase panel shown after drawRoute() is
+  // measurable, then fit the route into the space above the dock.
+  requestAnimationFrame(fitRouteToView);
+}
+
+function fitRouteToView() {
+  if (!currentRoute) return;
+  let bottomPad = 60;
+  const dockEl = document.getElementById('dock');
+  if (dockEl) {
+    const rect = dockEl.getBoundingClientRect();
+    if (rect.height > 0 && rect.top < window.innerHeight) {
+      bottomPad = Math.max(60, window.innerHeight - rect.top + 16);
+    }
+  }
+  map.fitBounds(currentRoute.getBounds(), {
+    paddingTopLeft: [40, 70],
+    paddingBottomRight: [40, bottomPad],
+  });
 }
 
 function drawRouteArrows(coords) {
