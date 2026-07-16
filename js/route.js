@@ -27,18 +27,45 @@ async function callORS(body) {
 }
 
 // ─── Loop Route ───────────────────────────────────────────────────────────────
+// ORS treats round_trip.length as a suggestion — actual loops routinely land
+// 10–20% off. Generate, measure, rescale the request proportionally (same seed,
+// so the shape stays comparable and the length responds predictably), and retry
+// until within tolerance. Returns the closest attempt if none converges.
 
-async function generateLoopRoute(lat, lng, distanceKm) {
-  return callORS({
-    coordinates: [[lng, lat]],
-    options: {
-      round_trip: {
-        length: distanceKm * 1000,
-        points: 5,
-        seed: Math.floor(Math.random() * 90),
+async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
+  const tolKm = toleranceKm || 0.2;
+  const seed = Math.floor(Math.random() * 90);
+  const MAX_ATTEMPTS = 4;
+
+  let requestKm = distanceKm;
+  let best = null;
+  let bestErr = Infinity;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const result = await callORS({
+      coordinates: [[lng, lat]],
+      options: {
+        round_trip: {
+          length: Math.max(300, Math.round(requestKm * 1000)),
+          points: 5,
+          seed,
+        },
       },
-    },
-  });
+    });
+
+    const actualKm = result.summary.distance / 1000;
+    const err = Math.abs(actualKm - distanceKm);
+
+    if (err < bestErr) {
+      best = result;
+      bestErr = err;
+    }
+    if (err <= tolKm || actualKm <= 0) break;
+
+    requestKm *= distanceKm / actualKm;
+  }
+
+  return best;
 }
 
 // ─── A→B Route ────────────────────────────────────────────────────────────────

@@ -256,6 +256,12 @@ function updateLoopGenerateBtn() {
   loopGenerateBtn.classList.toggle('hidden', !loopMode);
 }
 
+// Max acceptable deviation from the requested loop size:
+// time mode → 2 min at ORS walking pace (5 km/h); distance mode → 0.2 km.
+function loopToleranceKm() {
+  return loopMode === 'time' ? (2 / 60) * 5 : 0.2;
+}
+
 loopGenerateBtn.addEventListener('click', async function () {
   if (!loopMode) return;
   const loc = userLocation;
@@ -270,11 +276,12 @@ loopGenerateBtn.addEventListener('click', async function () {
 
   loopLastDistKm = distanceKm;
   loopGenerateBtn.disabled = true;
+  loadingBox.classList.add('visible');
 
   try {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
-    const result = await generateLoopRoute(loc.lat, loc.lng, distanceKm);
+    const result = await generateLoopRoute(loc.lat, loc.lng, distanceKm, loopToleranceKm());
     navRouteDistKm = result.summary.distance / 1000;
     const mins = Math.round(result.summary.duration / 60);
     routeTimeEl.textContent = `${mins} min`;
@@ -290,6 +297,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     showError('Could not generate route — please try again');
   }
 
+  loadingBox.classList.remove('visible');
   loopGenerateBtn.disabled = false;
 });
 
@@ -793,10 +801,11 @@ loopRegenBtn.addEventListener('click', async function () {
     return;
   }
   loopRegenBtn.disabled = true;
+  loadingBox.classList.add('visible');
   try {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
-    const result = await generateLoopRoute(loc.lat, loc.lng, loopLastDistKm);
+    const result = await generateLoopRoute(loc.lat, loc.lng, loopLastDistKm, loopToleranceKm());
     navRouteDistKm = result.summary.distance / 1000;
     routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
     updateRouteDist();
@@ -811,6 +820,7 @@ loopRegenBtn.addEventListener('click', async function () {
   } catch {
     showError('Could not generate route — please try again');
   }
+  loadingBox.classList.remove('visible');
   loopRegenBtn.disabled = false;
 });
 
@@ -821,10 +831,11 @@ async function runLoopRegen(distKm) {
   if (!loc) { showError('Waiting for GPS location'); return; }
   haltNavigation();
   loopRegenBtn.disabled = true;
+  loadingBox.classList.add('visible');
   try {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
-    const result = await generateLoopRoute(loc.lat, loc.lng, distKm);
+    const result = await generateLoopRoute(loc.lat, loc.lng, distKm, loopToleranceKm());
     navRouteDistKm = result.summary.distance / 1000;
     routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
     updateRouteDist();
@@ -840,6 +851,7 @@ async function runLoopRegen(distKm) {
     showError('Could not generate route — please try again');
     showPhase('loop-panel');
   }
+  loadingBox.classList.remove('visible');
   loopRegenBtn.disabled = false;
 }
 
