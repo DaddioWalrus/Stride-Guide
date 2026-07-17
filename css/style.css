@@ -1613,7 +1613,8 @@ button { touch-action: manipulation; font-family: inherit; }
 
 /* ─── Guest walk-complete nudge ───────────────────── */
 
-#guest-nudge {
+#guest-nudge,
+#resume-card {
   position: fixed;
   bottom: calc(210px + var(--sab));
   left: 16px;

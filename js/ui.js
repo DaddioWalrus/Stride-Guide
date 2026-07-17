@@ -967,7 +967,9 @@ async function triggerReroute() {
   navRerouting = false;
 }
 
-function beginNavigation() {
+function beginNavigation(opts) {
+  const resume = !!(opts && opts.resume);
+  document.getElementById('resume-card').classList.add('hidden');
   mapDefaultZoom = 18;
   navRecentreBtn.classList.add('hidden');
   showPhase('nav-panel');
@@ -975,8 +977,16 @@ function beginNavigation() {
 
   resetVoice();
   acquireWake();
-  navStartTime = Date.now();
-  navTotalDistKm = 0;
+  if (resume) {
+    navStartTime = Date.now() - (opts.elapsedMs || 0);
+    navTotalDistKm = opts.totalKm || 0;
+  } else {
+    navStartTime = Date.now();
+    navTotalDistKm = 0;
+  }
+  navPaused = false;
+  navPausedAt = null;
+  navPausedTotal = 0;
   navLastPos = null;
   navCurrentSpeedMs = 0;
   navArrived = false;
@@ -1008,12 +1018,14 @@ function beginNavigation() {
       if (navPaused) {
         // Track position (camera + resume baseline) but freeze the walk
         navLastPos = pos;
+        saveWalkState();
         return;
       }
       if (navLastPos) {
         navTotalDistKm += haversineKm(navLastPos.lat, navLastPos.lng, pos.lat, pos.lng);
       }
       navLastPos = pos;
+      saveWalkState();
 
       if (pos.speed !== null && pos.speed >= 0) navCurrentSpeedMs = pos.speed;
       updateNavDisplay();
@@ -1045,13 +1057,14 @@ function beginNavigation() {
   );
 }
 
-startBtn.addEventListener('click', beginNavigation);
+startBtn.addEventListener('click', function () { beginNavigation(); });
 
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
 function haltNavigation() {
   releaseWake();
   resetVoice();
+  clearWalkState();
   setPausedUI(false);
   navPaused = false;
   navPausedAt = null;
@@ -1319,6 +1332,84 @@ window.onLoadSavedLoopRoute = function (route) {
     localStorage.setItem('strideGuideSeen', '1');
     backdrop.classList.remove('visible');
     card.classList.remove('visible');
+  });
+}());
+
+// ─── Interrupted-walk persistence ─────────────────────────────────────────────
+// Walk state is snapshotted while navigating so a killed app can offer
+// "Resume your walk?" on reopen (within 6 hours).
+
+const WALK_KEY = 'sgActiveWalk';
+let walkSaveLast = 0;
+
+function saveWalkState() {
+  if (!navStartTime) return;
+  const now = Date.now();
+  if (now - walkSaveLast < 5000) return;
+  walkSaveLast = now;
+  try {
+    localStorage.setItem(WALK_KEY, JSON.stringify({
+      savedAt: now,
+      elapsedMs: navElapsedMs(),
+      totalKm: navTotalDistKm,
+      routeKm: navRouteDistKm,
+      coords: navRouteCoords,
+      steps: navSteps,
+      step: navCurrentStep,
+      mode: currentMode,
+      dest: destination,
+      loopLastKm: loopLastDistKm,
+    }));
+  } catch (e) {}
+}
+
+function clearWalkState() {
+  walkSaveLast = 0;
+  try { localStorage.removeItem(WALK_KEY); } catch (e) {}
+}
+
+(function () {
+  let raw = null;
+  try { raw = localStorage.getItem(WALK_KEY); } catch (e) {}
+  if (!raw) return;
+
+  let s = null;
+  try { s = JSON.parse(raw); } catch (e) {}
+  if (!s || !s.coords || s.coords.length < 2 ||
+      Date.now() - s.savedAt > 6 * 3600 * 1000) {
+    clearWalkState();
+    return;
+  }
+
+  const card = document.getElementById('resume-card');
+  const label = s.totalKm >= 0.01 ? `${s.totalKm.toFixed(2)} km walked` : 'just started';
+  document.getElementById('resume-card-text').textContent = `Resume your walk? (${label})`;
+  card.classList.remove('hidden');
+
+  document.getElementById('resume-no').addEventListener('click', function () {
+    card.classList.add('hidden');
+    clearWalkState();
+  });
+
+  document.getElementById('resume-yes').addEventListener('click', function () {
+    card.classList.add('hidden');
+    if (navStartTime) return; // a new walk already started — don't clobber it
+    currentMode = s.mode === 'loop' ? 'loop' : 'ab';
+    loopTab.classList.toggle('active', currentMode === 'loop');
+    abTab.classList.toggle('active', currentMode === 'ab');
+    destination = s.dest || null;
+    navRouteCoords = s.coords;
+    navRouteDistKm = s.routeKm || polylineKm(s.coords);
+    navSteps = s.steps || [];
+    navCurrentStep = Math.min(s.step || 0, Math.max(0, navSteps.length - 1));
+    if (s.loopLastKm) loopLastDistKm = s.loopLastKm;
+    drawRoute(navRouteCoords);
+    if (currentMode === 'loop') {
+      drawRouteArrows(navRouteCoords);
+      loopRegenBtn.classList.remove('hidden');
+      loopReverseBtn.classList.remove('hidden');
+    }
+    beginNavigation({ resume: true, elapsedMs: s.elapsedMs || 0, totalKm: s.totalKm || 0 });
   });
 }());
 
