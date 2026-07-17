@@ -27,6 +27,22 @@ let pinRoutePromise = null;
 let loopLastDistKm = 0;
 let mapDefaultZoom = 15;
 
+// ─── Unit preference (persisted) ──────────────────────────────────────────────
+
+const UNITS_KEY = 'sgUnits';
+
+function unitsMetric() {
+  try { return localStorage.getItem(UNITS_KEY) !== 'mi'; } catch (e) { return true; }
+}
+
+function saveUnits(metric) {
+  try { localStorage.setItem(UNITS_KEY, metric ? 'km' : 'mi'); } catch (e) {}
+}
+
+useMetric = unitsMetric();
+pinUseMetric = useMetric;
+loopUseMetric = useMetric;
+
 // ─── Fieldline icon set (inline SVG, stroke = currentColor) ───────────────────
 
 const ICONS = {
@@ -195,7 +211,7 @@ loopTimeBtn.addEventListener('click', function () {
 loopDistBtn.addEventListener('click', function () {
   loopMode = 'distance';
   loopValue = 2;
-  loopUseMetric = true;
+  loopUseMetric = unitsMetric();
   loopDistBtn.classList.add('active');
   loopTimeBtn.classList.remove('active');
   loopStepRow.classList.remove('hidden');
@@ -220,6 +236,7 @@ loopStepCenter.addEventListener('click', function () {
     loopValue = Math.round(loopValue / 0.621371 * 2) / 2;
     loopUseMetric = true;
   }
+  saveUnits(loopUseMetric);
   updateLoopStepValue();
 });
 
@@ -399,6 +416,7 @@ function updateNavDisplay() {
 
 navCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
+  saveUnits(useMetric);
   updateNavDisplay();
   updateInstruction();
 });
@@ -414,6 +432,7 @@ function updateRouteDist() {
 
 routeCenterEl.addEventListener('click', function () {
   useMetric = !useMetric;
+  saveUnits(useMetric);
   updateRouteDist();
 });
 
@@ -430,6 +449,7 @@ function bindUnitSeg(el, setMetric) {
 bindUnitSeg(navUnitEl, function (metric) {
   if (useMetric === metric) return;
   useMetric = metric;
+  saveUnits(metric);
   updateNavDisplay();
   updateInstruction();
 });
@@ -437,6 +457,7 @@ bindUnitSeg(navUnitEl, function (metric) {
 bindUnitSeg(routeUnitHint, function (metric) {
   if (useMetric === metric) return;
   useMetric = metric;
+  saveUnits(metric);
   updateRouteDist();
 });
 
@@ -448,6 +469,7 @@ bindUnitSeg(loopUnitHint, function (metric) {
     loopValue = Math.round(loopValue * 0.621371 * 2) / 2;
   }
   loopUseMetric = metric;
+  saveUnits(metric);
   updateLoopStepValue();
 });
 
@@ -455,6 +477,7 @@ bindUnitSeg(pinUnitHint, function (metric) {
   if (pinLat === null || !userLocation) return;
   if (pinUseMetric === metric) return;
   pinUseMetric = metric;
+  saveUnits(metric);
   const d = pinRouteResult
     ? pinRouteResult.summary.distance / 1000
     : haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
@@ -479,6 +502,7 @@ pinCenter.addEventListener('click', function () {
   if (pinLat === null) return;
   if (!userLocation) return;
   pinUseMetric = !pinUseMetric;
+  saveUnits(pinUseMetric);
   const d = pinRouteResult
     ? pinRouteResult.summary.distance / 1000
     : haversineKm(userLocation.lat, userLocation.lng, pinLat, pinLng);
@@ -489,7 +513,7 @@ window.onPinDropped = async function (lat, lng) {
   pinLat = lat;
   pinLng = lng;
   pinName = null;
-  pinUseMetric = true;
+  pinUseMetric = unitsMetric();
   pinRouteResult = null;
   pinRoutePromise = null;
 
@@ -1031,6 +1055,7 @@ function doStopNavigation() {
   haltNavigation();
   if (walkedKm >= 0.05 && typeof window.onWalkCompleted === 'function') {
     window.onWalkCompleted({ distKm: walkedKm, durationSec: walkedSec, mode: walkedMode });
+    if (typeof currentUser === 'undefined' || !currentUser) showGuestNudge();
   }
   pinCard.classList.add('hidden');
   pinLocationLabel.classList.add('hidden');
@@ -1179,6 +1204,32 @@ window.onLoadSavedLoopRoute = function (route) {
     card.classList.remove('visible');
   });
 }());
+
+// ─── Guest walk-complete nudge ────────────────────────────────────────────────
+
+let guestNudgeTimer = null;
+
+function hideGuestNudge() {
+  document.getElementById('guest-nudge').classList.add('hidden');
+  clearTimeout(guestNudgeTimer);
+  guestNudgeTimer = null;
+}
+
+function showGuestNudge() {
+  document.getElementById('guest-nudge').classList.remove('hidden');
+  clearTimeout(guestNudgeTimer);
+  guestNudgeTimer = setTimeout(hideGuestNudge, 10000);
+}
+
+document.getElementById('guest-nudge-close').addEventListener('click', hideGuestNudge);
+
+document.getElementById('guest-nudge-btn').addEventListener('click', function () {
+  hideGuestNudge();
+  if (typeof openAccountPanel === 'function') {
+    openAccountPanel();
+    showAuthView('signin');
+  }
+});
 
 // ─── Appearance (theme) ───────────────────────────────────────────────────────
 // Defaults to the system setting; Light/Dark override it and persist.

@@ -119,6 +119,8 @@
 
         <button class="auth-signout-btn" id="auth-signout-btn">Sign out</button>
         <button class="auth-help-link" id="auth-help-btn">How it works</button>
+        <button class="auth-help-link" id="auth-feedback-btn">Send feedback</button>
+        <button class="auth-help-link" id="auth-privacy-btn">Privacy</button>
         <button class="auth-delete-btn" id="auth-delete-btn">Delete account</button>
         <div id="auth-delete-confirm" class="auth-delete-confirm hidden">
           <p>Are you sure? This cannot be undone.</p>
@@ -234,6 +236,22 @@
             <span class="help-icon"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4 9"/><path d="M4 3.5V9h5.5"/></svg></span>
             <div class="help-text">On a loop route, tap the <strong>reverse button</strong> to change the direction of travel.</div>
           </div>
+        </div>
+      </div>
+
+      <!-- View 10: Privacy -->
+      <div id="auth-privacy-view" class="hidden">
+        <div class="auth-header">
+          <button class="auth-back-btn" id="auth-privacy-back-btn" aria-label="Back">←</button>
+          <span class="auth-title">Privacy</span>
+          <button class="auth-close-btn" id="auth-privacy-close-btn" aria-label="Close">✕</button>
+        </div>
+        <div class="auth-view-body privacy-body">
+          <p><strong>What we store.</strong> If you create an account: your email address, plus a display name and photo if you add them. When you finish a walk while signed in, we log its distance, duration, mode and date — never the GPS trace of where you went. Saved routes and saved places store the coordinates you chose to save.</p>
+          <p><strong>Where it lives.</strong> Your data is held in Supabase (a managed database service) and is only accessible from your signed-in account.</p>
+          <p><strong>Your live location.</strong> GPS is used on your device to position the map and guide your walk. Your live location is sent to OpenRouteService only to generate walking routes, and to OpenStreetMap services (Nominatim, Photon) when you search — it is never stored by Stride Guide.</p>
+          <p><strong>Deleting your data.</strong> "Delete account" on the Account screen permanently erases your account and everything stored with it.</p>
+          <p><strong>Questions?</strong> Email <strong>Strideguide595@gmail.com</strong>.</p>
         </div>
       </div>
     </div>
@@ -395,6 +413,13 @@
 
     <!-- Arrival toast -->
     <div id="arrival-toast"></div>
+
+    <!-- Guest walk-complete nudge -->
+    <div id="guest-nudge" class="hidden">
+      <span class="guest-nudge-text">Walk complete — sign in to keep your history &amp; stats</span>
+      <button class="guest-nudge-btn" id="guest-nudge-btn">Sign in</button>
+      <button class="guest-nudge-close" id="guest-nudge-close" aria-label="Dismiss">✕</button>
+    </div>
 
     <!-- Mode selector -->
     <div id="mode-bar">

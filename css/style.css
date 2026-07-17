@@ -1580,6 +1580,72 @@ button { touch-action: manipulation; font-family: inherit; }
 .auth-landing-icon { font-size: 52px; }
 .auth-landing-text { font-size: var(--fs-md); color: var(--muted); line-height: 1.55; max-width: 280px; }
 
+/* ─── Guest walk-complete nudge ───────────────────── */
+
+#guest-nudge {
+  position: fixed;
+  bottom: calc(210px + var(--sab));
+  left: 16px;
+  right: 16px;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-3);
+  padding: 12px 12px 12px 16px;
+  animation: dock-rise 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+.guest-nudge-text {
+  flex: 1;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.guest-nudge-btn {
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.guest-nudge-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: var(--field);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Privacy view ────────────────────────────────── */
+
+.privacy-body p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.privacy-body strong { color: var(--ink); font-weight: 700; }
+
 /* ─── Hidden Utility ──────────────────────────────── */
 
 .hidden { display: none !important; }

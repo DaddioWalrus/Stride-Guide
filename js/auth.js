@@ -26,6 +26,7 @@ const authHistoryView        = document.getElementById('auth-history-view');
 const authSavedRoutesView    = document.getElementById('auth-saved-routes-view');
 const authSavedLocationsView = document.getElementById('auth-saved-locations-view');
 const authHelpView           = document.getElementById('auth-help-view');
+const authPrivacyView        = document.getElementById('auth-privacy-view');
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
@@ -43,7 +44,8 @@ function closeAccountPanel() {
 
 function showAuthView(view) {
   [authSigninView, authCodeView, authProfileView, authEditView,
-   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView, authHelpView]
+   authStatsView, authHistoryView, authSavedRoutesView, authSavedLocationsView,
+   authHelpView, authPrivacyView]
     .forEach(function (v) { v.classList.add('hidden'); });
 
   if (view === 'signin')             authSigninView.classList.remove('hidden');
@@ -55,6 +57,7 @@ function showAuthView(view) {
   else if (view === 'saved-routes')  { authSavedRoutesView.classList.remove('hidden'); loadSavedRoutes(); }
   else if (view === 'saved-locations') { authSavedLocationsView.classList.remove('hidden'); loadSavedLocations(); }
   else if (view === 'help')          authHelpView.classList.remove('hidden');
+  else if (view === 'privacy')       authPrivacyView.classList.remove('hidden');
 }
 
 // ─── Button Wiring ─────────────────────────────────────────────────────────────
@@ -101,6 +104,19 @@ document.getElementById('auth-saved-locations-btn').addEventListener('click', fu
 document.getElementById('auth-help-btn').addEventListener('click', function () { showAuthView('help'); });
 document.getElementById('auth-help-back-btn').addEventListener('click', function () { showAuthView('profile'); });
 document.getElementById('auth-help-close-btn').addEventListener('click', closeAccountPanel);
+
+document.getElementById('auth-privacy-btn').addEventListener('click', function () { showAuthView('privacy'); });
+document.getElementById('auth-privacy-back-btn').addEventListener('click', function () { showAuthView('profile'); });
+document.getElementById('auth-privacy-close-btn').addEventListener('click', closeAccountPanel);
+
+document.getElementById('auth-feedback-btn').addEventListener('click', function () {
+  const body = encodeURIComponent(
+    '\n\n—\nApp: Stride Guide (beta)\nDevice: ' + navigator.userAgent +
+    '\nScreen: ' + window.innerWidth + '×' + window.innerHeight
+  );
+  window.location.href = 'mailto:Strideguide595@gmail.com?subject=' +
+    encodeURIComponent('Stride Guide feedback') + '&body=' + body;
+});
 
 // ─── Account Button Appearance ─────────────────────────────────────────────────
 
