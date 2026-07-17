@@ -1592,14 +1592,10 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
            window.navigator.standalone === true;
   }
 
-  var firstRun = false;
   var dismissedAt = 0;
-  try {
-    firstRun = !localStorage.getItem('strideGuideSeen');
-    dismissedAt = parseInt(localStorage.getItem(KEY) || '0', 10) || 0;
-  } catch (e) {}
+  try { dismissedAt = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
 
-  if (isStandalone() || firstRun) return;
+  if (isStandalone()) return;
   if (dismissedAt && Date.now() - dismissedAt < 14 * 24 * 3600 * 1000) return;
 
   var deferredPrompt = null;
@@ -1623,10 +1619,7 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
     dismiss();
   });
 
-  setTimeout(function () {
-    if (isStandalone()) return;
-    if (!document.getElementById('resume-card').classList.contains('hidden')) return;
-
+  function showCard() {
     var text = document.getElementById('a2hs-text');
     var btn = document.getElementById('a2hs-btn');
     var ua = navigator.userAgent;
@@ -1647,7 +1640,34 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
       btn.classList.add('hidden');
     }
     card.classList.remove('hidden');
-  }, 2500);
+  }
+
+  // Other cards (onboarding, resume) get the moment first; this card
+  // appears 1s after they close. Mid-walk it waits for the walk to end.
+  function blockingUiVisible() {
+    var onboarding = document.getElementById('onboarding-card');
+    var resume = document.getElementById('resume-card');
+    return (onboarding && onboarding.classList.contains('visible')) ||
+           (resume && !resume.classList.contains('hidden')) ||
+           !!navStartTime;
+  }
+
+  var everBlocked = false;
+  var clearSince = null;
+  var poll = setInterval(function () {
+    if (isStandalone()) { clearInterval(poll); return; }
+    if (blockingUiVisible()) {
+      everBlocked = true;
+      clearSince = null;
+      return;
+    }
+    if (clearSince === null) clearSince = Date.now();
+    var delay = everBlocked ? 1000 : 2000;
+    if (Date.now() - clearSince >= delay) {
+      clearInterval(poll);
+      showCard();
+    }
+  }, 300);
 }());
 
 // ─── Offline awareness + app-shell service worker ─────────────────────────────
