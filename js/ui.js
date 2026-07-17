@@ -1576,6 +1576,22 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
   }
 });
 
+// ─── Offline awareness + app-shell service worker ─────────────────────────────
+
+window.addEventListener('offline', function () {
+  showError("You're offline — search and routing won't work until you reconnect");
+});
+
+window.addEventListener('online', function () {
+  showError('Back online');
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+
 // ─── Appearance (theme) ───────────────────────────────────────────────────────
 // Defaults to the system setting; Light/Dark override it and persist.
 
