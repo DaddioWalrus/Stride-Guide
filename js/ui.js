@@ -336,6 +336,7 @@ function showError(msg) {
 function showArrival(name) {
   arrivalToast.textContent = `You've arrived at ${name}`;
   arrivalToast.classList.add('visible');
+  speak(`You've arrived at ${name}`);
 }
 
 function hideArrival() {
@@ -383,6 +384,7 @@ function updateInstruction() {
   instructionArrowEl.textContent = STEP_ARROWS[step.type] ?? '↑';
   instructionTextEl.innerHTML = formatInstruction(step.instruction);
   instructionDistEl.textContent = stepDistLabel(distKm);
+  if (navStartTime) maybeSpeakStep(navCurrentStep, step, distKm);
 }
 
 function advanceStep() {
@@ -938,6 +940,7 @@ async function triggerReroute() {
   instructionTextEl.innerHTML = 'Rerouting...';
   instructionDistEl.textContent = '';
   instructionPill.classList.remove('hidden');
+  speak('Rerouting');
 
   try {
     const result = await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
@@ -961,6 +964,8 @@ function beginNavigation() {
   showPhase('nav-panel');
   map.setZoom(18);
 
+  resetVoice();
+  acquireWake();
   navStartTime = Date.now();
   navTotalDistKm = 0;
   navLastPos = null;
@@ -1031,6 +1036,8 @@ startBtn.addEventListener('click', beginNavigation);
 // ─── Phase 4: Navigation ──────────────────────────────────────────────────────
 
 function haltNavigation() {
+  releaseWake();
+  resetVoice();
   clearInterval(navTimerInterval);
   navTimerInterval = null;
   navStartTime = null;
@@ -1203,6 +1210,143 @@ window.onLoadSavedLoopRoute = function (route) {
     backdrop.classList.remove('visible');
     card.classList.remove('visible');
   });
+}());
+
+// ─── Screen wake lock (during navigation) ─────────────────────────────────────
+// Preference: how long the screen stays awake once a walk starts.
+
+const WAKE_KEY = 'sgWake';
+let wakeLock = null;
+let wakeTimer = null;
+
+function wakePref() {
+  try { return localStorage.getItem(WAKE_KEY) || 'always'; } catch (e) { return 'always'; }
+}
+
+async function acquireWake() {
+  const pref = wakePref();
+  if (pref === 'off' || !('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) {
+    wakeLock = null;
+    return;
+  }
+  clearTimeout(wakeTimer);
+  wakeTimer = null;
+  if (pref !== 'always') {
+    wakeTimer = setTimeout(releaseWake, parseInt(pref, 10) * 60000);
+  }
+}
+
+function releaseWake() {
+  clearTimeout(wakeTimer);
+  wakeTimer = null;
+  if (wakeLock) {
+    try { wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+}
+
+// Wake locks auto-release when the tab is backgrounded; re-acquire on return.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && navStartTime) acquireWake();
+});
+
+(function () {
+  var seg = document.getElementById('wake-seg');
+  if (!seg) return;
+
+  function render(pref) {
+    Array.prototype.forEach.call(seg.children, function (b) {
+      b.classList.toggle('on', b.dataset.wake === pref);
+    });
+  }
+
+  seg.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-wake]');
+    if (!btn) return;
+    try { localStorage.setItem(WAKE_KEY, btn.dataset.wake); } catch (err) {}
+    render(btn.dataset.wake);
+    if (navStartTime) {
+      releaseWake();
+      acquireWake();
+    }
+  });
+
+  render(wakePref());
+}());
+
+// ─── Voice guidance ───────────────────────────────────────────────────────────
+
+const VOICE_KEY = 'sgVoice';
+let voiceLastStep = -1;
+let voiceNearStep = -1;
+
+function voiceOn() {
+  try { return localStorage.getItem(VOICE_KEY) !== 'off'; } catch (e) { return true; }
+}
+
+function speak(text) {
+  if (!voiceOn() || !('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+function spokenDist(distKm) {
+  if (useMetric) {
+    return distKm < 0.95
+      ? `${Math.round(distKm * 1000 / 10) * 10} metres`
+      : `${distKm.toFixed(1)} kilometres`;
+  }
+  const mi = distKm * 0.621371;
+  return mi < 0.19
+    ? `${Math.round(distKm * 3280.84 / 50) * 50} feet`
+    : `${mi.toFixed(1)} miles`;
+}
+
+function maybeSpeakStep(stepIdx, step, distKm) {
+  if (stepIdx !== voiceLastStep) {
+    voiceLastStep = stepIdx;
+    voiceNearStep = -1;
+    speak(distKm > 0.09 ? `In ${spokenDist(distKm)}, ${step.instruction}` : step.instruction);
+  } else if (distKm < 0.08 && voiceNearStep !== stepIdx) {
+    voiceNearStep = stepIdx;
+    speak(step.instruction);
+  }
+}
+
+function resetVoice() {
+  voiceLastStep = -1;
+  voiceNearStep = -1;
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+  }
+}
+
+(function () {
+  var btn = document.getElementById('voice-btn');
+  if (!btn) return;
+
+  function render(on) {
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.querySelector('.voice-waves').classList.toggle('hidden', !on);
+    btn.querySelector('.voice-slash').classList.toggle('hidden', on);
+  }
+
+  btn.addEventListener('click', function () {
+    var on = !voiceOn();
+    try { localStorage.setItem(VOICE_KEY, on ? 'on' : 'off'); } catch (err) {}
+    render(on);
+    if (!on) resetVoice();
+  });
+
+  render(voiceOn());
 }());
 
 // ─── Guest walk-complete nudge ────────────────────────────────────────────────

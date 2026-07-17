@@ -246,7 +246,8 @@ body {
 /* ─── Floating map controls ───────────────────────── */
 
 #account-btn,
-#terrain-btn {
+#terrain-btn,
+#voice-btn {
   position: fixed;
   right: 16px;
   width: 44px;
@@ -266,11 +267,14 @@ body {
 
 #account-btn { top: calc(16px + var(--sat)); color: var(--accent-soft); }
 #terrain-btn { top: calc(70px + var(--sat)); color: var(--muted); font-size: 20px; touch-action: manipulation; }
+#voice-btn   { top: calc(124px + var(--sat)); color: var(--muted); touch-action: manipulation; }
 
 #account-btn:active,
-#terrain-btn:active { transform: scale(0.94); }
+#terrain-btn:active,
+#voice-btn:active { transform: scale(0.94); }
 
-#terrain-btn.active {
+#terrain-btn.active,
+#voice-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
@@ -1253,6 +1257,8 @@ button { touch-action: manipulation; font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   background: var(--surface);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-1);

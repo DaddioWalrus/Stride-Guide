@@ -38,6 +38,9 @@
     <!-- Terrain toggle button (below account button) -->
     <button id="terrain-btn" title="Toggle satellite view" aria-label="Toggle satellite view"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8.5 4.6L12 12 3.5 7.6 12 3z"/><path d="M4 12l8 4.4 8-4.4"/><path d="M4 16.4l8 4.4 8-4.4"/></svg></button>
 
+    <!-- Voice guidance toggle (below terrain button) -->
+    <button id="voice-btn" title="Voice guidance" aria-label="Toggle voice guidance" aria-pressed="true"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6.5 9H3.5v6h3L11 19V5z"/><path class="voice-waves" d="M15 9.5a3.5 3.5 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10"/><path class="voice-slash hidden" d="M15 9.5l5 5M20 9.5l-5 5"/></svg></button>
+
     <!-- Account panel backdrop -->
     <div id="account-backdrop"></div>
 
@@ -114,6 +117,17 @@
             <button type="button" data-theme-opt="system">Auto</button>
             <button type="button" data-theme-opt="light">Light</button>
             <button type="button" data-theme-opt="dark">Dark</button>
+          </div>
+        </div>
+
+        <div class="appearance-row">
+          <span class="appearance-label">Screen stays on while walking</span>
+          <div class="appearance-seg" id="wake-seg" role="group" aria-label="Keep screen awake while walking">
+            <button type="button" data-wake="off">Off</button>
+            <button type="button" data-wake="5">5m</button>
+            <button type="button" data-wake="10">10m</button>
+            <button type="button" data-wake="15">15m</button>
+            <button type="button" data-wake="always">On</button>
           </div>
         </div>
 
