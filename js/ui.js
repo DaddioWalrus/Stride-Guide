@@ -1576,6 +1576,80 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
   }
 });
 
+// ─── Add-to-Home-Screen suggestion ────────────────────────────────────────────
+// Shown on startup when the app is running in a browser tab rather than
+// installed. Chrome/Android exposes a real install prompt; iOS only allows
+// instructions. Dismissal snoozes the card for 14 days; never shown on the
+// first run (the onboarding card owns that moment).
+
+(function () {
+  var KEY = 'sgA2hsDismissed';
+  var card = document.getElementById('a2hs-card');
+  if (!card) return;
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+  }
+
+  var firstRun = false;
+  var dismissedAt = 0;
+  try {
+    firstRun = !localStorage.getItem('strideGuideSeen');
+    dismissedAt = parseInt(localStorage.getItem(KEY) || '0', 10) || 0;
+  } catch (e) {}
+
+  if (isStandalone() || firstRun) return;
+  if (dismissedAt && Date.now() - dismissedAt < 14 * 24 * 3600 * 1000) return;
+
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  function dismiss() {
+    card.classList.add('hidden');
+    try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+  }
+
+  document.getElementById('a2hs-close').addEventListener('click', dismiss);
+
+  document.getElementById('a2hs-btn').addEventListener('click', function () {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+    }
+    dismiss();
+  });
+
+  setTimeout(function () {
+    if (isStandalone()) return;
+    if (!document.getElementById('resume-card').classList.contains('hidden')) return;
+
+    var text = document.getElementById('a2hs-text');
+    var btn = document.getElementById('a2hs-btn');
+    var ua = navigator.userAgent;
+    var isIOS = /iphone|ipad|ipod/i.test(ua);
+    var iosOtherBrowser = isIOS && /crios|fxios|edgios/i.test(ua);
+
+    if (iosOtherBrowser) {
+      text.textContent = 'For the full app: open Stride Guide in Safari, tap Share, then "Add to Home Screen".';
+      btn.classList.add('hidden');
+    } else if (isIOS) {
+      text.textContent = 'Add Stride Guide to your Home Screen: tap Share, then "Add to Home Screen".';
+      btn.classList.add('hidden');
+    } else if (deferredPrompt) {
+      text.textContent = 'Install Stride Guide for the full app experience.';
+      btn.classList.remove('hidden');
+    } else {
+      text.textContent = 'Add Stride Guide to your Home Screen from your browser menu for the full app experience.';
+      btn.classList.add('hidden');
+    }
+    card.classList.remove('hidden');
+  }, 2500);
+}());
+
 // ─── Offline awareness + app-shell service worker ─────────────────────────────
 
 window.addEventListener('offline', function () {
