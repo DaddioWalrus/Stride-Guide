@@ -858,6 +858,31 @@ button { touch-action: manipulation; font-family: inherit; }
   box-shadow: 0 6px 16px -6px rgba(214, 56, 46, 0.5);
 }
 
+.pause-btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--field);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s, opacity 0.2s;
+}
+
+.pause-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.pause-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+.pause-btn.paused {
+  background: var(--go);
+  color: var(--on-go);
+  box-shadow: 0 6px 16px -6px rgba(23, 129, 83, 0.5);
+}
+
 .stop-btn svg { width: 18px; height: 18px; fill: currentColor; }
 .stop-btn:active { transform: scale(0.95); opacity: 0.9; }
 

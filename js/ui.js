@@ -26,6 +26,9 @@ let pinRouteResult = null;
 let pinRoutePromise = null;
 let loopLastDistKm = 0;
 let mapDefaultZoom = 15;
+let navPaused = false;
+let navPausedAt = null;
+let navPausedTotal = 0;
 
 // ─── Unit preference (persisted) ──────────────────────────────────────────────
 
@@ -401,9 +404,15 @@ function renderUnitSeg(el, metric) {
   el.children[1].classList.toggle('on', !metric);
 }
 
+// Elapsed walking time, excluding paused intervals
+function navElapsedMs() {
+  const pausing = navPaused && navPausedAt ? (Date.now() - navPausedAt) : 0;
+  return Date.now() - navStartTime - navPausedTotal - pausing;
+}
+
 function updateNavDisplay() {
   if (!navStartTime) return;
-  const elapsedHr = (Date.now() - navStartTime) / 3600000;
+  const elapsedHr = navElapsedMs() / 3600000;
   const avgKmh = navTotalDistKm > 0.05 && elapsedHr > 0.001
     ? navTotalDistKm / elapsedHr
     : navCurrentSpeedMs * 3.6;
@@ -977,7 +986,7 @@ function beginNavigation() {
   const DEFAULT_WALK_KMH = 5;
 
   function updateEta() {
-    const elapsedSec = (Date.now() - navStartTime) / 1000;
+    const elapsedSec = navElapsedMs() / 1000;
     const actualAvg = elapsedSec > 10 && navTotalDistKm > 0.01
       ? navTotalDistKm / (elapsedSec / 3600)
       : 0;
@@ -996,6 +1005,11 @@ function beginNavigation() {
 
   navWatchId = startNavigation(
     function (pos) {
+      if (navPaused) {
+        // Track position (camera + resume baseline) but freeze the walk
+        navLastPos = pos;
+        return;
+      }
       if (navLastPos) {
         navTotalDistKm += haversineKm(navLastPos.lat, navLastPos.lng, pos.lat, pos.lng);
       }
@@ -1038,6 +1052,10 @@ startBtn.addEventListener('click', beginNavigation);
 function haltNavigation() {
   releaseWake();
   resetVoice();
+  setPausedUI(false);
+  navPaused = false;
+  navPausedAt = null;
+  navPausedTotal = 0;
   clearInterval(navTimerInterval);
   navTimerInterval = null;
   navStartTime = null;
@@ -1057,7 +1075,7 @@ function haltNavigation() {
 
 function doStopNavigation() {
   var walkedKm   = navTotalDistKm;
-  var walkedSec  = navStartTime ? (Date.now() - navStartTime) / 1000 : 0;
+  var walkedSec  = navStartTime ? navElapsedMs() / 1000 : 0;
   var walkedMode = currentMode;
   haltNavigation();
   if (walkedKm >= 0.05 && typeof window.onWalkCompleted === 'function') {
@@ -1085,6 +1103,98 @@ function doStopNavigation() {
 }
 
 stopBtn.addEventListener('click', doStopNavigation);
+
+// ─── Pause / Resume ───────────────────────────────────────────────────────────
+
+const pauseBtn = document.getElementById('pause-btn');
+
+function setPausedUI(paused) {
+  pauseBtn.classList.toggle('paused', paused);
+  pauseBtn.setAttribute('aria-label', paused ? 'Resume walk' : 'Pause walk');
+  pauseBtn.title = paused ? 'Resume' : 'Pause';
+  pauseBtn.querySelector('.pause-icon').classList.toggle('hidden', paused);
+  pauseBtn.querySelector('.play-icon').classList.toggle('hidden', !paused);
+  if (paused) {
+    instructionArrowEl.textContent = '⏸';
+    instructionTextEl.innerHTML = 'Paused';
+    instructionDistEl.textContent = '';
+    instructionPill.classList.remove('hidden');
+  }
+}
+
+function polylineKm(coords) {
+  let km = 0;
+  for (let i = 1; i < coords.length; i++) {
+    km += haversineKm(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1]);
+  }
+  return km;
+}
+
+// After a paused wander, route the walker from where they now stand back
+// onto the remaining loop; A→B walks simply re-route to the destination.
+async function rejoinRouteAfterPause() {
+  const pos = navLastPos || userLocation;
+  if (!pos || !navRouteCoords || navRouteCoords.length < 2) return;
+  if (distToRouteM(pos.lat, pos.lng, navRouteCoords) <= 30) return;
+
+  if (currentMode !== 'loop') {
+    triggerReroute();
+    return;
+  }
+
+  let bestI = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < navRouteCoords.length; i++) {
+    const d = haversineKm(pos.lat, pos.lng, navRouteCoords[i][0], navRouteCoords[i][1]);
+    if (d < bestD) { bestD = d; bestI = i; }
+  }
+
+  try {
+    const result = await generateABRoute(
+      pos.lat, pos.lng,
+      navRouteCoords[bestI][0], navRouteCoords[bestI][1]
+    );
+    if (!navStartTime) return; // walk was stopped while we were routing
+    const remaining = navRouteCoords.slice(bestI);
+    const remainingKm = polylineKm(remaining);
+    navRouteCoords = result.coords.concat(remaining);
+    navRouteDistKm = navTotalDistKm + result.summary.distance / 1000 + remainingKm;
+    drawRoute(navRouteCoords);
+    drawRouteArrows(navRouteCoords);
+    const rawSteps = (result.steps || []).concat([
+      { instruction: 'Continue along your loop', type: 11, distance: remainingKm * 1000 },
+    ]);
+    initSteps(rawSteps, navTotalDistKm);
+    updateNavDisplay();
+    updateInstruction();
+  } catch (e) {
+    /* keep the old route — off-course rerouting picks it up from here */
+  }
+}
+
+pauseBtn.addEventListener('click', function () {
+  if (!navStartTime) return;
+  navPaused = !navPaused;
+  if (navPaused) {
+    navPausedAt = Date.now();
+    releaseWake();
+    setPausedUI(true);
+    speak('Walk paused');
+  } else {
+    navPausedTotal += Date.now() - navPausedAt;
+    navPausedAt = null;
+    acquireWake();
+    setPausedUI(false);
+    updateNavDisplay();
+    if (navSteps.length) {
+      updateInstruction();
+    } else {
+      instructionPill.classList.add('hidden');
+    }
+    speak('Resuming');
+    rejoinRouteAfterPause();
+  }
+});
 
 // ─── Keyboard tracking — keeps the dock above the keyboard ───────────────────
 
