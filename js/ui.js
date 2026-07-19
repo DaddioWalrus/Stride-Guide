@@ -818,6 +818,13 @@ navRecentreBtn.addEventListener('click', function () {
   navFreeCamera = false;
   navRecentreBtn.classList.add('hidden');
   if (typeof map.setBearing === 'function') map.setBearing(0);
+
+  // Planning with a route on screen: re-frame the route, not the walker
+  if (navRafId === null && typeof currentRoute !== 'undefined' && currentRoute) {
+    fitRouteToView();
+    return;
+  }
+
   if (userLocation) {
     map.flyTo([userLocation.lat, userLocation.lng], mapDefaultZoom, { duration: 0.4 });
   } else {
@@ -1729,7 +1736,6 @@ if ('serviceWorker' in navigator) {
     Array.prototype.forEach.call(seg.children, function (b) {
       b.classList.toggle('on', b.dataset.themeOpt === pref);
     });
-    if (typeof updateStreetLayer === 'function') updateStreetLayer();
   }
 
   seg.addEventListener('click', function (e) {
