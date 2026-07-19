@@ -195,9 +195,11 @@ function drawRoute(coords) {
     weight: 5,
     opacity: 0.85,
   }).addTo(map);
-  // Defer one frame so the phase panel shown after drawRoute() is
-  // measurable, then fit the route into the space above the dock.
-  requestAnimationFrame(fitRouteToView);
+  // Planning: fit the route into the space above the dock (deferred one
+  // frame so the phase panel shown after drawRoute() is measurable).
+  // Mid-navigation (reroutes, pause-rejoins): never zoom out to the full
+  // route — the follow-camera stays focused on the walker.
+  if (navRafId === null) requestAnimationFrame(fitRouteToView);
 }
 
 function fitRouteToView() {
