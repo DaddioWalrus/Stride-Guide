@@ -24,6 +24,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 
+    <!-- Warm up tile-server connections so first tiles arrive sooner -->
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://b.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://c.tile.openstreetmap.org" />
+
     <!-- Apply saved theme before first paint -->
     <script src="/js/theme-init.js"></script>
     <link rel="stylesheet" href="/css/style.css" />

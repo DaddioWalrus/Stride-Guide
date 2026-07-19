@@ -990,9 +990,15 @@ function beginNavigation(opts) {
   const resume = !!(opts && opts.resume);
   document.getElementById('resume-card').classList.add('hidden');
   mapDefaultZoom = 18;
+  navFreeCamera = false; // touches before Start must not leave the follow-camera off
   navRecentreBtn.classList.add('hidden');
   showPhase('nav-panel');
-  map.setZoom(18);
+  if (typeof map.setBearing === 'function') map.setBearing(0);
+  if (userLocation) {
+    map.setView([userLocation.lat, userLocation.lng], 18);
+  } else {
+    map.setZoom(18);
+  }
 
   resetVoice();
   acquireWake();
