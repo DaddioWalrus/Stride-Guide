@@ -231,6 +231,7 @@ body {
   background: #FF6B4A;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
   opacity: 0.95;
+  transform: rotate(var(--rot, 0deg)) scale(var(--rt-scale, 1));
 }
 
 .pin-marker { width: 22px; height: 32px; position: relative; }

@@ -158,11 +158,27 @@ function clearDestination() {
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
+// Route weight / arrow scale track the zoom level so the overlay grows and
+// shrinks with the streets instead of sitting at a fixed screen size.
+function routeWeightForZoom(z) {
+  return Math.max(3, Math.min(8, Math.round(3 + (z - 13) * 0.8)));
+}
+
+function syncRouteScale() {
+  const z = map.getZoom();
+  if (currentRoute) currentRoute.setStyle({ weight: routeWeightForZoom(z) });
+  const scale = Math.max(0.6, Math.min(1.5, 1 + (z - 15) * 0.14));
+  document.getElementById('map').style.setProperty('--rt-scale', String(scale));
+}
+
+map.on('zoom', syncRouteScale);
+map.on('zoomend', syncRouteScale);
+
 function drawRoute(coords) {
   if (currentRoute) currentRoute.remove();
   currentRoute = L.polyline(coords, {
     color: '#2F5FE0',
-    weight: 5,
+    weight: routeWeightForZoom(map.getZoom()),
     opacity: 0.85,
   }).addTo(map);
   // Planning: fit the route into the space above the dock (deferred one
@@ -205,7 +221,7 @@ function drawRouteArrows(coords) {
         L.marker([lat2, lng2], {
           icon: L.divIcon({
             className: '',
-            html: `<div class="route-arrow" style="transform:rotate(${brg}deg)"></div>`,
+            html: `<div class="route-arrow" style="--rot:${brg}deg"></div>`,
             iconSize: [14, 20],
             iconAnchor: [7, 10],
           }),
