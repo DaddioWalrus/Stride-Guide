@@ -28,41 +28,64 @@ async function callORS(body) {
 
 // ─── Loop Route ───────────────────────────────────────────────────────────────
 // ORS treats round_trip.length as a suggestion — actual loops routinely land
-// 10–20% off. Generate, measure, rescale the request proportionally (same seed,
-// so the shape stays comparable and the length responds predictably), and retry
-// until within tolerance. Returns the closest attempt if none converges.
+// 10–20% off. Strategy: within one seed (one loop direction), measure the
+// actual length and rescale the request proportionally until it converges.
+// Two ways a seed can fail: a plateau (waypoints snap to the same streets no
+// matter what length we ask for, so retries return the identical loop) and a
+// dead direction (no loop of this size exists that way — rivers, dead ends).
+// Both are detected and answered by rotating to a fresh seed. Returns the
+// closest attempt overall if nothing converges within the call budget.
 
 async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
   const tolKm = toleranceKm || 0.2;
-  const seed = Math.floor(Math.random() * 90);
-  const MAX_ATTEMPTS = 4;
+  const MAX_CALLS = 7;       // total API budget per generation
+  const PER_SEED = 3;        // correction rounds before giving up on a seed
 
-  let requestKm = distanceKm;
   let best = null;
   let bestErr = Infinity;
+  let calls = 0;
+  let seed = Math.floor(Math.random() * 90);
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const result = await callORS({
-      coordinates: [[lng, lat]],
-      options: {
-        round_trip: {
-          length: Math.max(300, Math.round(requestKm * 1000)),
-          points: 5,
-          seed,
+  while (calls < MAX_CALLS) {
+    let requestKm = distanceKm;
+    let prevActualKm = null;
+
+    for (let round = 0; round < PER_SEED && calls < MAX_CALLS; round++) {
+      calls++;
+      const result = await callORS({
+        coordinates: [[lng, lat]],
+        options: {
+          round_trip: {
+            length: Math.max(300, Math.round(requestKm * 1000)),
+            points: 5,
+            seed,
+          },
         },
-      },
-    });
+      });
 
-    const actualKm = result.summary.distance / 1000;
-    const err = Math.abs(actualKm - distanceKm);
+      const actualKm = result.summary.distance / 1000;
+      const err = Math.abs(actualKm - distanceKm);
 
-    if (err < bestErr) {
-      best = result;
-      bestErr = err;
+      if (err < bestErr) {
+        best = result;
+        bestErr = err;
+      }
+      if (bestErr <= tolKm) return best;
+      if (actualKm <= 0) break;
+
+      // Plateau: the network returned (near-)identical length despite an
+      // adjusted request — further correction on this seed is pointless.
+      if (prevActualKm !== null && Math.abs(actualKm - prevActualKm) < 0.05) break;
+      prevActualKm = actualKm;
+
+      // Proportional correction, clamped so one weird result can't fling
+      // the next request to a wild size.
+      const ratio = Math.min(2, Math.max(0.5, distanceKm / actualKm));
+      requestKm *= ratio;
     }
-    if (err <= tolKm || actualKm <= 0) break;
 
-    requestKm *= distanceKm / actualKm;
+    // This direction won't converge — rotate to a meaningfully different one.
+    seed = (seed + 29 + Math.floor(Math.random() * 30)) % 90;
   }
 
   return best;

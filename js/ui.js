@@ -282,6 +282,22 @@ function loopToleranceKm() {
   return loopMode === 'time' ? (2 / 60) * 5 : 0.2;
 }
 
+// If the streets here genuinely can't produce a loop of the requested size,
+// say so rather than silently presenting the near-miss as a match.
+function notifyLoopVariance(result, targetKm) {
+  const actualKm = result.summary.distance / 1000;
+  if (Math.abs(actualKm - targetKm) <= loopToleranceKm() + 0.01) return;
+  let label;
+  if (loopMode === 'time') {
+    label = `${Math.round(result.summary.duration / 60)} min`;
+  } else {
+    label = loopUseMetric
+      ? `${actualKm.toFixed(1)} km`
+      : `${(actualKm * 0.621371).toFixed(1)} mi`;
+  }
+  showError(`Closest loop the streets here allow: ${label}`);
+}
+
 loopGenerateBtn.addEventListener('click', async function () {
   if (!loopMode) return;
   const loc = userLocation;
@@ -302,6 +318,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
     const result = await generateLoopRoute(loc.lat, loc.lng, distanceKm, loopToleranceKm());
+    notifyLoopVariance(result, distanceKm);
     navRouteDistKm = result.summary.distance / 1000;
     const mins = Math.round(result.summary.duration / 60);
     routeTimeEl.textContent = `${mins} min`;
@@ -841,6 +858,7 @@ loopRegenBtn.addEventListener('click', async function () {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
     const result = await generateLoopRoute(loc.lat, loc.lng, loopLastDistKm, loopToleranceKm());
+    notifyLoopVariance(result, loopLastDistKm);
     navRouteDistKm = result.summary.distance / 1000;
     routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
     updateRouteDist();
@@ -871,6 +889,7 @@ async function runLoopRegen(distKm) {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
     const result = await generateLoopRoute(loc.lat, loc.lng, distKm, loopToleranceKm());
+    notifyLoopVariance(result, distKm);
     navRouteDistKm = result.summary.distance / 1000;
     routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
     updateRouteDist();
