@@ -158,6 +158,27 @@ function clearDestination() {
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
+// The route renders on its own canvas, re-projected every frame during
+// zoom/rotate/move gestures. Leaflet's default behaviour CSS-transforms the
+// overlay pane as one sheet mid-gesture, and leaflet-rotate computes that
+// shortcut wrongly under a bearing — the route visibly decouples from the
+// streets until the gesture ends. A per-frame reset keeps it glued.
+const routeRenderer = L.canvas({ padding: 1 });
+
+let glueQueued = false;
+function glueRouteToMap() {
+  if (glueQueued) return;
+  glueQueued = true;
+  requestAnimationFrame(function () {
+    glueQueued = false;
+    if (currentRoute && routeRenderer._map && routeRenderer._reset) {
+      routeRenderer._reset();
+    }
+  });
+}
+
+map.on('zoom move rotate', glueRouteToMap);
+
 // Route weight / arrow scale track the zoom level so the overlay grows and
 // shrinks with the streets instead of sitting at a fixed screen size.
 function routeWeightForZoom(z) {
@@ -180,6 +201,7 @@ function drawRoute(coords) {
     color: '#2F5FE0',
     weight: routeWeightForZoom(map.getZoom()),
     opacity: 0.85,
+    renderer: routeRenderer,
   }).addTo(map);
   // Planning: fit the route into the space above the dock (deferred one
   // frame so the phase panel shown after drawRoute() is measurable).
