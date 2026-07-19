@@ -8,11 +8,27 @@ const map = L.map('map', {
 });
 
 map.zoomControl.setPosition('topleft');
+map.attributionControl.setPosition('topleft');
 
-const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-});
-streetLayer.addTo(map);
+// CARTO basemaps (OSM data, CDN-delivered, retina via {r}):
+// Voyager in light theme, Dark Matter when the app's dark theme is active.
+const streetLayerLight = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  }
+);
+
+const streetLayerDark = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  }
+);
 
 const satelliteLayer = L.tileLayer(
   'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -20,14 +36,36 @@ const satelliteLayer = L.tileLayer(
 );
 
 let terrainActive = false;
+let activeStreetLayer = null;
+
+function isDarkTheme() {
+  const t = document.documentElement.getAttribute('data-theme');
+  if (t === 'dark') return true;
+  if (t === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+// Applies the theme-appropriate street layer (no-op while satellite is shown).
+function updateStreetLayer() {
+  const next = isDarkTheme() ? streetLayerDark : streetLayerLight;
+  if (activeStreetLayer && activeStreetLayer !== next) activeStreetLayer.remove();
+  activeStreetLayer = next;
+  if (!terrainActive && !map.hasLayer(next)) next.addTo(map);
+}
+
+updateStreetLayer();
+
+// Follow system theme flips while the app is in Auto
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateStreetLayer);
+
 document.getElementById('terrain-btn').addEventListener('click', function () {
   terrainActive = !terrainActive;
   if (terrainActive) {
-    streetLayer.remove();
+    if (activeStreetLayer) activeStreetLayer.remove();
     satelliteLayer.addTo(map);
   } else {
     satelliteLayer.remove();
-    streetLayer.addTo(map);
+    updateStreetLayer();
   }
   this.classList.toggle('active', terrainActive);
 });

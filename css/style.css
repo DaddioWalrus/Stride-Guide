@@ -176,7 +176,18 @@ body {
   height: 100dvh;
 }
 
-.leaflet-control-attribution { display: none !important; }
+/* Small, unobtrusive attribution — required by OSM/CARTO/Esri terms */
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  line-height: 1.3;
+  background: rgba(255, 255, 255, 0.72) !important;
+  color: #444 !important;
+  padding: 2px 7px !important;
+  border-radius: 8px;
+  margin: 6px 0 0 10px !important;
+}
+.leaflet-control-attribution a { color: #444 !important; }
+
 .leaflet-control-zoom { margin-top: 70px !important; }
 
 /* ─── Map Markers ─────────────────────────────────── */

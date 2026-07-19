@@ -57,6 +57,7 @@ self.addEventListener('fetch', function (e) {
   if (url.hostname === 'photon.komoot.io') return;
   if (url.hostname.endsWith('.supabase.co')) return;
   if (url.hostname.endsWith('tile.openstreetmap.org')) return;
+  if (url.hostname.endsWith('basemaps.cartocdn.com')) return;
   if (url.hostname.endsWith('arcgis.com')) return;
 
   // App navigation: network first, cached shell as offline fallback.

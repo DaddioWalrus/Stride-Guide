@@ -1729,6 +1729,7 @@ if ('serviceWorker' in navigator) {
     Array.prototype.forEach.call(seg.children, function (b) {
       b.classList.toggle('on', b.dataset.themeOpt === pref);
     });
+    if (typeof updateStreetLayer === 'function') updateStreetLayer();
   }
 
   seg.addEventListener('click', function (e) {
