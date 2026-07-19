@@ -1,0 +1,335 @@
+<title>Stride Guide — Map Tile Provider Comparison</title>
+<style>
+  :root{
+    --paper:#ECEEEA; --raised:#F6F7F3; --sunk:#E3E6DF;
+    --ink:#1A241F; --muted:#59635B; --faint:#869084;
+    --line:#D3D8CF; --line-strong:#C2C8BC;
+    --accent:#B85C38; --accent-ink:#8f4527;
+    --good:#2E7D57; --warn:#B7852A; --crit:#B23A28;
+    --shadow:22px 30px 56px -32px rgba(26,36,31,.45);
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+      --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+      --line:#2C352E; --line-strong:#3A443B;
+      --accent:#E4844F; --accent-ink:#E9976A;
+      --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+      --shadow:22px 30px 56px -30px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+    --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+    --line:#2C352E; --line-strong:#3A443B;
+    --accent:#E4844F; --accent-ink:#E9976A;
+    --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+    --shadow:22px 30px 56px -30px rgba(0,0,0,.7);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.6; font-size:17px; overflow-x:hidden;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 28px; }
+
+  .theme-toggle{
+    position:fixed; top:18px; right:18px; z-index:50; font-family:var(--mono); font-size:11px;
+    letter-spacing:.14em; text-transform:uppercase; background:var(--raised); color:var(--muted);
+    border:1px solid var(--line); padding:9px 13px; border-radius:999px; cursor:pointer;
+  }
+  .theme-toggle:hover{ color:var(--ink); }
+
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{ content:""; width:26px; height:1px; background:var(--accent); }
+
+  header.hero{ padding:66px 0 38px; border-bottom:1px solid var(--line); }
+  .hero h1{ font-size:clamp(34px,5.6vw,58px); line-height:1.02; letter-spacing:-.03em; font-weight:800; margin:18px 0 0; max-width:18ch; text-wrap:balance; }
+  .hero h1 em{ font-style:normal; color:var(--accent); }
+  .hero .lede{ margin:18px 0 0; max-width:64ch; font-size:18px; color:var(--muted); }
+  .hero .meta{ margin-top:22px; display:flex; flex-wrap:wrap; gap:8px 26px; font-family:var(--mono); font-size:12px; color:var(--faint); }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  section{ padding:52px 0; border-bottom:1px solid var(--line); }
+  section > .wrap > .eyebrow{ margin-bottom:14px; }
+  h2{ font-size:clamp(24px,3vw,32px); letter-spacing:-.02em; font-weight:800; margin:0 0 8px; }
+  .section-note{ color:var(--muted); max-width:66ch; margin:0 0 28px; }
+  .section-note code, td code{ font-family:var(--mono); font-size:13px; background:var(--sunk); padding:1px 6px; border-radius:5px; color:var(--accent-ink); }
+
+  /* stylised tile previews */
+  .tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:820px){ .tiles{ grid-template-columns:1fr; max-width:420px; margin:0 auto; } }
+  .tile-card{ display:flex; flex-direction:column; }
+  .tile-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; gap:8px; }
+  .tile-head .nm{ font-size:17px; font-weight:800; letter-spacing:-.01em; }
+  .tile-head .tag{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .tile{
+    aspect-ratio:4/3; border-radius:16px; overflow:hidden; position:relative;
+    border:1px solid var(--line); box-shadow:var(--shadow);
+  }
+  .tile .route{ position:absolute; inset:0; }
+  .tile-cap{ font-size:12.5px; color:var(--faint); margin-top:9px; font-family:var(--mono); }
+  .tile-desc{ font-size:13.5px; color:var(--muted); margin-top:8px; }
+  .tile-desc b{ color:var(--ink); }
+
+  /* OSM standard look: saturated, busy */
+  .t-osm{ background:#f2efe9; }
+  .t-osm .land{ position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle at 78% 20%, #aad3df 0 14%, transparent 14.5%),
+      linear-gradient(115deg, transparent 62%, #cdebb0 62.5% 78%, transparent 78.5%),
+      linear-gradient(24deg, transparent 30%, #f6d6d6 30.5% 38%, transparent 38.5%),
+      linear-gradient(0deg, transparent 49%, #ffffff 49.2% 50.8%, transparent 51%),
+      linear-gradient(90deg, transparent 32%, #fcd6a4 32.4% 34.6%, transparent 35%),
+      linear-gradient(58deg, transparent 55%, #ffffff 55.3% 56.7%, transparent 57%),
+      linear-gradient(148deg, transparent 40%, #ffffff 40.3% 41.7%, transparent 42%);
+  }
+  .t-osm .labels{ position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle at 22% 30%, #7c6f64 0 1.2%, transparent 1.6%),
+      radial-gradient(circle at 60% 62%, #7c6f64 0 1.2%, transparent 1.6%),
+      radial-gradient(circle at 42% 80%, #7c6f64 0 1.2%, transparent 1.6%),
+      radial-gradient(circle at 84% 74%, #7c6f64 0 1.2%, transparent 1.6%);
+  }
+
+  /* Voyager look: muted, clean */
+  .t-voy{ background:#fbf8f3; }
+  .t-voy .land{ position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle at 78% 20%, #d0e6f0 0 14%, transparent 14.5%),
+      linear-gradient(115deg, transparent 62%, #e4efdf 62.5% 78%, transparent 78.5%),
+      linear-gradient(90deg, transparent 32%, #fdeec9 32.4% 34.4%, transparent 34.8%),
+      linear-gradient(0deg, transparent 49.2%, #ffffff 49.4% 50.6%, transparent 50.8%),
+      linear-gradient(58deg, transparent 55.2%, #ffffff 55.4% 56.6%, transparent 56.8%),
+      linear-gradient(148deg, transparent 40.2%, #ffffff 40.4% 41.6%, transparent 41.8%);
+  }
+
+  /* Dark Matter look */
+  .t-dark{ background:#101418; }
+  .t-dark .land{ position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle at 78% 20%, #1b2733 0 14%, transparent 14.5%),
+      linear-gradient(115deg, transparent 62%, #16211a 62.5% 78%, transparent 78.5%),
+      linear-gradient(0deg, transparent 49.2%, #2c3540 49.4% 50.6%, transparent 50.8%),
+      linear-gradient(90deg, transparent 32%, #343d2e 32.4% 34.4%, transparent 34.8%),
+      linear-gradient(58deg, transparent 55.2%, #2c3540 55.4% 56.6%, transparent 56.8%),
+      linear-gradient(148deg, transparent 40.2%, #2c3540 40.4% 41.6%, transparent 41.8%);
+  }
+
+  .tile .route path{ fill:none; stroke:#2F5FE0; stroke-width:5; stroke-linecap:round; }
+  .t-dark .route path{ stroke:#5B84F0; }
+
+  .disclaimer{
+    margin-top:18px; font-size:12.5px; color:var(--faint); font-family:var(--mono);
+  }
+
+  /* comparison table */
+  .tablewrap{ overflow-x:auto; border:1px solid var(--line); border-radius:16px; }
+  table{ border-collapse:collapse; width:100%; min-width:680px; font-size:14.5px; }
+  thead th{
+    text-align:left; font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; padding:13px 16px; background:var(--sunk); border-bottom:1px solid var(--line);
+  }
+  tbody td{ padding:13px 16px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--muted); }
+  tbody td:first-child{ color:var(--ink); font-weight:600; white-space:nowrap; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .win{ color:var(--good); font-weight:700; }
+  .lose{ color:var(--crit); font-weight:600; }
+  .even{ color:var(--warn); font-weight:600; }
+
+  /* pros cons */
+  .pc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:760px){ .pc-grid{ grid-template-columns:1fr; } }
+  .pc-card{ background:var(--raised); border:1px solid var(--line); border-radius:18px; padding:22px; }
+  .pc-card.rec{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .pc-card h3{ margin:0 0 4px; font-size:19px; letter-spacing:-.01em; }
+  .pc-card h3 span{ font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); display:block; margin-top:3px; font-weight:500; }
+  .pc-card ul{ margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; }
+  .pc-card li{ position:relative; padding-left:22px; font-size:14px; color:var(--muted); }
+  .pc-card li b{ color:var(--ink); }
+  .pc-card li.p::before{ content:"+"; position:absolute; left:0; top:-1px; color:var(--good); font-weight:800; }
+  .pc-card li.c::before{ content:"−"; position:absolute; left:0; top:-1px; color:var(--crit); font-weight:800; }
+
+  .callout{
+    margin-top:28px; background:var(--raised); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; padding:16px 20px; font-size:15px; color:var(--muted);
+  }
+  .callout b{ color:var(--ink); }
+
+  footer{ padding:38px 0 64px; }
+  footer .wrap{ display:flex; flex-wrap:wrap; gap:14px 40px; align-items:baseline; justify-content:space-between; }
+  footer .q{ max-width:58ch; color:var(--muted); font-size:15px; }
+  footer .q b{ color:var(--ink); }
+  footer .sig{ font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em; }
+</style>
+
+<button class="theme-toggle" id="tt" aria-label="Toggle colour theme">◐ Theme</button>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Stride Guide · infrastructure decision</span>
+    <h1>Street tiles: stay on OSM, or move to <em>CARTO</em>?</h1>
+    <p class="lede">Cold-start tile loading feels slow. Preconnect hints are already shipped, but the deeper constraint is the provider itself. This sheet compares the current street basemap with CARTO's, so the trade-off is decided with open eyes. The Esri satellite layer is unaffected either way.</p>
+    <div class="meta">
+      <span>CURRENT&nbsp; <b>tile.openstreetmap.org (OSM Standard)</b></span>
+      <span>CANDIDATE&nbsp; <b>CARTO Voyager (+ Dark Matter)</b></span>
+      <span>SCOPE&nbsp; <b>street layer only</b></span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Visual character</span>
+    <h2>Three looks, same underlying data</h2>
+    <p class="section-note">All three render OpenStreetMap <em>data</em> — the difference is cartographic styling and delivery. Previews below are stylised recreations (live tiles can't be embedded here); check the real thing via the links in the footer before committing.</p>
+    <div class="tiles">
+      <div class="tile-card">
+        <div class="tile-head"><span class="nm">OSM Standard</span><span class="tag">current</span></div>
+        <div class="tile t-osm">
+          <div class="land"></div><div class="labels"></div>
+          <svg class="route" viewBox="0 0 400 300"><path d="M60 260 C130 200 100 140 200 120 S330 80 350 40"/></svg>
+        </div>
+        <div class="tile-cap">stylised preview</div>
+        <div class="tile-desc"><b>Dense, saturated, encyclopaedic.</b> Every POI, landuse tint and label the data has. Distinct "wiki map" look; the indigo route competes with strong greens/oranges.</div>
+      </div>
+      <div class="tile-card">
+        <div class="tile-head"><span class="nm">CARTO Voyager</span><span class="tag">candidate · light</span></div>
+        <div class="tile t-voy">
+          <div class="land"></div>
+          <svg class="route" viewBox="0 0 400 300"><path d="M60 260 C130 200 100 140 200 120 S330 80 350 40"/></svg>
+        </div>
+        <div class="tile-cap">stylised preview</div>
+        <div class="tile-desc"><b>Muted, modern, app-like.</b> Softer palette, fewer labels, calmer landuse tints — the route line and UI own the visual hierarchy. Sits naturally with the Horizon identity.</div>
+      </div>
+      <div class="tile-card">
+        <div class="tile-head"><span class="nm">CARTO Dark Matter</span><span class="tag">candidate · dark</span></div>
+        <div class="tile t-dark">
+          <div class="land"></div>
+          <svg class="route" viewBox="0 0 400 300"><path d="M60 260 C130 200 100 140 200 120 S330 80 350 40"/></svg>
+        </div>
+        <div class="tile-cap">stylised preview</div>
+        <div class="tile-desc"><b>A true dark basemap.</b> Would let the app's dark theme extend to the map itself — night walks without a glowing white rectangle. OSM has no equivalent.</div>
+      </div>
+    </div>
+    <div class="disclaimer">Live style references: OSM → openstreetmap.org · Voyager/Dark Matter → carto.com/basemaps (view on a phone — retina sharpness is half the story).</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Head to head</span>
+    <h2>The differences that matter</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th style="width:20%">Dimension</th><th>OSM Standard (current)</th><th>CARTO Voyager / Dark Matter</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Delivery speed</td>
+          <td><span class="lose">Volunteer-funded shared servers.</span> No commercial CDN; throttles under load; the cold-start slowness you're seeing largely lives here.</td>
+          <td><span class="win">Commercial CDN (Fastly).</span> Built for app traffic; consistently faster first-tile and pan/zoom loads.</td>
+        </tr>
+        <tr>
+          <td>Retina sharpness</td>
+          <td><span class="lose">No @2x tiles.</span> On phone screens tiles render soft/blurry — every beta tester is on a phone.</td>
+          <td><span class="win">Native retina (<code>{r}</code> URL).</span> Crisp text and lines on high-DPI displays.</td>
+        </tr>
+        <tr>
+          <td>Usage policy</td>
+          <td><span class="lose">Explicitly discourages app production use.</span> The OSMF tile policy calls heavy third-party app usage unacceptable; apps get blocked at scale. Fine for a small beta, a real liability after it.</td>
+          <td><span class="even">Free tier with attribution; terms need a read.</span> CARTO basemaps are widely used free in small/non-commercial apps. If Stride Guide ever monetises, expect to need a plan (or another provider).</td>
+        </tr>
+        <tr>
+          <td>Dark mode</td>
+          <td><span class="lose">None.</span> Dark theme UI floats over a bright map at night.</td>
+          <td><span class="win">Dark Matter.</span> Map can follow the app theme automatically.</td>
+        </tr>
+        <tr>
+          <td>Visual fit</td>
+          <td><span class="even">Characterful but busy.</span> Strong colours compete with the route line and Horizon UI.</td>
+          <td><span class="win">Designed as an app basemap.</span> Muted ground that lets overlays lead.</td>
+        </tr>
+        <tr>
+          <td>Data freshness</td>
+          <td><span class="win">Near-live.</span> OSM edits appear within minutes/hours.</td>
+          <td><span class="even">Periodic rebuilds.</span> Same OSM data, refreshed roughly monthly — irrelevant for street layouts, occasionally visible for brand-new paths.</td>
+        </tr>
+        <tr>
+          <td>Attribution</td>
+          <td>© OpenStreetMap contributors</td>
+          <td>© OpenStreetMap contributors © CARTO (both required)</td>
+        </tr>
+        <tr>
+          <td>Cost today</td>
+          <td>Free (donation-run)</td>
+          <td>Free at beta scale</td>
+        </tr>
+        <tr>
+          <td>Switch effort</td>
+          <td>—</td>
+          <td><span class="win">~2 lines</span> in <code>js/map.js</code> (+ preconnect + attribution). CSP already allows it. Reversible in one commit.</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Summarised</span>
+    <h2>Pros &amp; cons</h2>
+    <div class="pc-grid">
+      <div class="pc-card">
+        <h3>Keep OSM Standard<span>current</span></h3>
+        <ul>
+          <li class="p"><b>Zero change</b> — no new terms, no visual shift to re-verify.</li>
+          <li class="p"><b>Freshest data</b> — edits appear near-live.</li>
+          <li class="p">No second-party dependency beyond OSM itself.</li>
+          <li class="c"><b>Slow, throttled delivery</b> — the complaint that started this.</li>
+          <li class="c"><b>Blurry on phones</b> — no retina tiles.</li>
+          <li class="c"><b>Policy risk</b> — OSMF discourages exactly this usage; scaling the app on these tiles invites blocking.</li>
+          <li class="c">No dark map for the dark theme.</li>
+        </ul>
+      </div>
+      <div class="pc-card rec">
+        <h3>Switch to CARTO<span>voyager + dark matter · recommended</span></h3>
+        <ul>
+          <li class="p"><b>Materially faster tiles</b> — CDN delivery, the actual fix for cold-start slowness.</li>
+          <li class="p"><b>Retina-crisp</b> on every tester's phone.</li>
+          <li class="p"><b>Dark Matter</b> — map follows the app's dark theme; the night-walk experience gets dramatically better.</li>
+          <li class="p"><b>Calmer cartography</b> that flatters the Horizon UI and route line.</li>
+          <li class="p">Two-line change, trivially reversible.</li>
+          <li class="c"><b>Terms to review</b> before any commercial launch — free today, but it's their CDN, their rules.</li>
+          <li class="c">Slightly staler data (monthly-ish rebuilds).</li>
+          <li class="c">Look changes — worth one on-phone check before beta invites.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Recommendation: switch — Voyager in light mode, Dark Matter when the dark theme is active.</b> It directly fixes the reported slowness, sharpens the map on every phone, and unlocks a proper dark-mode map — while the sole meaningful cost (licence review) only bites if the app later commercialises, at which point tile provision needs a proper decision anyway. Keeping OSM as a one-commit rollback makes this close to risk-free for beta.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="q"><b>To proceed:</b> say "switch to Carto" for Voyager + theme-linked Dark Matter, or "Voyager only" to keep the map light in both themes. Either lands as a single reversible commit.</div>
+    <div class="sig">STRIDE GUIDE · tile provider decision · main</div>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var tt=document.getElementById('tt'), root=document.documentElement;
+    tt.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      if(!cur) cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      root.setAttribute('data-theme',cur==='dark'?'light':'dark');
+    });
+  })();
+</script>
