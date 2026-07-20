@@ -1,0 +1,247 @@
+<title>Stride Guide — Pre-Beta Checklist</title>
+<style>
+  :root{
+    --paper:#ECEEEA; --raised:#F6F7F3; --sunk:#E3E6DF;
+    --ink:#1A241F; --muted:#59635B; --faint:#869084;
+    --line:#D3D8CF; --line-strong:#C2C8BC;
+    --accent:#B85C38; --accent-ink:#8f4527;
+    --good:#2E7D57; --warn:#B7852A; --crit:#B23A28;
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+      --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+      --line:#2C352E; --line-strong:#3A443B;
+      --accent:#E4844F; --accent-ink:#E9976A;
+      --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141A16; --raised:#1C241E; --sunk:#10150F;
+    --ink:#E7EAE3; --muted:#99A399; --faint:#6E786E;
+    --line:#2C352E; --line-strong:#3A443B;
+    --accent:#E4844F; --accent-ink:#E9976A;
+    --good:#4DAE7D; --warn:#D6A748; --crit:#E0644F;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.55; font-size:16px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 20px 80px; }
+
+  .theme-toggle{
+    position:fixed; top:14px; right:14px; z-index:50; font-family:var(--mono); font-size:10.5px;
+    letter-spacing:.14em; text-transform:uppercase; background:var(--raised); color:var(--muted);
+    border:1px solid var(--line); padding:8px 12px; border-radius:999px; cursor:pointer;
+  }
+
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:9px;
+  }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--accent); }
+
+  header{ padding:54px 0 10px; }
+  h1{ font-size:clamp(30px,7vw,44px); line-height:1.03; letter-spacing:-.03em; font-weight:800; margin:14px 0 10px; }
+  h1 em{ font-style:normal; color:var(--accent); }
+  .lede{ color:var(--muted); font-size:16px; max-width:56ch; margin:0; }
+
+  .progress{
+    position:sticky; top:0; z-index:40; background:var(--paper);
+    padding:12px 0 10px; border-bottom:1px solid var(--line); margin-bottom:8px;
+  }
+  .progress .bar{ height:6px; background:var(--sunk); border-radius:3px; overflow:hidden; }
+  .progress .fill{ height:100%; width:0%; background:var(--good); border-radius:3px; transition:width .25s; }
+  .progress .label{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:6px; letter-spacing:.06em; }
+
+  section{ padding:26px 0 8px; }
+  h2{
+    font-size:13px; font-family:var(--mono); letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin:0 0 4px;
+  }
+  .sec-note{ font-size:13.5px; color:var(--faint); margin:0 0 14px; }
+
+  .group{ background:var(--raised); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:14px; }
+  .group-title{
+    padding:12px 16px 10px; font-weight:800; font-size:15px; letter-spacing:-.01em;
+    border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .group-title .cnt{ font-family:var(--mono); font-size:11px; color:var(--faint); font-weight:500; }
+
+  label.item{
+    display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line);
+    cursor:pointer; align-items:flex-start;
+  }
+  label.item:last-child{ border-bottom:none; }
+  label.item:active{ background:var(--sunk); }
+  .item input{ position:absolute; opacity:0; pointer-events:none; }
+  .box{
+    width:22px; height:22px; border-radius:7px; border:2px solid var(--line-strong);
+    flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s;
+  }
+  .box svg{ width:13px; height:13px; stroke:#fff; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:0; }
+  .item input:checked + .box{ background:var(--good); border-color:var(--good); }
+  .item input:checked + .box svg{ opacity:1; }
+  .item .txt{ font-size:14.5px; color:var(--ink); }
+  .item .txt small{ display:block; color:var(--muted); font-size:12.5px; margin-top:1px; line-height:1.45; }
+  .item input:checked ~ .txt{ color:var(--faint); text-decoration:line-through; text-decoration-color:var(--line-strong); }
+  .item input:checked ~ .txt small{ color:var(--faint); }
+
+  .flag{ font-family:var(--mono); font-size:9.5px; font-weight:700; letter-spacing:.08em; padding:2px 6px; border-radius:5px; vertical-align:2px; margin-left:6px; }
+  .flag.crit{ background:color-mix(in srgb, var(--crit) 15%, transparent); color:var(--crit); }
+  .flag.warn{ background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+
+  .callout{
+    background:var(--raised); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; padding:13px 16px; font-size:13.5px; color:var(--muted); margin:6px 0 14px;
+  }
+  .callout b{ color:var(--ink); }
+
+  footer{ padding:26px 0 0; font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.06em; }
+</style>
+
+<button class="theme-toggle" id="tt">◐ Theme</button>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Stride Guide · pre-beta</span>
+    <h1>The <em>launch</em> checklist.</h1>
+    <p class="lede">Everything between here and inviting testers. Ticks save on this device — work through it with the app in your other hand.</p>
+  </header>
+
+  <div class="progress">
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="label" id="plabel">0 / 0 complete</div>
+  </div>
+
+  <section>
+    <h2>1 · Install &amp; shell</h2>
+    <p class="sec-note">Fresh install on your phone, from the production URL in Safari.</p>
+    <div class="group" data-g="Install">
+      <div class="group-title">On your phone <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="i1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Add to Home Screen — icon renders correctly<small>Blue route mark with coral dot, not a placeholder or screenshot</small></span></label>
+      <label class="item"><input type="checkbox" data-k="i2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">App opens full-screen; map runs edge-to-edge<small>Under the Dynamic Island, past the home indicator — no borders</small></span></label>
+      <label class="item"><input type="checkbox" data-k="i3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Dark mode follows the system; Auto/Light/Dark override sticks after relaunch<small>Map should dim in dark theme, stay readable</small></span></label>
+      <label class="item"><input type="checkbox" data-k="i4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">In a browser tab (not installed): install suggestion appears, dismiss snoozes it<small>Also: yields politely if the onboarding card is up first</small></span></label>
+      <label class="item"><input type="checkbox" data-k="i5"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Airplane mode: app still opens; clear offline toast; routing fails gracefully<small>Back online → "Back online" toast</small></span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Planning</h2>
+    <div class="group" data-g="Planning">
+      <div class="group-title">Both modes + pin <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="p1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Search finds places; a name with "&amp;" renders correctly<small>e.g. Marks &amp; Spencer — literal ampersand, no &amp;amp;</small></span></label>
+      <label class="item"><input type="checkbox" data-k="p2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Route preview centres between screen top and the cards</span></label>
+      <label class="item"><input type="checkbox" data-k="p3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Pan away → Re-centre re-frames the <b>route</b> while planning</span></label>
+      <label class="item"><input type="checkbox" data-k="p4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Loop: time &amp; distance modes land within ±2 min / ±0.2 km<small>Or the "closest loop the streets allow" toast explains the miss</small></span></label>
+      <label class="item"><input type="checkbox" data-k="p5"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Reverse ↺ and New loop both work; pin drop shows distance/time and routes</span></label>
+      <label class="item"><input type="checkbox" data-k="p6"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Pinch/rotate over a route: line stays glued to the streets<small>The fix you just verified — confirm once more on the installed app</small></span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · The real walk</h2>
+    <p class="sec-note">One outdoor loop + one A→B, phone in hand.</p>
+    <div class="group" data-g="Walk">
+      <div class="group-title">Navigation <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="w1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Follow-camera rotates and tracks in <b>both</b> loop and A→B modes</span></label>
+      <label class="item"><input type="checkbox" data-k="w2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Voice speaks the first turn; toggle mutes/unmutes; distances match km/mi setting</span></label>
+      <label class="item"><input type="checkbox" data-k="w3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Screen stays on per the setting<small>Try 5m: screen should be allowed to sleep after ~5 minutes</small></span></label>
+      <label class="item"><input type="checkbox" data-k="w4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Walk a street off-route: reroute fires, view stays on you (no zoom-out)</span></label>
+      <label class="item"><input type="checkbox" data-k="w5"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Pause → wander 50 m → resume: rejoin path appears; paused time excluded</span></label>
+      <label class="item"><input type="checkbox" data-k="w6"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Force-kill mid-walk → reopen → "Resume your walk?" restores everything</span></label>
+      <label class="item"><input type="checkbox" data-k="w7"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Arrival announces + toast (A→B); Stop logs the walk with sane numbers</span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Account &amp; data</h2>
+    <div class="group" data-g="Account">
+      <div class="group-title">Signed in + signed out <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="a1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">OTP: code arrives, 6 digits auto-submit, resend works</span></label>
+      <label class="item"><input type="checkbox" data-k="a2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Avatar: JPG uploads &amp; shows; renamed .txt rejected; &gt;5 MB rejected</span></label>
+      <label class="item"><input type="checkbox" data-k="a3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Stats, history, saved routes &amp; places all load; saved place re-opens on map</span></label>
+      <label class="item"><input type="checkbox" data-k="a4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Feedback link opens mail to Strideguide595@gmail.com; privacy &amp; credits read well</span></label>
+      <label class="item"><input type="checkbox" data-k="a5"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Signed out: finish a walk → "sign in to keep your history" nudge appears</span></label>
+      <label class="item"><input type="checkbox" data-k="a6"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">km/mi choice survives a full app relaunch</span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Backend config</h2>
+    <p class="sec-note">Dashboard work — the blockers live here, not in the app.</p>
+    <div class="callout"><b>Do the SMTP one before anything else.</b> Supabase's built-in email sender is capped at a handful of emails per hour — your testers' sign-in codes will silently stop arriving mid-onboarding.</div>
+    <div class="group" data-g="Backend">
+      <div class="group-title">Supabase / ORS / inbox <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="b1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Custom SMTP wired in Supabase Auth <span class="flag crit">BLOCKER</span><small>Resend / Brevo free tier → Settings → Auth → SMTP; send a test code after</small></span></label>
+      <label class="item"><input type="checkbox" data-k="b2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">delete_user RPC verified with a throwaway account <span class="flag crit">BLOCKER</span><small>The privacy note promises erasure — make sure it's true</small></span></label>
+      <label class="item"><input type="checkbox" data-k="b3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Avatars storage bucket exists; upload → image publicly readable</span></label>
+      <label class="item"><input type="checkbox" data-k="b4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">RLS spot-check: each table only returns the signed-in user's rows</span></label>
+      <label class="item"><input type="checkbox" data-k="b5"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">ORS quota understood <span class="flag warn">WATCH</span><small>Free tier ≈ 2,000 directions/day; loop generation uses up to 7 calls per press</small></span></label>
+      <label class="item"><input type="checkbox" data-k="b6"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Strideguide595@gmail.com receives a test email</span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Launch</h2>
+    <div class="group" data-g="Launch">
+      <div class="group-title">Invite &amp; watch <span class="cnt"></span></div>
+      <label class="item"><input type="checkbox" data-k="l1"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">Tester one-pager ready<small>Install steps, permissions to grant (location, motion), what to test, where feedback goes — I'll draft this on request</small></span></label>
+      <label class="item"><input type="checkbox" data-k="l2"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">First wave invited (5–10 people, iOS + Android mix)</span></label>
+      <label class="item"><input type="checkbox" data-k="l3"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">During beta: watch Vercel function logs + Supabase logs weekly</span></label>
+      <label class="item"><input type="checkbox" data-k="l4"><span class="box"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></span><span class="txt">After a clean soak: promote CSP from Report-Only to enforcing<small>Check the browser console for violations during your smoke test first</small></span></label>
+    </div>
+  </section>
+
+  <footer>STRIDE GUIDE · pre-beta checklist · ticks stored on this device</footer>
+</div>
+
+<script>
+  (function () {
+    var KEY = 'sgBetaChecklist';
+    var state = {};
+    try { state = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+
+    var boxes = document.querySelectorAll('.item input');
+    var fill = document.getElementById('fill');
+    var plabel = document.getElementById('plabel');
+
+    function refresh() {
+      var done = 0;
+      boxes.forEach(function (b) { if (b.checked) done++; });
+      fill.style.width = (boxes.length ? (done / boxes.length) * 100 : 0) + '%';
+      plabel.textContent = done + ' / ' + boxes.length + ' complete' + (done === boxes.length ? ' — invite away 🎉' : '');
+      document.querySelectorAll('.group').forEach(function (g) {
+        var all = g.querySelectorAll('.item input');
+        var d = 0; all.forEach(function (b) { if (b.checked) d++; });
+        var cnt = g.querySelector('.cnt');
+        if (cnt) cnt.textContent = d + '/' + all.length;
+      });
+    }
+
+    boxes.forEach(function (b) {
+      if (state[b.dataset.k]) b.checked = true;
+      b.addEventListener('change', function () {
+        state[b.dataset.k] = b.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+        refresh();
+      });
+    });
+
+    refresh();
+
+    var tt = document.getElementById('tt'), root = document.documentElement;
+    tt.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  }());
+</script>
