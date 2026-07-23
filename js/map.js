@@ -269,21 +269,12 @@ let navSmoothedBearing = null; // EMA-filtered target bearing (updated on GPS fi
 let navDisplayBearing  = null; // animated bearing (updated every RAF frame)
 let navTargetLat = null, navTargetLng = null; // latest GPS position
 let navDisplayLat = null, navDisplayLng = null; // animated position
-let navPrevLat = null, navPrevLng = null; // for trail dots
 let navRafId = null, navRafPrevTs = null;
-const navTrailMarkers = [];
 
 const NAV_ROT_SPEED = 200; // degrees per second max rotation
 
 let navCompassWatching = false;
 let navLastSpeed = 0;
-
-const trailIcon = L.divIcon({
-  className: '',
-  html: '<div class="trail-dot"></div>',
-  iconSize: [8, 8],
-  iconAnchor: [4, 4],
-});
 
 function computeBearing(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -363,7 +354,20 @@ function navRafTick(ts) {
     navDisplayLng += (navTargetLng - navDisplayLng) * k;
   }
 
-  if (userMarker) userMarker.setLatLng([navDisplayLat, navDisplayLng]);
+  if (userMarker) {
+    userMarker.setLatLng([navDisplayLat, navDisplayLng]);
+    // Point the arrow along the walker's heading in screen space. In follow
+    // mode (map bearing = 360 - heading) this resolves to 0° — straight up —
+    // and when the camera is freed by a pan, the arrow keeps showing the
+    // true direction of travel instead of whatever "up" happens to be.
+    if (navDisplayBearing !== null) {
+      const el = userMarker.getElement();
+      if (el && el.firstChild) {
+        const b = typeof map.getBearing === 'function' ? map.getBearing() : 0;
+        el.firstChild.style.transform = `rotate(${(navDisplayBearing + b) % 360}deg)`;
+      }
+    }
+  }
 
   if (!navFreeCamera) {
     // Offset map center forward so user sits in lower third
@@ -399,15 +403,6 @@ function startNavigation(onPosition, onError) {
       const lng   = position.coords.longitude;
       const speed = position.coords.speed ?? 0;
       navLastSpeed = speed;
-
-      // Trail dot at previous GPS position
-      if (navPrevLat !== null) {
-        const dot = L.marker([navPrevLat, navPrevLng], { icon: trailIcon, interactive: false }).addTo(map);
-        navTrailMarkers.push(dot);
-        if (navTrailMarkers.length > 5) navTrailMarkers.shift().remove();
-      }
-      navPrevLat = lat;
-      navPrevLng = lng;
 
       if (!userMarker) {
         if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
@@ -460,10 +455,7 @@ function stopNavigation(watchId) {
   navDisplayBearing = null;
   navTargetLat = null; navTargetLng = null;
   navDisplayLat = null; navDisplayLng = null;
-  navPrevLat = null; navPrevLng = null;
   navRafPrevTs = null; navLastSpeed = 0;
-  navTrailMarkers.forEach(function (m) { m.remove(); });
-  navTrailMarkers.length = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
 }
 

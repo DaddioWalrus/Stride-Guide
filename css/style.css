@@ -217,13 +217,7 @@ body {
   border-right: 10px solid transparent;
   border-bottom: 26px solid #2F5FE0;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-}
-
-.trail-dot {
-  width: 8px; height: 8px;
-  background: #2F5FE0;
-  border-radius: 50%;
-  opacity: 0.35;
+  transform-origin: 50% 50%;
 }
 
 .route-arrow {
