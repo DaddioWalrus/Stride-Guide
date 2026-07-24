@@ -1789,7 +1789,7 @@ button { touch-action: manipulation; font-family: inherit; }
 
 #kb-debug {
   position: fixed;
-  top: 50%;
+  top: 60%;
   left: 8px;
   transform: translateY(-50%);
   z-index: 3000;
