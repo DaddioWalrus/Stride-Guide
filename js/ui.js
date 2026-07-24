@@ -1299,7 +1299,12 @@ let kbLatched = false;
 function adjustSearchPanel(force) {
   const vv = window.visualViewport;
   if (!vv) return;
-  const inset = window.innerHeight - (vv.offsetTop + vv.height);
+  // Keyboard height = how much of the layout viewport the visual viewport no
+  // longer covers. In the default (resizes-visual) mode the layout viewport
+  // stays full and only the visual viewport shrinks, so a fixed element lifted
+  // by this amount sits exactly on the keyboard.
+  const layoutH = document.documentElement.clientHeight;
+  const inset = layoutH - (vv.offsetTop + vv.height);
   if (inset <= 120 || !keyboardTargetFocused()) {
     kbLatched = false;
     resetDockKeyboard();
@@ -1308,10 +1313,9 @@ function adjustSearchPanel(force) {
   }
   if (kbLatched && force !== true) { updateKbDebug(); return; }
   kbLatched = true;
-  const kbTopY = vv.offsetTop + vv.height;
-  dockEl.style.bottom = 'auto';
-  dockEl.style.top = (kbTopY - KB_GAP) + 'px';
-  dockEl.style.transform = 'translateY(-100%)';
+  dockEl.style.top = 'auto';
+  dockEl.style.transform = '';
+  dockEl.style.bottom = (inset + KB_GAP) + 'px';
   sizeSearchList();
   updateKbDebug();
 }
@@ -1359,12 +1363,11 @@ function updateKbDebug() {
   const vv = window.visualViewport;
   const r = dockEl.getBoundingClientRect();
   const a = document.activeElement;
+  const layoutH = document.documentElement.clientHeight;
   kbDebugEl.textContent =
-    'innerH ' + window.innerHeight +
-    ' | vv.h ' + Math.round(vv.height) +
+    'clientH ' + layoutH + ' | vv.h ' + Math.round(vv.height) +
     '\nvv.offTop ' + Math.round(vv.offsetTop) +
-    ' | vv.pageTop ' + Math.round(vv.pageTop) +
-    '\ninset ' + Math.round(window.innerHeight - (vv.offsetTop + vv.height)) +
+    '\ninset ' + Math.round(layoutH - (vv.offsetTop + vv.height)) +
     ' | scrollY ' + Math.round(window.scrollY) +
     '\ndock.top ' + Math.round(r.top) + ' | dock.bot ' + Math.round(r.bottom) +
     '\nstandalone ' + (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) +
