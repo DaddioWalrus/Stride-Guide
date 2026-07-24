@@ -1662,16 +1662,16 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
     var iosOtherBrowser = isIOS && /crios|fxios|edgios/i.test(ua);
 
     if (iosOtherBrowser) {
-      text.textContent = 'For the full app: open Stride Guide in Safari, tap Share, then "Add to Home Screen".';
+      text.textContent = 'Open in Safari, then Share ▸ Add to Home Screen';
       btn.classList.add('hidden');
     } else if (isIOS) {
-      text.textContent = 'Add Stride Guide to your Home Screen: tap Share, then "Add to Home Screen".';
+      text.textContent = 'Tap Share ▸ Add to Home Screen';
       btn.classList.add('hidden');
     } else if (deferredPrompt) {
-      text.textContent = 'Install Stride Guide for the full app experience.';
+      text.textContent = 'Install the app';
       btn.classList.remove('hidden');
     } else {
-      text.textContent = 'Add Stride Guide to your Home Screen from your browser menu for the full app experience.';
+      text.textContent = 'Add to your Home Screen from the browser menu';
       btn.classList.add('hidden');
     }
     card.classList.remove('hidden');

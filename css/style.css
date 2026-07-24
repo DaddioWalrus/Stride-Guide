@@ -1086,6 +1086,65 @@ button { touch-action: manipulation; font-family: inherit; }
 
 #offline-banner .fl { width: 15px; height: 15px; color: var(--coral); stroke-width: 2; }
 
+/* ─── Add-to-Home-Screen prompt (top pill, mirrors the offline banner) ─── */
+
+#a2hs-card {
+  position: fixed;
+  top: calc(var(--sat) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: max-content;
+  max-width: calc(100vw - 130px);
+  background: var(--overlay-card);
+  color: var(--overlay-ink);
+  padding: 7px 8px 7px 15px;
+  border-radius: 999px;
+  z-index: 2400;
+  box-shadow: var(--shadow-3);
+  animation: offline-drop 0.26s ease;
+}
+
+#a2hs-card .fl { width: 16px; height: 16px; color: var(--coral); stroke-width: 2; flex-shrink: 0; }
+
+#a2hs-card .guest-nudge-text {
+  flex: 0 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--overlay-ink);
+  line-height: 1.35;
+}
+
+#a2hs-card .guest-nudge-btn {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+#a2hs-card .guest-nudge-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--overlay-ink);
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ─── Account Button Backdrop / Panel ─────────────── */
 
 #account-backdrop {
@@ -1662,8 +1721,7 @@ button { touch-action: manipulation; font-family: inherit; }
 /* ─── Guest walk-complete nudge ───────────────────── */
 
 #guest-nudge,
-#resume-card,
-#a2hs-card {
+#resume-card {
   position: fixed;
   bottom: calc(210px + var(--sab));
   left: 16px;
