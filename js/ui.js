@@ -1291,40 +1291,55 @@ function keyboardTargetFocused() {
   return a === destInput || a === startInput;
 }
 
-function adjustSearchPanel() {
+// Once positioned for an open keyboard, latch it: ignore further viewport
+// wiggle (e.g. Safari's URL bar collapsing as you drag the map) so the panel
+// stays put. Only a full close+reopen re-positions.
+let kbLatched = false;
+
+function adjustSearchPanel(force) {
   const vv = window.visualViewport;
   if (!vv) return;
   const inset = window.innerHeight - (vv.offsetTop + vv.height);
-  // Only reposition for our own text inputs — never hijack the dock for an
-  // unrelated viewport change (e.g. the browser toolbar collapsing mid-walk).
-  if (inset <= 40 || !keyboardTargetFocused()) {
+  if (inset <= 120 || !keyboardTargetFocused()) {
+    kbLatched = false;
     resetDockKeyboard();
+    updateKbDebug();
     return;
   }
+  if (kbLatched && force !== true) { updateKbDebug(); return; }
+  kbLatched = true;
   const kbTopY = vv.offsetTop + vv.height;
   dockEl.style.bottom = 'auto';
   dockEl.style.top = (kbTopY - KB_GAP) + 'px';
   dockEl.style.transform = 'translateY(-100%)';
   sizeSearchList();
+  updateKbDebug();
+}
+
+// Force re-settle across the keyboard's open animation, then let the latch hold.
+function settleDock() {
+  requestAnimationFrame(function () { adjustSearchPanel(true); });
+  setTimeout(function () { adjustSearchPanel(true); }, 300);
+  setTimeout(function () { adjustSearchPanel(true); }, 600);
 }
 
 function onSearchFocus() {
   modeBar.classList.add('hidden');
-  requestAnimationFrame(adjustSearchPanel);
-  setTimeout(adjustSearchPanel, 300); // catch the keyboard once it's settled
+  settleDock();
   startKbDebug();
 }
 
 function onSearchBlur() {
   modeBar.classList.remove('hidden');
+  kbLatched = false;
   resetDockKeyboard();
   stopKbDebug();
 }
 
 destInput.addEventListener('focus', onSearchFocus);
 destInput.addEventListener('blur', onSearchBlur);
-startInput.addEventListener('focus', function () { requestAnimationFrame(adjustSearchPanel); setTimeout(adjustSearchPanel, 300); });
-startInput.addEventListener('blur', resetDockKeyboard);
+startInput.addEventListener('focus', settleDock);
+startInput.addEventListener('blur', function () { kbLatched = false; resetDockKeyboard(); });
 
 if (window.visualViewport) {
   // Only on resize — the keyboard opening/closing. NOT on scroll, so panning
