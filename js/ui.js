@@ -1312,19 +1312,65 @@ function onSearchFocus() {
   modeBar.classList.add('hidden');
   requestAnimationFrame(adjustSearchPanel);
   setTimeout(adjustSearchPanel, 300); // catch the keyboard once it's settled
+  startKbDebug();
 }
 
 function onSearchBlur() {
   modeBar.classList.remove('hidden');
   resetDockKeyboard();
+  stopKbDebug();
 }
 
 destInput.addEventListener('focus', onSearchFocus);
 destInput.addEventListener('blur', onSearchBlur);
+startInput.addEventListener('focus', function () { requestAnimationFrame(adjustSearchPanel); setTimeout(adjustSearchPanel, 300); });
+startInput.addEventListener('blur', resetDockKeyboard);
 
 if (window.visualViewport) {
+  // Only on resize — the keyboard opening/closing. NOT on scroll, so panning
+  // the map (which fires visualViewport scroll) can't drag the panel around.
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
-  window.visualViewport.addEventListener('scroll', adjustSearchPanel);
+}
+
+// ─── Keyboard diagnostics (temporary) ─────────────────────────────────────────
+// Shows live viewport numbers while a search field is focused so the keyboard
+// gap can be diagnosed on-device. Remove once the gap is confirmed fixed.
+
+const kbDebugEl = document.getElementById('kb-debug');
+let kbDebugRaf = null;
+
+function updateKbDebug() {
+  if (!kbDebugEl || kbDebugEl.classList.contains('hidden')) return;
+  const vv = window.visualViewport;
+  const r = dockEl.getBoundingClientRect();
+  const a = document.activeElement;
+  kbDebugEl.textContent =
+    'innerH ' + window.innerHeight +
+    ' | vv.h ' + Math.round(vv.height) +
+    '\nvv.offTop ' + Math.round(vv.offsetTop) +
+    ' | vv.pageTop ' + Math.round(vv.pageTop) +
+    '\ninset ' + Math.round(window.innerHeight - (vv.offsetTop + vv.height)) +
+    ' | scrollY ' + Math.round(window.scrollY) +
+    '\ndock.top ' + Math.round(r.top) + ' | dock.bot ' + Math.round(r.bottom) +
+    '\nstandalone ' + (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) +
+    '\nactive ' + (a ? (a.id || a.tagName) : 'none');
+}
+
+function kbDebugLoop() {
+  updateKbDebug();
+  kbDebugRaf = requestAnimationFrame(kbDebugLoop);
+}
+
+function startKbDebug() {
+  if (!kbDebugEl) return;
+  kbDebugEl.classList.remove('hidden');
+  if (kbDebugRaf === null) kbDebugLoop();
+}
+
+function stopKbDebug() {
+  if (!kbDebugEl) return;
+  kbDebugEl.classList.add('hidden');
+  if (kbDebugRaf !== null) { cancelAnimationFrame(kbDebugRaf); kbDebugRaf = null; }
 }
 
 // ─── Loop Reverse ─────────────────────────────────────────────────────────────
