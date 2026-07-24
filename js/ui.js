@@ -1296,21 +1296,32 @@ function keyboardTargetFocused() {
 // stays put. Only a full close+reopen re-positions.
 let kbLatched = false;
 
+// Keyboard height = the part of the layout viewport the visual viewport no
+// longer covers. Using heights only (not offsetTop) makes it immune to iOS's
+// forced page-scroll when an input is focused.
+function keyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  return Math.max(0, document.documentElement.clientHeight - vv.height);
+}
+
+// iOS standalone scrolls the whole document up to reveal a focused input,
+// which drags fixed elements. Pin it back to the top.
+function lockScrollTop() {
+  if (window.scrollY !== 0 || window.pageYOffset !== 0) window.scrollTo(0, 0);
+}
+
 function adjustSearchPanel(force) {
   const vv = window.visualViewport;
   if (!vv) return;
-  // Keyboard height = how much of the layout viewport the visual viewport no
-  // longer covers. In the default (resizes-visual) mode the layout viewport
-  // stays full and only the visual viewport shrinks, so a fixed element lifted
-  // by this amount sits exactly on the keyboard.
-  const layoutH = document.documentElement.clientHeight;
-  const inset = layoutH - (vv.offsetTop + vv.height);
+  const inset = keyboardInset();
   if (inset <= 120 || !keyboardTargetFocused()) {
     kbLatched = false;
     resetDockKeyboard();
     updateKbDebug();
     return;
   }
+  lockScrollTop();
   if (kbLatched && force !== true) { updateKbDebug(); return; }
   kbLatched = true;
   dockEl.style.top = 'auto';
@@ -1320,11 +1331,17 @@ function adjustSearchPanel(force) {
   updateKbDebug();
 }
 
+// Counteract the iOS forced-scroll continuously while a field is focused.
+window.addEventListener('scroll', function () {
+  if (keyboardTargetFocused()) lockScrollTop();
+}, { passive: true });
+
 // Force re-settle across the keyboard's open animation, then let the latch hold.
 function settleDock() {
-  requestAnimationFrame(function () { adjustSearchPanel(true); });
-  setTimeout(function () { adjustSearchPanel(true); }, 300);
-  setTimeout(function () { adjustSearchPanel(true); }, 600);
+  lockScrollTop();
+  requestAnimationFrame(function () { lockScrollTop(); adjustSearchPanel(true); });
+  setTimeout(function () { lockScrollTop(); adjustSearchPanel(true); }, 300);
+  setTimeout(function () { lockScrollTop(); adjustSearchPanel(true); }, 600);
 }
 
 function onSearchFocus() {
@@ -1365,12 +1382,12 @@ function updateKbDebug() {
   const a = document.activeElement;
   const layoutH = document.documentElement.clientHeight;
   kbDebugEl.textContent =
+    'BUILD 15 · sw-v2\n' +
     'clientH ' + layoutH + ' | vv.h ' + Math.round(vv.height) +
-    '\nvv.offTop ' + Math.round(vv.offsetTop) +
-    '\ninset ' + Math.round(layoutH - (vv.offsetTop + vv.height)) +
+    '\ninset ' + Math.round(layoutH - vv.height) +
     ' | scrollY ' + Math.round(window.scrollY) +
     '\ndock.top ' + Math.round(r.top) + ' | dock.bot ' + Math.round(r.bottom) +
-    '\nstandalone ' + (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) +
+    '\nlatched ' + kbLatched +
     '\nactive ' + (a ? (a.id || a.tagName) : 'none');
 }
 

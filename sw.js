@@ -2,7 +2,7 @@
 // Goal: the app always *opens*, even offline. Live data (routing, search,
 // Supabase, map tiles) stays network-only.
 
-const SHELL_CACHE = 'sg-shell-v1';
+const SHELL_CACHE = 'sg-shell-v2';
 
 const SHELL = [
   '/',
