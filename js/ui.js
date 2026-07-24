@@ -1272,32 +1272,44 @@ function sizeSearchList() {
   suggestionsList.style.maxHeight = Math.max(120, Math.floor(maxH)) + 'px';
 }
 
+// Gap left between the dock's bottom edge and the top of the keyboard.
+const KB_GAP = 6;
+
+// Some browsers (notably iOS) already lift a bottom-fixed element above the
+// keyboard; others leave it behind. Rather than assume, measure where the dock
+// actually renders and nudge it to sit KB_GAP above the keyboard — self-cancels
+// either way, so no double-offset "big gap".
 function adjustSearchPanel() {
   const vv = window.visualViewport;
-  const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-  if (offsetFromBottom <= 0) {
+  if (!vv) return;
+  const inset = window.innerHeight - (vv.offsetTop + vv.height);
+  if (inset <= 40) { // keyboard closed
     dockEl.style.bottom = '';
     suggestionsList.style.maxHeight = '';
     return;
   }
-  // destInput focused: hug the keyboard so the only gap is the panel's own
-  // bottom padding. Another field focused: keep clearance.
-  const bottomPad = document.activeElement === destInput ? 0 : 64;
-  dockEl.style.bottom = (offsetFromBottom + bottomPad) + 'px';
+  const curBottom = parseFloat(getComputedStyle(dockEl).bottom) || 0;
+  const renderedBottom = dockEl.getBoundingClientRect().bottom;
+  const targetBottom = vv.offsetTop + vv.height - KB_GAP;
+  const next = curBottom + (renderedBottom - targetBottom);
+  dockEl.style.bottom = Math.max(0, Math.round(next)) + 'px';
   sizeSearchList();
 }
 
-destInput.addEventListener('focus', function () {
+function onSearchFocus() {
   modeBar.classList.add('hidden');
-  dockEl.style.bottom = '0px';
-  sizeSearchList();
-});
+  requestAnimationFrame(adjustSearchPanel);
+  setTimeout(adjustSearchPanel, 300); // catch the keyboard once it's settled
+}
 
-destInput.addEventListener('blur', function () {
+function onSearchBlur() {
   modeBar.classList.remove('hidden');
   dockEl.style.bottom = '';
   suggestionsList.style.maxHeight = '';
-});
+}
+
+destInput.addEventListener('focus', onSearchFocus);
+destInput.addEventListener('blur', onSearchBlur);
 
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
