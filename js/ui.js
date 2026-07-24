@@ -1272,10 +1272,10 @@ function sizeSearchList() {
   suggestionsList.style.maxHeight = Math.max(120, Math.floor(maxH)) + 'px';
 }
 
-// Clearance above the keyboard. iOS's QuickType/autofill bar sits above the
-// keyboard but isn't reflected in visualViewport.height, so we add ~its height
-// (44px) plus a small breathing gap to keep the panel clear of it.
-const KB_GAP = 48;
+// Clearance above the keyboard. iOS's QuickType/autofill bar (~48px) isn't
+// reflected in visualViewport.height, so clear it and then leave the same
+// ~12px breathing gap the panel has above the mode bar normally.
+const KB_GAP = 60;
 
 function resetDockKeyboard() {
   dockEl.style.top = '';
@@ -1384,7 +1384,7 @@ function updateKbDebug() {
   const a = document.activeElement;
   const layoutH = document.documentElement.clientHeight;
   kbDebugEl.textContent =
-    'BUILD 16 · sw-v2\n' +
+    'BUILD 17 · sw-v2\n' +
     'clientH ' + layoutH + ' | vv.h ' + Math.round(vv.height) +
     '\ninset ' + Math.round(layoutH - vv.height) +
     ' | scrollY ' + Math.round(window.scrollY) +
