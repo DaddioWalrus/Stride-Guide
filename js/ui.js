@@ -1860,8 +1860,19 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
 }());
 
 if ('serviceWorker' in navigator) {
+  // Auto-update: when a new service worker takes control, reload once so the
+  // page always runs the freshest code instead of a stale cached build.
+  let reloadedForSW = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (reloadedForSW || !navigator.serviceWorker.controller) return;
+    reloadedForSW = true;
+    window.location.reload();
+  });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+      reg.update();
+      setInterval(function () { reg.update(); }, 60000);
+    }).catch(function () {});
   });
 }
 
