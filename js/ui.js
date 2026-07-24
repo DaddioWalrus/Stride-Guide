@@ -1707,13 +1707,18 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
 
 // ─── Offline awareness + app-shell service worker ─────────────────────────────
 
-window.addEventListener('offline', function () {
-  showError("You're offline — search and routing won't work until you reconnect");
-});
-
-window.addEventListener('online', function () {
-  showError('Back online');
-});
+(function () {
+  var banner = document.getElementById('offline-banner');
+  function syncOffline() {
+    banner.classList.toggle('hidden', navigator.onLine);
+  }
+  window.addEventListener('offline', syncOffline);
+  window.addEventListener('online', function () {
+    syncOffline();
+    showError('Back online');
+  });
+  syncOffline(); // reflect state on load — covers opening already in airplane mode
+}());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
