@@ -1320,17 +1320,15 @@ function adjustSearchPanel(force) {
   if (inset <= 120 || !keyboardTargetFocused()) {
     kbLatched = false;
     resetDockKeyboard();
-    updateKbDebug();
     return;
   }
   lockScrollTop();
-  if (kbLatched && force !== true) { updateKbDebug(); return; }
+  if (kbLatched && force !== true) return;
   kbLatched = true;
   dockEl.style.top = 'auto';
   dockEl.style.transform = '';
   dockEl.style.bottom = (inset + KB_GAP) + 'px';
   sizeSearchList();
-  updateKbDebug();
 }
 
 // Counteract the iOS forced-scroll continuously while a field is focused.
@@ -1349,14 +1347,12 @@ function settleDock() {
 function onSearchFocus() {
   modeBar.classList.add('hidden');
   settleDock();
-  startKbDebug();
 }
 
 function onSearchBlur() {
   modeBar.classList.remove('hidden');
   kbLatched = false;
   resetDockKeyboard();
-  stopKbDebug();
 }
 
 destInput.addEventListener('focus', onSearchFocus);
@@ -1368,46 +1364,6 @@ if (window.visualViewport) {
   // Only on resize — the keyboard opening/closing. NOT on scroll, so panning
   // the map (which fires visualViewport scroll) can't drag the panel around.
   window.visualViewport.addEventListener('resize', adjustSearchPanel);
-}
-
-// ─── Keyboard diagnostics (temporary) ─────────────────────────────────────────
-// Shows live viewport numbers while a search field is focused so the keyboard
-// gap can be diagnosed on-device. Remove once the gap is confirmed fixed.
-
-const kbDebugEl = document.getElementById('kb-debug');
-let kbDebugRaf = null;
-
-function updateKbDebug() {
-  if (!kbDebugEl || kbDebugEl.classList.contains('hidden')) return;
-  const vv = window.visualViewport;
-  const r = dockEl.getBoundingClientRect();
-  const a = document.activeElement;
-  const layoutH = document.documentElement.clientHeight;
-  kbDebugEl.textContent =
-    'BUILD 17 · sw-v2\n' +
-    'clientH ' + layoutH + ' | vv.h ' + Math.round(vv.height) +
-    '\ninset ' + Math.round(layoutH - vv.height) +
-    ' | scrollY ' + Math.round(window.scrollY) +
-    '\ndock.top ' + Math.round(r.top) + ' | dock.bot ' + Math.round(r.bottom) +
-    '\nlatched ' + kbLatched +
-    '\nactive ' + (a ? (a.id || a.tagName) : 'none');
-}
-
-function kbDebugLoop() {
-  updateKbDebug();
-  kbDebugRaf = requestAnimationFrame(kbDebugLoop);
-}
-
-function startKbDebug() {
-  if (!kbDebugEl) return;
-  kbDebugEl.classList.remove('hidden');
-  if (kbDebugRaf === null) kbDebugLoop();
-}
-
-function stopKbDebug() {
-  if (!kbDebugEl) return;
-  kbDebugEl.classList.add('hidden');
-  if (kbDebugRaf !== null) { cancelAnimationFrame(kbDebugRaf); kbDebugRaf = null; }
 }
 
 // ─── Loop Reverse ─────────────────────────────────────────────────────────────
