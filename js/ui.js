@@ -698,6 +698,7 @@ async function handleSearch() {
       suggestionsList.appendChild(li);
     });
     suggestionsList.classList.remove('hidden');
+    if (typeof sizeSearchList === 'function') sizeSearchList();
   } catch {
     showError('Search failed — please try again');
   } finally {
@@ -1243,25 +1244,59 @@ pauseBtn.addEventListener('click', function () {
 
 // ─── Keyboard tracking — keeps the dock above the keyboard ───────────────────
 
+const searchPanelEl = document.getElementById('search-panel');
+const voiceBtnEl = document.getElementById('voice-btn');
+
+// Grow the suggestions list to fill the space between the search bar and the
+// keyboard, leaving only the panel's own bottom padding as the gap — the same
+// spacing the list has from the panel edge when the keyboard is absent.
+function sizeSearchList() {
+  const vv = window.visualViewport;
+  if (!vv || suggestionsList.classList.contains('hidden')) {
+    suggestionsList.style.maxHeight = '';
+    return;
+  }
+  const keyboardTopY = vv.offsetTop + vv.height;
+  const keyboardUp = (window.innerHeight - keyboardTopY) > 60;
+  if (!keyboardUp) {
+    suggestionsList.style.maxHeight = '';
+    return;
+  }
+  const header = searchPanelEl.querySelector('.preview-header');
+  const bar = searchPanelEl.querySelector('.search-bar');
+  // Keep the panel top clear of the floating map buttons (account/terrain/voice)
+  const topClear = voiceBtnEl.getBoundingClientRect().bottom + 10;
+  // panel padding (18 top + 18 bottom) + header margin (14) + list margin-top (12)
+  const chrome = 62 + header.offsetHeight + bar.offsetHeight;
+  const maxH = keyboardTopY - topClear - chrome;
+  suggestionsList.style.maxHeight = Math.max(120, Math.floor(maxH)) + 'px';
+}
+
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
   if (offsetFromBottom <= 0) {
     dockEl.style.bottom = '';
+    suggestionsList.style.maxHeight = '';
     return;
   }
-  const bottomPad = document.activeElement === destInput ? 10 : 64;
+  // destInput focused: hug the keyboard so the only gap is the panel's own
+  // bottom padding. Another field focused: keep clearance.
+  const bottomPad = document.activeElement === destInput ? 0 : 64;
   dockEl.style.bottom = (offsetFromBottom + bottomPad) + 'px';
+  sizeSearchList();
 }
 
 destInput.addEventListener('focus', function () {
   modeBar.classList.add('hidden');
-  dockEl.style.bottom = '10px';
+  dockEl.style.bottom = '0px';
+  sizeSearchList();
 });
 
 destInput.addEventListener('blur', function () {
   modeBar.classList.remove('hidden');
   dockEl.style.bottom = '';
+  suggestionsList.style.maxHeight = '';
 });
 
 if (window.visualViewport) {
