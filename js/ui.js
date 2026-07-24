@@ -1273,26 +1273,38 @@ function sizeSearchList() {
 }
 
 // Gap left between the dock's bottom edge and the top of the keyboard.
-const KB_GAP = 6;
+const KB_GAP = 8;
 
-// Some browsers (notably iOS) already lift a bottom-fixed element above the
-// keyboard; others leave it behind. Rather than assume, measure where the dock
-// actually renders and nudge it to sit KB_GAP above the keyboard — self-cancels
-// either way, so no double-offset "big gap".
+function resetDockKeyboard() {
+  dockEl.style.top = '';
+  dockEl.style.bottom = '';
+  dockEl.style.transform = '';
+  suggestionsList.style.maxHeight = '';
+}
+
+// Pin the dock's bottom edge directly to the top of the keyboard using the
+// visual viewport, via top + translateY(-100%). This positions the panel
+// absolutely (no bottom-offset arithmetic that can double up on browsers that
+// already lift fixed elements), so the gap is exactly KB_GAP everywhere.
+function keyboardTargetFocused() {
+  const a = document.activeElement;
+  return a === destInput || a === startInput;
+}
+
 function adjustSearchPanel() {
   const vv = window.visualViewport;
   if (!vv) return;
   const inset = window.innerHeight - (vv.offsetTop + vv.height);
-  if (inset <= 40) { // keyboard closed
-    dockEl.style.bottom = '';
-    suggestionsList.style.maxHeight = '';
+  // Only reposition for our own text inputs — never hijack the dock for an
+  // unrelated viewport change (e.g. the browser toolbar collapsing mid-walk).
+  if (inset <= 40 || !keyboardTargetFocused()) {
+    resetDockKeyboard();
     return;
   }
-  const curBottom = parseFloat(getComputedStyle(dockEl).bottom) || 0;
-  const renderedBottom = dockEl.getBoundingClientRect().bottom;
-  const targetBottom = vv.offsetTop + vv.height - KB_GAP;
-  const next = curBottom + (renderedBottom - targetBottom);
-  dockEl.style.bottom = Math.max(0, Math.round(next)) + 'px';
+  const kbTopY = vv.offsetTop + vv.height;
+  dockEl.style.bottom = 'auto';
+  dockEl.style.top = (kbTopY - KB_GAP) + 'px';
+  dockEl.style.transform = 'translateY(-100%)';
   sizeSearchList();
 }
 
@@ -1304,8 +1316,7 @@ function onSearchFocus() {
 
 function onSearchBlur() {
   modeBar.classList.remove('hidden');
-  dockEl.style.bottom = '';
-  suggestionsList.style.maxHeight = '';
+  resetDockKeyboard();
 }
 
 destInput.addEventListener('focus', onSearchFocus);
