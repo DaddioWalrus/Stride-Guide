@@ -1627,8 +1627,11 @@ document.getElementById('guest-nudge-btn').addEventListener('click', function ()
   var dismissedAt = 0;
   try { dismissedAt = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
 
+  // Whenever the app runs in a browser rather than installed, keep nudging
+  // to install. Dismissal only snoozes for a day — a new day (and thus any
+  // fresh session after it) brings the prompt back.
   if (isStandalone()) return;
-  if (dismissedAt && Date.now() - dismissedAt < 14 * 24 * 3600 * 1000) return;
+  if (dismissedAt && Date.now() - dismissedAt < 24 * 3600 * 1000) return;
 
   var deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', function (e) {
