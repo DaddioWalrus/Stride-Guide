@@ -1789,19 +1789,20 @@ button { touch-action: manipulation; font-family: inherit; }
 
 #kb-debug {
   position: fixed;
-  top: calc(var(--sat) + 6px);
-  left: 6px;
+  top: calc(var(--sat) + 8px);
+  left: 8px;
   z-index: 3000;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.9);
   color: #4ade80;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.5;
   white-space: pre;
-  padding: 6px 9px;
+  padding: 10px 12px;
+  border: 1px solid #4ade80;
   border-radius: 8px;
   pointer-events: none;
-  max-width: 66vw;
+  max-width: 78vw;
 }
 
 /* ─── Hidden Utility ──────────────────────────────── */
