@@ -433,16 +433,82 @@ document.getElementById('auth-delete-yes-btn').addEventListener('click', async f
   closeAccountPanel();
 });
 
+// ─── Supabase Writes ───────────────────────────────────────────────────────────
+
+// Every save goes through here so a failure can never leave its button dead.
+// It waits for the client to exist, converts a thrown network error into a
+// returned one, and reports the real reason — a missing table or an RLS policy
+// that was never applied is otherwise invisible from a phone.
+
+const MISSING_COLUMN_RE = /'([^']+)' column/;
+
+// Gate on the session without ever hanging on it: if the config fetch is still
+// in flight after a few seconds, carry on and let the write report the failure.
+function awaitAuth() {
+  return Promise.race([
+    authReady,
+    new Promise(function (resolve) { setTimeout(resolve, 4000); }),
+  ]);
+}
+
+async function insertRow(table, row) {
+  try {
+    await sbReady;
+  } catch {
+    return { message: 'no connection' };
+  }
+  if (!sbClient) return { message: 'no connection' };
+
+  const payload = Object.assign({}, row);
+
+  // A table created before a column was added rejects the entire insert
+  // (PGRST204, naming the column). Drop that field and retry so the save still
+  // lands rather than failing outright on every attempt.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    let error;
+    try {
+      ({ error } = await sbClient.from(table).insert(payload));
+    } catch (err) {
+      return { message: (err && err.message) || 'no connection' };
+    }
+    if (!error) return null;
+
+    const match = error.code === 'PGRST204' && MISSING_COLUMN_RE.exec(error.message || '');
+    const column = match && match[1];
+    if (column && column !== 'user_id' && column in payload) {
+      delete payload[column];
+      continue;
+    }
+    return error;
+  }
+  return { message: 'the database is out of date' };
+}
+
+function saveErrorText(what, error) {
+  console.error('Save failed:', error);
+  const msg = (error && error.message) || '';
+  if (/row-level security/i.test(msg))            return `Could not save ${what} — permission denied`;
+  if (/does not exist|schema cache/i.test(msg))   return `Could not save ${what} — not set up yet`;
+  return msg ? `Could not save ${what} — ${msg}` : `Could not save ${what}`;
+}
+
 // ─── Saved Locations ───────────────────────────────────────────────────────────
 
 window.onSaveLocationRequest = async function (lat, lng, name) {
-  if (!currentUser) { showError('Sign in to save places'); return; }
   const btn = document.getElementById('pin-save-btn');
+  if (btn.disabled) return;
+  await awaitAuth();
+  if (!currentUser) { showError('Sign in to save places'); return; }
+
   btn.disabled = true;
-  const { error } = await sbClient.from('saved_locations')
-    .insert({ user_id: currentUser.id, name: name || 'Saved place', lat, lng });
+  const error = await insertRow('saved_locations', {
+    user_id: currentUser.id,
+    name: name || 'Saved place',
+    lat,
+    lng,
+  });
   if (error) {
-    showError('Could not save place');
+    showError(saveErrorText('place', error));
     btn.disabled = false;
   } else {
     btn.innerHTML = ICONS.check;
@@ -596,25 +662,31 @@ async function loadStrideStats() {
 // ─── Saved Routes ──────────────────────────────────────────────────────────────
 
 window.onSaveRouteRequest = async function (route) {
-  if (!currentUser) { showError('Sign in to save routes'); return; }
   const btn = document.getElementById('route-save-btn');
+  if (btn.disabled) return;
+  // The session may still be loading on a cold start — check it only once the
+  // client has settled, or a signed-in walker gets told to sign in.
+  await awaitAuth();
+  if (!currentUser) { showError('Sign in to save routes'); return; }
+  if (!route.coords || route.coords.length < 2) { showError('No route to save yet'); return; }
+
   btn.disabled = true;
-  const { error } = await sbClient.from('saved_routes').insert({
+  const error = await insertRow('saved_routes', {
     user_id:         currentUser.id,
-    name:            route.name,
+    name:            route.name || 'Route',
     mode:            route.mode,
     coords:          route.coords,
-    dist_km:         Math.round(route.distKm * 100) / 100,
+    dist_km:         Number.isFinite(route.distKm) ? Math.round(route.distKm * 100) / 100 : 0,
     loop_mode:       route.loopMode || null,
     loop_value:      route.loopValue || null,
     loop_use_metric: route.loopUseMetric !== false,
-    dest_lat:        route.destLat || null,
-    dest_lng:        route.destLng || null,
-    start_lat:       route.startLat || null,
-    start_lng:       route.startLng || null,
+    dest_lat:        route.destLat ?? null,
+    dest_lng:        route.destLng ?? null,
+    start_lat:       route.startLat ?? null,
+    start_lng:       route.startLng ?? null,
   });
   if (error) {
-    showError('Could not save route');
+    showError(saveErrorText('route', error));
     btn.disabled = false;
   } else {
     btn.innerHTML = ICONS.check;
@@ -704,14 +776,16 @@ async function loadSavedRoutes() {
 
 // ─── Session ───────────────────────────────────────────────────────────────────
 
-sbReady.then(function () {
+// Resolves once the stored session has been read, so anything that gates on
+// being signed in can wait for the answer instead of racing it.
+const authReady = sbReady.then(function () {
   sbClient.auth.onAuthStateChange(function (event, session) {
     currentUser = session?.user || null;
     updateAccountBtn(currentUser);
   });
 
-  sbClient.auth.getSession().then(function ({ data: { session } }) {
+  return sbClient.auth.getSession().then(function ({ data: { session } }) {
     currentUser = session?.user || null;
     updateAccountBtn(currentUser);
   });
-});
+}).catch(function () {});

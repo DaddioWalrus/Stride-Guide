@@ -225,7 +225,11 @@ body {
   background: #FF6B4A;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
   opacity: 0.95;
-  transform: rotate(var(--rot, 0deg)) scale(var(--rt-scale, 1));
+  /* --rot is the arrow's geographic bearing; --map-brg is the camera rotation
+     (see syncMapBearingVar in map.js). Marker icons don't turn with the map, so
+     the two are summed to keep the arrow pointing along the route. */
+  transform: rotate(calc(var(--rot, 0deg) + var(--map-brg, 0deg))) scale(var(--rt-scale, 1));
+  transform-origin: 50% 50%;
 }
 
 .pin-marker { width: 22px; height: 32px; position: relative; }

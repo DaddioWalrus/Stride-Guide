@@ -2,11 +2,17 @@
 
 const map = L.map('map', {
   zoomControl: true,
+  // Free-form zoom. Leaflet's default zoomSnap of 1 rounds every pinch to a
+  // whole level when the gesture ends, which reads as the map yanking itself
+  // back to a fixed step; 0 lets it settle wherever the fingers left it.
+  zoomSnap: 0,
   rotate: true,
   bearing: 0,
   touchRotate: true,
   attributionControl: false, // credits live in the account panel instead
 });
+
+const mapEl = map.getContainer();
 
 map.zoomControl.setPosition('topleft');
 
@@ -189,11 +195,29 @@ function syncRouteScale() {
   const z = map.getZoom();
   if (currentRoute) currentRoute.setStyle({ weight: routeWeightForZoom(z) });
   const scale = Math.max(0.6, Math.min(1.5, 1 + (z - 15) * 0.14));
-  document.getElementById('map').style.setProperty('--rt-scale', String(scale));
+  mapEl.style.setProperty('--rt-scale', String(scale));
 }
 
 map.on('zoom', syncRouteScale);
 map.on('zoomend', syncRouteScale);
+
+// Markers live in leaflet-rotate's no-rotate pane, so an icon keeps a fixed
+// screen orientation while the map turns beneath it. A route arrow drawn at its
+// geographic bearing alone would therefore swing away from the line every time
+// the navigation camera rotates — the arrows appear to spin. Publishing the map
+// bearing as a CSS variable lets every arrow add it back in one place and stay
+// glued to the route. (The user arrow does the same sum in navRafTick.)
+let lastBearingVar = null;
+function syncMapBearingVar() {
+  const raw = typeof map.getBearing === 'function' ? (map.getBearing() || 0) : 0;
+  const deg = Math.round((((raw % 360) + 360) % 360) * 2) / 2; // half-degree steps
+  if (deg === lastBearingVar) return;
+  lastBearingVar = deg;
+  mapEl.style.setProperty('--map-brg', deg + 'deg');
+}
+
+map.on('rotate', syncMapBearingVar);
+syncMapBearingVar();
 
 function drawRoute(coords) {
   if (currentRoute) currentRoute.remove();
@@ -383,6 +407,7 @@ function navRafTick(ts) {
 
     if (typeof map.setBearing === 'function') {
       map.setBearing((360 - (navDisplayBearing ?? 0)) % 360);
+      syncMapBearingVar(); // keep the route arrows locked to the line
     }
   }
 }
@@ -457,6 +482,7 @@ function stopNavigation(watchId) {
   navDisplayLat = null; navDisplayLng = null;
   navRafPrevTs = null; navLastSpeed = 0;
   if (typeof map.setBearing === 'function') map.setBearing(0);
+  syncMapBearingVar();
 }
 
 // ─── Geocoding ────────────────────────────────────────────────────────────────
