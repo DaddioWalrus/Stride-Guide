@@ -45,6 +45,15 @@ UI is phase-based: `showPhase(id)` hides all panels and shows the specified one.
 - `saved_locations`: `id, user_id, name, lat, lng, created_at`
 - `profiles`: `id, tier, full_name, avatar_url`
 
+Every table needs RLS policies for select/insert/delete on `auth.uid() = user_id`,
+or the app fails with a permission error. Schema lives in `supabase-*.sql`; keep
+those files in step with any table change.
+
+**Delivering SQL to the user:** they run it on a phone and cannot copy from the
+repo or from chat. Publish it as an artifact with a one-tap copy button, the
+paste-it-here steps, and a fallback that selects the text — see the saved-routes
+page for the pattern. Never just paste SQL into the reply.
+
 ## Environment
 
 - ORS API key injected by Vercel from `ORS_API_KEY` env var. Never hardcode it.

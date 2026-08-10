@@ -18,6 +18,7 @@ let navCurrentStep = 0;
 let navCurrentSpeedMs = 0;
 let useMetric = true;
 let navRouteCoords = null;
+let navPlannedRoute = null; // route as planned at Start — what mid-walk saving files
 let navOffCourseFixes = 0;
 let navLastRerouteTime = 0;
 let navRerouting = false;
@@ -88,6 +89,7 @@ const routeDestName = document.getElementById('route-dest-name');
 const startBtn = document.getElementById('start-btn');
 const loopRegenBtn = document.getElementById('loop-regen-btn');
 const navRecentreBtn = document.getElementById('nav-recentre-btn');
+const navSaveBtn = document.getElementById('nav-save-btn');
 
 const navTimeEl = document.getElementById('nav-time');
 const navDistEl = document.getElementById('nav-dist');
@@ -1000,6 +1002,14 @@ function beginNavigation(opts) {
   mapDefaultZoom = 18;
   navFreeCamera = false; // touches before Start must not leave the follow-camera off
   navRecentreBtn.classList.add('hidden');
+
+  // Snapshot the route now so it can still be saved from the nav panel by
+  // someone who forgot to before setting off.
+  navPlannedRoute = routeSavePayload();
+  navSaveBtn.innerHTML = ICONS.bookmark;
+  navSaveBtn.classList.remove('saved', 'hidden');
+  navSaveBtn.disabled = false;
+
   showPhase('nav-panel');
   if (typeof map.setBearing === 'function') map.setBearing(0);
   if (userLocation) {
@@ -1115,6 +1125,8 @@ function haltNavigation() {
   navCurrentSpeedMs = 0;
   hideArrival();
   instructionPill.classList.add('hidden');
+  navSaveBtn.classList.add('hidden');
+  navPlannedRoute = null;
   stopNavigation(navWatchId);
   navWatchId = null;
 }
@@ -1379,22 +1391,34 @@ loopReverseBtn.addEventListener('click', function () {
 
 // ─── Route Save ───────────────────────────────────────────────────────────────
 
+function routeSavePayload() {
+  return {
+    mode:          currentMode,
+    coords:        navRouteCoords,
+    distKm:        navRouteDistKm,
+    name:          currentMode === 'loop' ? 'Loop route' : (destination && destination.name || 'Route'),
+    loopMode:      loopMode,
+    loopValue:     loopValue,
+    loopUseMetric: loopUseMetric,
+    destLat:       destination && destination.lat,
+    destLng:       destination && destination.lng,
+    startLat:      startLocation && startLocation.lat,
+    startLng:      startLocation && startLocation.lng,
+  };
+}
+
 document.getElementById('route-save-btn').addEventListener('click', function () {
   if (typeof window.onSaveRouteRequest === 'function') {
-    window.onSaveRouteRequest({
-      mode:          currentMode,
-      coords:        navRouteCoords,
-      distKm:        navRouteDistKm,
-      name:          currentMode === 'loop' ? 'Loop route' : (destination && destination.name || 'Route'),
-      loopMode:      loopMode,
-      loopValue:     loopValue,
-      loopUseMetric: loopUseMetric,
-      destLat:       destination && destination.lat,
-      destLng:       destination && destination.lng,
-      startLat:      startLocation && startLocation.lat,
-      startLng:      startLocation && startLocation.lng,
-    });
+    window.onSaveRouteRequest(routeSavePayload());
   }
+});
+
+// Saving mid-walk files the route as it was planned, not what is left of it —
+// a reroute replaces navRouteCoords with the remainder, and half a route is no
+// use to walk again later.
+navSaveBtn.addEventListener('click', async function () {
+  if (!navPlannedRoute || typeof window.onSaveRouteRequest !== 'function') return;
+  await window.onSaveRouteRequest(navPlannedRoute, { btnId: 'nav-save-btn', sticky: true });
 });
 
 // ─── Load Saved Routes ────────────────────────────────────────────────────────

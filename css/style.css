@@ -906,7 +906,7 @@ button { touch-action: manipulation; font-family: inherit; }
 
 #nav-recentre-btn, #loop-regen-btn { box-shadow: var(--shadow-2); }
 
-#loop-reverse-btn {
+#loop-reverse-btn, #nav-save-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -919,11 +919,18 @@ button { touch-action: manipulation; font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.12s;
+  transition: transform 0.12s, background 0.15s, color 0.15s;
 }
 
-#loop-reverse-btn:active { transform: scale(0.95); }
-#loop-reverse-btn .fl { width: 20px; height: 20px; }
+#loop-reverse-btn:active, #nav-save-btn:active { transform: scale(0.95); }
+#loop-reverse-btn .fl, #nav-save-btn .fl { width: 20px; height: 20px; }
+
+/* Saved mid-walk — stays ticked so the route can't be filed twice */
+#nav-save-btn.saved {
+  background: var(--go);
+  color: var(--on-go);
+  border-color: transparent;
+}
 
 /* ─── Route / Pin floating labels ─────────────────── */
 

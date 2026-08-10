@@ -661,14 +661,18 @@ async function loadStrideStats() {
 
 // ─── Saved Routes ──────────────────────────────────────────────────────────────
 
-window.onSaveRouteRequest = async function (route) {
-  const btn = document.getElementById('route-save-btn');
-  if (btn.disabled) return;
+// opts.btnId  — which button shows the result (the route card's, or the one on
+//               the nav panel for saving mid-walk).
+// opts.sticky — leave it ticked and disabled instead of reverting, so a walk
+//               can't file the same route over and over.
+window.onSaveRouteRequest = async function (route, opts) {
+  const btn = document.getElementById((opts && opts.btnId) || 'route-save-btn');
+  if (btn.disabled) return false;
   // The session may still be loading on a cold start — check it only once the
   // client has settled, or a signed-in walker gets told to sign in.
   await awaitAuth();
-  if (!currentUser) { showError('Sign in to save routes'); return; }
-  if (!route.coords || route.coords.length < 2) { showError('No route to save yet'); return; }
+  if (!currentUser) { showError('Sign in to save routes'); return false; }
+  if (!route.coords || route.coords.length < 2) { showError('No route to save yet'); return false; }
 
   btn.disabled = true;
   const error = await insertRow('saved_routes', {
@@ -688,10 +692,17 @@ window.onSaveRouteRequest = async function (route) {
   if (error) {
     showError(saveErrorText('route', error));
     btn.disabled = false;
-  } else {
-    btn.innerHTML = ICONS.check;
-    setTimeout(function () { btn.innerHTML = ICONS.bookmark; btn.disabled = false; }, 2000);
+    return false;
   }
+
+  btn.innerHTML = ICONS.check;
+  if (opts && opts.sticky) {
+    btn.classList.add('saved');
+    btn.setAttribute('aria-label', 'Route saved');
+    return true; // stays ticked and disabled for the rest of the walk
+  }
+  setTimeout(function () { btn.innerHTML = ICONS.bookmark; btn.disabled = false; }, 2000);
+  return true;
 };
 
 function isRouteNearby(route, userLoc) {
