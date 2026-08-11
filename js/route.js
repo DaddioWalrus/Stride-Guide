@@ -26,69 +26,144 @@ async function callORS(body) {
   return { coords, summary, steps };
 }
 
+// ─── Route shape ──────────────────────────────────────────────────────────────
+// Both builders can be handed a walk that is really a there-and-back: the
+// length is right, but you tread the same pavement twice. Neither the loop
+// generator nor the padded route can tell from the summary, so the geometry
+// itself is measured.
+
+const RETRACE_MAX = 0.35;   // above this a route is doubling back, not touring
+
+// How much of a route gets walked twice. Samples the line every 40m and counts
+// a sample as retraced when another sample sits within 25m of it but more than
+// 200m away along the route. An out-and-back scores near 1; a circuit that
+// crosses itself once, or takes one short dead-end detour, scores a few percent.
+function retraceFraction(coords) {
+  if (!coords || coords.length < 2) return 0;
+
+  const SAMPLE_M = 40, NEAR_M = 25, APART_M = 200;
+  const samples = [];
+  let along = 0;
+  let carried = 0;
+
+  for (let i = 1; i < coords.length; i++) {
+    const segKm = haversineKm(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1]);
+    const segM = segKm * 1000;
+    if (segM <= 0) continue;
+    let t = SAMPLE_M - carried;
+    while (t <= segM) {
+      const f = t / segM;
+      samples.push({
+        lat: coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * f,
+        lng: coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * f,
+        s: along + t,
+      });
+      t += SAMPLE_M;
+    }
+    carried = (carried + segM) % SAMPLE_M;
+    along += segM;
+  }
+
+  if (samples.length < 3) return 0;
+
+  const hit = new Array(samples.length).fill(false);
+  for (let i = 0; i < samples.length; i++) {
+    for (let j = i + 1; j < samples.length; j++) {
+      if (samples[j].s - samples[i].s <= APART_M) continue;
+      const d = haversineKm(samples[i].lat, samples[i].lng, samples[j].lat, samples[j].lng) * 1000;
+      if (d <= NEAR_M) { hit[i] = true; hit[j] = true; }
+    }
+  }
+
+  return hit.filter(Boolean).length / samples.length;
+}
+
 // ─── Loop Route ───────────────────────────────────────────────────────────────
 // ORS treats round_trip.length as a suggestion — actual loops routinely land
-// 10–20% off. Strategy: within one seed (one loop direction), measure the
-// actual length and rescale the request proportionally until it converges.
-// Two ways a seed can fail: a plateau (waypoints snap to the same streets no
-// matter what length we ask for, so retries return the identical loop) and a
-// dead direction (no loop of this size exists that way — rivers, dead ends).
-// Both are detected and answered by rotating to a fresh seed. Returns the
-// closest attempt overall if nothing converges within the call budget.
+// 10–20% off. Strategy: measure what comes back, correct the ask, and keep the
+// correction for the rest of the generation — how far ORS lands from the ask is
+// a property of the streets here, not of the seed we happened to use.
+//
+// Three ways a seed can fail: a plateau (waypoints snap to the same streets no
+// matter what length we ask for, so retries return the identical loop), a dead
+// direction (no loop of this size exists that way — rivers, dead ends, which
+// ORS answers with an error, not a route), and a there-and-back dressed up as a
+// loop. All three are answered by rotating to a fresh seed, which is cheap
+// because the length correction survives the rotation.
+//
+// Returns the closest attempt overall if nothing converges within the call
+// budget — preferring, among equals, a loop that actually tours.
 
 async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
   const tolKm = toleranceKm || 0.2;
   const MAX_CALLS = 7;       // total API budget per generation
   const PER_SEED = 3;        // correction rounds before giving up on a seed
 
-  let best = null;
-  let bestErr = Infinity;
+  let tourBest = null, tourErr = Infinity;   // closest loop that goes somewhere
+  let anyBest = null, anyErr = Infinity;     // closest by length, whatever the shape
   let calls = 0;
   let seed = Math.floor(Math.random() * 90);
+  let lengthFactor = 1;      // what ORS delivers per km asked for, learned as we go
 
   while (calls < MAX_CALLS) {
-    let requestKm = distanceKm;
     let prevActualKm = null;
 
     for (let round = 0; round < PER_SEED && calls < MAX_CALLS; round++) {
+      const requestKm = distanceKm / lengthFactor;
+
       calls++;
-      const result = await callORS({
-        coordinates: [[lng, lat]],
-        options: {
-          round_trip: {
-            length: Math.max(300, Math.round(requestKm * 1000)),
-            points: 5,
-            seed,
+      let result;
+      try {
+        result = await callORS({
+          coordinates: [[lng, lat]],
+          options: {
+            round_trip: {
+              length: Math.max(300, Math.round(requestKm * 1000)),
+              points: 5,
+              seed,
+            },
           },
-        },
-      });
+        });
+      } catch (e) {
+        break; // no loop this way — rotate rather than fail the whole generation
+      }
 
       const actualKm = result.summary.distance / 1000;
       const err = Math.abs(actualKm - distanceKm);
+      const tours = retraceFraction(result.coords) <= RETRACE_MAX;
 
-      if (err < bestErr) {
-        best = result;
-        bestErr = err;
-      }
-      if (bestErr <= tolKm) return best;
+      if (err < anyErr) { anyBest = result; anyErr = err; }
+      if (tours && err < tourErr) { tourBest = result; tourErr = err; }
+      if (tourBest && tourErr <= tolKm) return tourBest;
       if (actualKm <= 0) break;
 
       // Plateau: the network returned (near-)identical length despite an
-      // adjusted request — further correction on this seed is pointless.
+      // adjusted request. Further correction on this seed is pointless, and the
+      // measurement teaches nothing about the area either — it says only that
+      // this seed has saturated — so leave the correction untouched.
       if (prevActualKm !== null && Math.abs(actualKm - prevActualKm) < 0.05) break;
       prevActualKm = actualKm;
 
-      // Proportional correction, clamped so one weird result can't fling
-      // the next request to a wild size.
-      const ratio = Math.min(2, Math.max(0.5, distanceKm / actualKm));
-      requestKm *= ratio;
+      // Correction, clamped so one weird result can't fling the next request to
+      // a wild size. Held across seeds: what this attempt learned about the
+      // area's bias saves the next seed from learning it again.
+      lengthFactor = Math.min(2, Math.max(0.5, actualKm / requestKm));
+
+      // The seed is what decides a round trip's shape, so a there-and-back
+      // won't be rescaled into a tour — swing to a different one instead. The
+      // length lesson above is kept, which is what makes that swing cheap.
+      if (!tours) break;
     }
 
     // This direction won't converge — rotate to a meaningfully different one.
     seed = (seed + 29 + Math.floor(Math.random() * 30)) % 90;
   }
 
-  return best;
+  // Every direction failed outright. Swallowing that would hand the caller a
+  // route-shaped nothing, so fail the way a single bad call used to.
+  if (!tourBest && !anyBest) throw new Error('Could not generate route, please try again');
+
+  return tourBest || anyBest;
 }
 
 // ─── A→B Route ────────────────────────────────────────────────────────────────
@@ -123,7 +198,6 @@ async function generateABRoute(startLat, startLng, endLat, endLng) {
 
 const PAD_SWEEPS = [90, -90, 65, -65, 115, -115]; // sweep centres, sign = side of the A→B axis
 const PAD_SPREAD = 60;      // degrees either side of the sweep centre
-const RETRACE_MAX = 0.35;   // above this a route is doubling back, not touring
 
 // How many via points a given amount of padding wants. A gentle stretch stays a
 // gentle bend; a long walk needs a wide arc to keep off its own toes.
@@ -209,50 +283,6 @@ function solveArcLength(aLat, aLng, bLat, bLng, targetKm, sweepDeg, count) {
     if (chain === null || chain < targetKm) lo = mid; else hi = mid;
   }
   return (lo + hi) / 2;
-}
-
-// How much of a route gets walked twice. Samples the line every 40m and counts
-// a sample as retraced when another sample sits within 25m of it but more than
-// 200m away along the route. An out-and-back scores near 1; a circuit that
-// crosses itself once, or takes one short dead-end detour, scores a few percent.
-function retraceFraction(coords) {
-  if (!coords || coords.length < 2) return 0;
-
-  const SAMPLE_M = 40, NEAR_M = 25, APART_M = 200;
-  const samples = [];
-  let along = 0;
-  let carried = 0;
-
-  for (let i = 1; i < coords.length; i++) {
-    const segKm = haversineKm(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1]);
-    const segM = segKm * 1000;
-    if (segM <= 0) continue;
-    let t = SAMPLE_M - carried;
-    while (t <= segM) {
-      const f = t / segM;
-      samples.push({
-        lat: coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * f,
-        lng: coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * f,
-        s: along + t,
-      });
-      t += SAMPLE_M;
-    }
-    carried = (carried + segM) % SAMPLE_M;
-    along += segM;
-  }
-
-  if (samples.length < 3) return 0;
-
-  const hit = new Array(samples.length).fill(false);
-  for (let i = 0; i < samples.length; i++) {
-    for (let j = i + 1; j < samples.length; j++) {
-      if (samples[j].s - samples[i].s <= APART_M) continue;
-      const d = haversineKm(samples[i].lat, samples[i].lng, samples[j].lat, samples[j].lng) * 1000;
-      if (d <= NEAR_M) { hit[i] = true; hit[j] = true; }
-    }
-  }
-
-  return hit.filter(Boolean).length / samples.length;
 }
 
 async function generatePaddedRoute(fromLat, fromLng, toLat, toLng, distanceKm, toleranceKm) {
