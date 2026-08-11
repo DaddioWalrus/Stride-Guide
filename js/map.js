@@ -503,7 +503,16 @@ function stopNavigation(watchId) {
   if (navRafId !== null) { cancelAnimationFrame(navRafId); navRafId = null; }
   stopCompass();
   clearPinMarker();
+
+  // Hand the position back to the blue dot. The arrow replaced it at the first
+  // fix of the walk, and setUserLocation stands aside while the arrow is out —
+  // so without this the map ends the walk with nothing marking where you are,
+  // and stays that way until some planning step happens to ask for a fix.
+  const endLat = navTargetLat ?? navDisplayLat ?? (userLocation && userLocation.lat);
+  const endLng = navTargetLng ?? navDisplayLng ?? (userLocation && userLocation.lng);
   if (userMarker) { userMarker.remove(); userMarker = null; }
+  if (endLat != null && endLng != null) setUserLocation({ lat: endLat, lng: endLng });
+
   navFreeCamera = false;
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;
