@@ -43,5 +43,33 @@ create policy "Users can insert own saved routes"
 create policy "Users can delete own saved routes"
   on public.saved_routes for delete using (auth.uid() = user_id);
 
+-- If the table pre-dates this script it can carry required columns the app
+-- never writes — a duration_sec left over from walk_history, say — and every
+-- save fails on the not-null constraint. Make any such column optional. The
+-- four the app always supplies stay required, and no data is dropped.
+
+do $$
+declare col record;
+begin
+  for col in
+    select column_name
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name   = 'saved_routes'
+       and is_nullable  = 'NO'
+       and column_default is null
+       and column_name not in ('id', 'user_id', 'name', 'mode')
+  loop
+    execute format('alter table public.saved_routes alter column %I drop not null', col.column_name);
+    raise notice 'saved_routes.% is no longer required', col.column_name;
+  end loop;
+end $$;
+
 -- PostgREST caches the schema; reload it so new columns are visible at once.
 notify pgrst, 'reload schema';
+
+-- What the table looks like now.
+select column_name, data_type, is_nullable
+  from information_schema.columns
+ where table_schema = 'public' and table_name = 'saved_routes'
+ order by ordinal_position;
