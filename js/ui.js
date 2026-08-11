@@ -13,6 +13,7 @@ let navStartTime = null;
 let navLastPos = null;
 let navTimerInterval = null;
 let navArrived = false;
+let navLeftStart = false; // has the walker moved off the start point yet?
 let navSteps = [];
 let navCurrentStep = 0;
 let navCurrentSpeedMs = 0;
@@ -1273,6 +1274,15 @@ async function triggerReroute() {
   speak('Rerouting');
 
   try {
+    // A loop is rejoined, never re-aimed: its destination is the walk's own
+    // start, so routing there would beeline the walker home and swallow
+    // whatever is left of the loop.
+    if (currentMode === 'loop' && navRouteCoords && navRouteCoords.length > 1) {
+      await rejoinLoopRoute(navLastPos);
+      navRerouting = false;
+      return;
+    }
+
     // A walk deliberately stretched past the direct route keeps its length
     // through a reroute — otherwise one wrong turn quietly shortens it.
     const remainingKm = navPaddedTargetKm > 0
@@ -1332,6 +1342,7 @@ function beginNavigation(opts) {
   navLastPos = null;
   navCurrentSpeedMs = 0;
   navArrived = false;
+  navLeftStart = false;
   hideArrival();
   updateNavDisplay();
 
@@ -1375,7 +1386,16 @@ function beginNavigation(opts) {
       advanceStep();
       updateInstruction();
 
-      if (!navArrived && destination) {
+      // A loop finishes where it starts, so the walker is standing on the
+      // destination at the off. Arrival only counts once they have left it —
+      // otherwise the first fix ends the walk on the spot, taking the turn
+      // instructions and off-course rerouting down with it.
+      if (!navLeftStart && destination &&
+          haversineKm(pos.lat, pos.lng, destination.lat, destination.lng) > 0.05) {
+        navLeftStart = true;
+      }
+
+      if (!navArrived && navLeftStart && destination) {
         const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
         if (distToDest < 0.01) {
           navArrived = true;
@@ -1417,6 +1437,7 @@ function haltNavigation() {
   navTotalDistKm = 0;
   navLastPos = null;
   navArrived = false;
+  navLeftStart = false;
   navOffCourseFixes = 0;
   navRerouting = false;
   navSteps = [];
@@ -1490,6 +1511,63 @@ function polylineKm(coords) {
 
 // After a paused wander, route the walker from where they now stand back
 // onto the remaining loop; A→B walks simply re-route to the destination.
+// Where to rejoin a loop from off the route. Nearest node alone won't do: a
+// loop begins and ends at the same place, so early in the walk the walker
+// stands metres from its *final* node, and picking purely by distance would
+// hand back a route with the loop already finished. Among the nodes that are
+// effectively as close, take the one leaving roughly the planned distance
+// still ahead of it.
+function bestRejoinIndex(pos, coords) {
+  let nearest = Infinity;
+  const dists = coords.map(function (c) {
+    const d = haversineKm(pos.lat, pos.lng, c[0], c[1]);
+    if (d < nearest) nearest = d;
+    return d;
+  });
+
+  const ahead = new Array(coords.length).fill(0);
+  for (let i = coords.length - 2; i >= 0; i--) {
+    ahead[i] = ahead[i + 1] +
+      haversineKm(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+  }
+
+  const plannedLeftKm = Math.max(0, navRouteDistKm - navTotalDistKm);
+  let bestI = 0;
+  let bestScore = Infinity;
+  for (let i = 0; i < coords.length; i++) {
+    if (dists[i] > nearest + 0.3) continue;
+    const score = Math.abs(ahead[i] - plannedLeftKm);
+    if (score < bestScore) { bestScore = score; bestI = i; }
+  }
+  return bestI;
+}
+
+// Routes the walker back onto the loop they strayed from and keeps the rest of
+// it ahead of them. Throws are the caller's to handle.
+async function rejoinLoopRoute(pos) {
+  if (!pos || !navRouteCoords || navRouteCoords.length < 2) return false;
+
+  const bestI = bestRejoinIndex(pos, navRouteCoords);
+  const result = await generateABRoute(
+    pos.lat, pos.lng,
+    navRouteCoords[bestI][0], navRouteCoords[bestI][1]
+  );
+  if (!navStartTime) return false; // walk was stopped while we were routing
+
+  const remaining = navRouteCoords.slice(bestI);
+  const remainingKm = polylineKm(remaining);
+  navRouteCoords = result.coords.concat(remaining);
+  navRouteDistKm = navTotalDistKm + result.summary.distance / 1000 + remainingKm;
+  drawRoute(navRouteCoords);
+  drawRouteArrows(navRouteCoords);
+  initSteps((result.steps || []).concat([
+    { instruction: 'Continue along your loop', type: 11, distance: remainingKm * 1000 },
+  ]), navTotalDistKm);
+  updateNavDisplay();
+  updateInstruction();
+  return true;
+}
+
 async function rejoinRouteAfterPause() {
   const pos = navLastPos || userLocation;
   if (!pos || !navRouteCoords || navRouteCoords.length < 2) return;
@@ -1500,31 +1578,8 @@ async function rejoinRouteAfterPause() {
     return;
   }
 
-  let bestI = 0;
-  let bestD = Infinity;
-  for (let i = 0; i < navRouteCoords.length; i++) {
-    const d = haversineKm(pos.lat, pos.lng, navRouteCoords[i][0], navRouteCoords[i][1]);
-    if (d < bestD) { bestD = d; bestI = i; }
-  }
-
   try {
-    const result = await generateABRoute(
-      pos.lat, pos.lng,
-      navRouteCoords[bestI][0], navRouteCoords[bestI][1]
-    );
-    if (!navStartTime) return; // walk was stopped while we were routing
-    const remaining = navRouteCoords.slice(bestI);
-    const remainingKm = polylineKm(remaining);
-    navRouteCoords = result.coords.concat(remaining);
-    navRouteDistKm = navTotalDistKm + result.summary.distance / 1000 + remainingKm;
-    drawRoute(navRouteCoords);
-    drawRouteArrows(navRouteCoords);
-    const rawSteps = (result.steps || []).concat([
-      { instruction: 'Continue along your loop', type: 11, distance: remainingKm * 1000 },
-    ]);
-    initSteps(rawSteps, navTotalDistKm);
-    updateNavDisplay();
-    updateInstruction();
+    await rejoinLoopRoute(pos);
   } catch (e) {
     /* keep the old route — off-course rerouting picks it up from here */
   }
