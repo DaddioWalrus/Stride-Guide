@@ -899,8 +899,55 @@ button { touch-action: manipulation; font-family: inherit; }
 .stop-btn svg { width: 18px; height: 18px; fill: currentColor; }
 .stop-btn:active { transform: scale(0.95); opacity: 0.9; }
 
-#nav-prompt { display: flex; align-items: center; gap: 8px; width: 100%; }
-#nav-prompt .primary-btn { flex: 1; }
+#nav-prompt { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+#nav-prompt .step-row { padding: 6px 10px; }
+#nav-prompt .step-btn { width: 44px; height: 44px; }
+#nav-prompt .step-value { font-size: 24px; }
+
+.nav-prompt-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-align: center;
+}
+
+.nav-prompt-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ─── Walk length control (A→B) ───────────────────── */
+
+.len-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--field);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.len-toggle:active { opacity: 0.7; }
+.len-toggle .fl { width: 18px; height: 18px; flex-shrink: 0; }
+.len-toggle-text { flex: 1; text-align: left; }
+
+.len-toggle-hint {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.len-block { display: flex; flex-direction: column; gap: 10px; }
+#preview-len-toggle { margin-bottom: 12px; }
+#preview-len-block { margin-bottom: 12px; }
 
 /* ─── Dock floating buttons ───────────────────────── */
 

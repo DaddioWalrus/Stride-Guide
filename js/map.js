@@ -65,18 +65,11 @@ let navFreeCamera = false;
 // Silently acquire GPS on load; also reverse geocode to get town name for search hints
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(async function (position) {
-    userLocation = {
+    setUserLocation({
       lat: position.coords.latitude,
       lng: position.coords.longitude,
-    };
+    });
     map.setView([userLocation.lat, userLocation.lng], 17);
-    if (!locationDotMarker) {
-      locationDotMarker = L.marker([userLocation.lat, userLocation.lng], {
-        icon: locationDotIcon,
-        interactive: false,
-        zIndexOffset: 800,
-      }).addTo(map);
-    }
     try {
       const resp = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json&zoom=10`,
@@ -92,6 +85,27 @@ let userMarker = null;
 
 // ─── GPS — on demand only ─────────────────────────────────────────────────────
 
+let userLocationAt = 0; // when the current fix landed — see getFreshLocation
+
+// Every fix lands here, so a walk planned minutes after opening the app starts
+// from where the walker now stands rather than from the page-load position.
+function setUserLocation(loc) {
+  userLocation = { lat: loc.lat, lng: loc.lng };
+  userLocationAt = Date.now();
+
+  // Once navigating, userMarker owns the walker's position on the map.
+  if (userMarker) return;
+  if (locationDotMarker) {
+    locationDotMarker.setLatLng([loc.lat, loc.lng]);
+  } else {
+    locationDotMarker = L.marker([loc.lat, loc.lng], {
+      icon: locationDotIcon,
+      interactive: false,
+      zIndexOffset: 800,
+    }).addTo(map);
+  }
+}
+
 function requestGPS(onSuccess, onError) {
   if (!navigator.geolocation) {
     onError('GPS not available on this device');
@@ -99,16 +113,29 @@ function requestGPS(onSuccess, onError) {
   }
   navigator.geolocation.getCurrentPosition(
     function (position) {
-      onSuccess({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
+      const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+      setUserLocation(loc);
+      onSuccess(loc);
     },
     function () {
       onError('Could not get your location, please try again');
     },
     { enableHighAccuracy: true }
   );
+}
+
+// Promise form for the planning paths: a fix younger than 15s is good enough,
+// otherwise take a new one. Falls back to the last known position rather than
+// rejecting, so a momentary GPS failure can't block route planning outright.
+const FIX_MAX_AGE_MS = 15000;
+
+function getFreshLocation() {
+  if (userLocation && Date.now() - userLocationAt < FIX_MAX_AGE_MS) {
+    return Promise.resolve(userLocation);
+  }
+  return new Promise(function (resolve) {
+    requestGPS(resolve, function () { resolve(userLocation); });
+  });
 }
 
 // ─── Markers ──────────────────────────────────────────────────────────────────
@@ -428,6 +455,9 @@ function startNavigation(onPosition, onError) {
       const lng   = position.coords.longitude;
       const speed = position.coords.speed ?? 0;
       navLastSpeed = speed;
+
+      userLocation = { lat, lng };  // keep the global current through the walk
+      userLocationAt = Date.now();
 
       if (!userMarker) {
         if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }

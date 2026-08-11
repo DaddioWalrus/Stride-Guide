@@ -26,6 +26,7 @@ let pinUseMetric = true;
 let pinRouteResult = null;
 let pinRoutePromise = null;
 let loopLastDistKm = 0;
+let navPaddedTargetKm = 0; // >0 when the walk was stretched past the direct route
 let mapDefaultZoom = 15;
 let navPaused = false;
 let navPausedAt = null;
@@ -97,6 +98,13 @@ const navUnitEl = document.getElementById('nav-unit');
 const navCenterEl = document.getElementById('nav-center');
 const stopBtn = document.getElementById('stop-btn');
 
+const navPromptValue = document.getElementById('nav-prompt-value');
+const navPromptUnit = document.getElementById('nav-prompt-unit');
+const navPromptCenter = document.getElementById('nav-prompt-center');
+const navPromptDown = document.getElementById('nav-prompt-down');
+const navPromptUp = document.getElementById('nav-prompt-up');
+const navPromptGo = document.getElementById('nav-prompt-go');
+
 const routeCenterEl = document.getElementById('route-center');
 const routeUnitHint = document.getElementById('route-unit-hint');
 
@@ -148,6 +156,9 @@ function showPhase(id) {
 }
 
 function showNavPrompt() {
+  // Opens on what is actually left of the planned walk, floored at the walk home.
+  navPromptKm = Math.max(navPromptFloorKm(), loopLastDistKm - navTotalDistKm);
+  renderNavPrompt();
   document.getElementById('nav-eta-wrap').classList.add('hidden');
   navCenterEl.classList.add('hidden');
   document.getElementById('nav-controls-wrap').classList.add('hidden');
@@ -284,9 +295,9 @@ function loopToleranceKm() {
   return loopMode === 'time' ? (2 / 60) * 5 : 0.2;
 }
 
-// If the streets here genuinely can't produce a loop of the requested size,
+// If the streets here genuinely can't produce a route of the requested size,
 // say so rather than silently presenting the near-miss as a match.
-function notifyLoopVariance(result, targetKm) {
+function notifyLoopVariance(result, targetKm, lead) {
   const actualKm = result.summary.distance / 1000;
   if (Math.abs(actualKm - targetKm) <= loopToleranceKm() + 0.01) return;
   let label;
@@ -297,24 +308,29 @@ function notifyLoopVariance(result, targetKm) {
       ? `${actualKm.toFixed(1)} km`
       : `${(actualKm * 0.621371).toFixed(1)} mi`;
   }
-  showError(`Closest loop the streets here allow: ${label}`);
+  showError(`${lead || 'Closest loop the streets here allow'}: ${label}`);
 }
 
 loopGenerateBtn.addEventListener('click', async function () {
   if (!loopMode) return;
-  const loc = userLocation;
-  if (!loc) {
-    showError('Waiting for GPS location — please try again in a moment');
-    return;
-  }
 
   const distanceKm = loopMode === 'time'
     ? (loopValue / 60) * 5
     : (loopUseMetric ? loopValue : loopValue / 0.621371);
 
   loopLastDistKm = distanceKm;
+  navPaddedTargetKm = 0;
   loopGenerateBtn.disabled = true;
   loadingBox.classList.add('visible');
+
+  // A loop starts where the walker is standing now, not where they opened the app.
+  const loc = await getFreshLocation();
+  if (!loc) {
+    loadingBox.classList.remove('visible');
+    loopGenerateBtn.disabled = false;
+    showError('Waiting for GPS location — please try again in a moment');
+    return;
+  }
 
   try {
     startLocation = loc;
@@ -514,6 +530,148 @@ bindUnitSeg(pinUnitHint, function (metric) {
   updatePinDist(d);
 });
 
+// ─── Walk length on A→B routes ────────────────────────────────────────────────
+// The loop panel's Time/Distance stepper, applied to a destination walk: leave
+// it alone for the shortest way there, or ask for a longer walk and the route
+// takes the scenic way round. Both destination flows — map pin and search —
+// drive one shared setting through two identical controls.
+
+let abLenOpen = false;
+let abLenMode = null;    // null → plain shortest route
+let abLenValue = 0;      // minutes, or km/mi per abLenMetric
+let abLenMetric = true;
+let abLenDirectKm = 0;   // shortest route there — the floor the stepper can't go under
+const abLenControls = [];
+
+function abLenTargetKm() {
+  if (!abLenMode) return 0;
+  if (abLenMode === 'time') return (abLenValue / 60) * 5;
+  return abLenMetric ? abLenValue : abLenValue / 0.621371;
+}
+
+// You can't ask for a shorter walk than the destination actually is.
+function abLenFloorValue() {
+  if (abLenMode === 'time') return Math.max(5, Math.ceil(abLenDirectKm / 5 * 60 / 5) * 5);
+  const km = Math.max(0.5, Math.ceil(abLenDirectKm * 2) / 2);
+  return abLenMetric ? km : Math.max(0.5, Math.ceil(km * 0.621371 * 2) / 2);
+}
+
+function abLenLabel() {
+  if (!abLenMode) return 'Direct route';
+  if (abLenMode === 'time') return `${abLenValue} min`;
+  return abLenMetric ? `${abLenValue} km` : `${abLenValue} mi`;
+}
+
+function renderAbLen() {
+  abLenControls.forEach(function (c) {
+    c.block.classList.toggle('hidden', !abLenOpen);
+    c.timeBtn.classList.toggle('active', abLenMode === 'time');
+    c.distBtn.classList.toggle('active', abLenMode === 'distance');
+    c.step.classList.toggle('hidden', !abLenMode);
+    c.hint.textContent = abLenLabel();
+    if (abLenMode === 'time') {
+      c.value.textContent = `${abLenValue} min`;
+      c.unit.classList.add('hidden');
+    } else if (abLenMode === 'distance') {
+      c.value.textContent = abLenMetric ? `${abLenValue} km` : `${abLenValue} mi`;
+      renderUnitSeg(c.unit, abLenMetric);
+      c.unit.classList.remove('hidden');
+    }
+  });
+}
+
+function setAbLenMode(mode) {
+  abLenMode = abLenMode === mode ? null : mode;
+  if (abLenMode) {
+    // Open one step past the direct route — picking a mode means "make it longer".
+    abLenValue = abLenMode === 'time' ? abLenFloorValue() + 5 : abLenFloorValue() + 0.5;
+  }
+  renderAbLen();
+}
+
+function setAbLenMetric(metric) {
+  if (abLenMetric === metric || abLenMode !== 'distance') return;
+  abLenValue = metric
+    ? Math.round(abLenValue / 0.621371 * 2) / 2
+    : Math.round(abLenValue * 0.621371 * 2) / 2;
+  abLenMetric = metric;
+  saveUnits(metric);
+  abLenValue = Math.max(abLenValue, abLenFloorValue());
+  renderAbLen();
+}
+
+function stepAbLen(dir) {
+  const floor = abLenFloorValue();
+  if (abLenMode === 'time') {
+    abLenValue = Math.max(floor, abLenValue + dir * 5);
+  } else {
+    abLenValue = Math.max(floor, Math.round((abLenValue + dir * 0.5) * 10) / 10);
+  }
+  renderAbLen();
+}
+
+// A new destination starts from scratch: shortest route, control collapsed.
+function resetAbLen(directKm) {
+  abLenOpen = false;
+  abLenMode = null;
+  abLenMetric = unitsMetric();
+  abLenDirectKm = directKm || 0;
+  renderAbLen();
+}
+
+// The measured direct route replaces the estimate the floor was seeded from.
+function setAbLenDirect(km) {
+  abLenDirectKm = km;
+  if (abLenMode) abLenValue = Math.max(abLenValue, abLenFloorValue());
+  renderAbLen();
+}
+
+function bindAbLenControl(prefix, onChange) {
+  const c = {
+    block:   document.getElementById(prefix + '-len-block'),
+    hint:    document.getElementById(prefix + '-len-hint'),
+    timeBtn: document.getElementById(prefix + '-len-time'),
+    distBtn: document.getElementById(prefix + '-len-dist'),
+    step:    document.getElementById(prefix + '-len-step'),
+    value:   document.getElementById(prefix + '-len-value'),
+    unit:    document.getElementById(prefix + '-len-unit'),
+  };
+
+  document.getElementById(prefix + '-len-toggle').addEventListener('click', function () {
+    abLenOpen = !abLenOpen;
+    renderAbLen();
+  });
+  c.timeBtn.addEventListener('click', function () { setAbLenMode('time'); onChange(); });
+  c.distBtn.addEventListener('click', function () { setAbLenMode('distance'); onChange(); });
+  document.getElementById(prefix + '-len-down').addEventListener('click', function () {
+    stepAbLen(-1); onChange();
+  });
+  document.getElementById(prefix + '-len-up').addEventListener('click', function () {
+    stepAbLen(1); onChange();
+  });
+  document.getElementById(prefix + '-len-center').addEventListener('click', function () {
+    setAbLenMetric(!abLenMetric); onChange();
+  });
+  bindUnitSeg(c.unit, function (metric) { setAbLenMetric(metric); onChange(); });
+
+  abLenControls.push(c);
+}
+
+// Deviation from a requested walk length, in the units the stepper is showing.
+function notifyLengthVariance(result, targetKm, lead) {
+  const actualKm = result.summary.distance / 1000;
+  if (Math.abs(actualKm - targetKm) <= 0.25) return;
+  let label;
+  if (abLenMode === 'time') {
+    label = `${Math.round(result.summary.duration / 60)} min`;
+  } else {
+    label = abLenMetric
+      ? `${actualKm.toFixed(1)} km`
+      : `${(actualKm * 0.621371).toFixed(1)} mi`;
+  }
+  showError(`${lead}: ${label}`);
+}
+
 // ─── Pin Card ────────────────────────────────────────────────────────────────
 
 let pinLat = null, pinLng = null, pinName = null;
@@ -539,6 +697,55 @@ pinCenter.addEventListener('click', function () {
   updatePinDist(d);
 });
 
+let pinRouteFrom = null;  // the fix the drawn pin route was built from
+let pinRouteSeq = 0;      // guards against a slow request painting over a newer one
+let pinLenTimer = null;
+
+// Draws the walk to the pin from `loc` — the direct route, or a longer one when
+// the walk-length stepper asks for it.
+function buildPinRoute(loc) {
+  if (pinLat === null || !loc) return Promise.resolve();
+
+  const seq = ++pinRouteSeq;
+  const toLat = pinLat, toLng = pinLng;
+  const targetKm = abLenTargetKm();
+
+  pinRoutePromise = (targetKm > 0
+    ? generatePaddedRoute(loc.lat, loc.lng, toLat, toLng, targetKm, 0.2)
+    : generateABRoute(loc.lat, loc.lng, toLat, toLng))
+    .then(function (result) {
+      if (seq !== pinRouteSeq) return;                    // superseded
+      if (pinCard.classList.contains('hidden')) return;   // card closed meanwhile
+      pinRouteResult = result;
+      pinRouteFrom = { lat: loc.lat, lng: loc.lng };
+      const distKm = result.summary.distance / 1000;
+      navRouteDistKm = distKm;
+      navRouteCoords = result.coords;
+      navPaddedTargetKm = targetKm;
+      initSteps(result.steps || []);
+      drawRoute(result.coords);
+      updatePinDist(distKm);
+      pinTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
+      if (targetKm > 0) {
+        notifyLengthVariance(result, targetKm, 'Longest walk the streets here allow');
+      } else {
+        setAbLenDirect(distKm);
+      }
+    })
+    .catch(function () { /* silent — will retry on Start walk */ });
+
+  return pinRoutePromise;
+}
+
+function pinLenChanged() {
+  if (pinLat === null) return;
+  clearTimeout(pinLenTimer);
+  pinTimeEl.textContent = '…';
+  pinLenTimer = setTimeout(function () { buildPinRoute(userLocation); }, 800);
+}
+
+bindAbLenControl('pin', pinLenChanged);
+
 window.onPinDropped = async function (lat, lng) {
   pinLat = lat;
   pinLng = lng;
@@ -546,6 +753,9 @@ window.onPinDropped = async function (lat, lng) {
   pinUseMetric = unitsMetric();
   pinRouteResult = null;
   pinRoutePromise = null;
+  pinRouteFrom = null;
+  clearTimeout(pinLenTimer);
+  resetAbLen(userLocation ? haversineKm(userLocation.lat, userLocation.lng, lat, lng) * 1.25 : 0);
 
   const saveBtn = document.getElementById('pin-save-btn');
   saveBtn.innerHTML = ICONS.bookmark;
@@ -567,22 +777,15 @@ window.onPinDropped = async function (lat, lng) {
   pinCard.classList.remove('hidden');
   pinLocationLabel.classList.remove('hidden');
 
-  if (userLocation) {
-    const fromLat = userLocation.lat, fromLng = userLocation.lng;
-    pinRoutePromise = generateABRoute(fromLat, fromLng, lat, lng)
-      .then(function (result) {
-        if (pinCard.classList.contains('hidden')) return;
-        pinRouteResult = result;
-        const distKm = result.summary.distance / 1000;
-        navRouteDistKm = distKm;
-        navRouteCoords = result.coords;
-        initSteps(result.steps || []);
-        drawRoute(result.coords);
-        updatePinDist(distKm);
-        pinTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
-      })
-      .catch(function () { /* silent — will retry on Go */ });
-  }
+  // Draw from the last known fix straight away, then take a current one — if the
+  // walker has moved since the app opened, redraw from where they actually are.
+  const cached = userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null;
+  if (cached) buildPinRoute(cached);
+  getFreshLocation().then(function (loc) {
+    if (!loc || pinLat !== lat || pinLng !== lng) return;
+    if (cached && haversineKm(cached.lat, cached.lng, loc.lat, loc.lng) <= 0.03) return;
+    buildPinRoute(loc);
+  });
 
   const name = await reverseGeocode(lat, lng);
   pinName = name;
@@ -605,40 +808,49 @@ document.getElementById('pin-save-btn').addEventListener('click', function () {
 });
 
 pinDirectionsBtn.addEventListener('click', async function () {
-  if (!userLocation) {
-    showError('Enable GPS to get directions');
-    return;
-  }
+  if (pinLat === null) return;
 
   const toLat = pinLat;
   const toLng = pinLng;
   const toName = pinName || 'your destination';
 
-  startLocation = userLocation;
+  pinDirectionsBtn.disabled = true;
+  pinDirectionsBtn.textContent = 'Loading…';
+  clearTimeout(pinLenTimer);
+
+  // The walk starts from where the walker is standing now.
+  const loc = await getFreshLocation();
+  if (!loc) {
+    showError('Enable GPS to get directions');
+    pinDirectionsBtn.disabled = false;
+    pinDirectionsBtn.textContent = 'Start walk';
+    return;
+  }
+
+  startLocation = loc;
   destination = { lat: toLat, lng: toLng, name: toName };
 
-  if (!pinRouteResult) {
-    pinDirectionsBtn.disabled = true;
-    pinDirectionsBtn.textContent = 'Loading…';
-    try {
-      if (pinRoutePromise) await pinRoutePromise;
-      if (!pinRouteResult) {
-        const result = await generateABRoute(userLocation.lat, userLocation.lng, toLat, toLng);
-        pinRouteResult = result;
-        navRouteDistKm = result.summary.distance / 1000;
-        navRouteCoords = result.coords;
-        initSteps(result.steps || []);
-        drawRoute(result.coords);
-      }
-    } catch {
-      showError('Could not find route — try again');
-      pinDirectionsBtn.disabled = false;
-      pinDirectionsBtn.textContent = 'Start walk';
-      return;
-    }
-    pinDirectionsBtn.disabled = false;
-    pinDirectionsBtn.textContent = 'Start';
+  // Only ever set off on a route built from the fix we are standing on.
+  const routeIsCurrent = function () {
+    return !!pinRouteResult && !!pinRouteFrom &&
+      haversineKm(pinRouteFrom.lat, pinRouteFrom.lng, loc.lat, loc.lng) <= 0.03;
+  };
+
+  if (!routeIsCurrent()) {
+    await buildPinRoute(loc);
+  } else if (pinRoutePromise) {
+    await pinRoutePromise;
   }
+
+  if (!routeIsCurrent()) {
+    showError('Could not find route — try again');
+    pinDirectionsBtn.disabled = false;
+    pinDirectionsBtn.textContent = 'Start walk';
+    return;
+  }
+
+  pinDirectionsBtn.disabled = false;
+  pinDirectionsBtn.textContent = 'Start walk';
 
   clearDestination();
   pinCard.classList.add('hidden');
@@ -709,6 +921,8 @@ async function handleSearch() {
   }
 }
 
+bindAbLenControl('preview', function () { /* route is built on Get directions */ });
+
 function selectDestination(result) {
   destination = { lat: result.lat, lng: result.lng, name: result.name };
   suggestionsList.classList.add('hidden');
@@ -717,6 +931,11 @@ function selectDestination(result) {
   previewDest.textContent = result.name;
   showPhase('preview-panel');
   acquireStartLocation();
+  // Nothing is routed yet, so seed the stepper's floor from the crow-flight
+  // distance with a typical street-network allowance; the real route corrects it.
+  resetAbLen(userLocation
+    ? haversineKm(userLocation.lat, userLocation.lng, result.lat, result.lng) * 1.25
+    : 0);
 }
 
 // ─── Phase 2: Start Location ──────────────────────────────────────────────────
@@ -795,9 +1014,15 @@ directionsBtn.addEventListener('click', function () {
   directionsBtn.disabled = true;
   placeStartMarker(startLocation.lat, startLocation.lng);
 
-  generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng)
+  const targetKm = abLenTargetKm();
+  const routing = targetKm > 0
+    ? generatePaddedRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng, targetKm, 0.2)
+    : generateABRoute(startLocation.lat, startLocation.lng, destination.lat, destination.lng);
+
+  routing
     .then(function (result) {
       navRouteDistKm = result.summary.distance / 1000;
+      navPaddedTargetKm = targetKm;
       const mins = Math.round(result.summary.duration / 60);
       routeTimeEl.textContent = `${mins} min`;
       updateRouteDist();
@@ -806,6 +1031,11 @@ directionsBtn.addEventListener('click', function () {
       drawRoute(result.coords);
       showPhase('route-panel');
       showRouteDest(destination.name);
+      if (targetKm > 0) {
+        notifyLengthVariance(result, targetKm, 'Longest walk the streets here allow');
+      } else {
+        setAbLenDirect(navRouteDistKm);
+      }
     })
     .catch(function () {
       showError('Could not get route — check your locations and try again');
@@ -857,13 +1087,15 @@ loopRegenBtn.addEventListener('click', async function () {
     showNavPrompt();
     return;
   }
-  const loc = userLocation;
+  loopRegenBtn.disabled = true;
+  loadingBox.classList.add('visible');
+  const loc = await getFreshLocation();
   if (!loc) {
+    loadingBox.classList.remove('visible');
+    loopRegenBtn.disabled = false;
     showError('Waiting for GPS location — please try again in a moment');
     return;
   }
-  loopRegenBtn.disabled = true;
-  loadingBox.classList.add('visible');
   try {
     startLocation = loc;
     destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
@@ -889,46 +1121,106 @@ loopRegenBtn.addEventListener('click', async function () {
 
 document.getElementById('nav-prompt-cancel').addEventListener('click', hideNavPrompt);
 
-async function runLoopRegen(distKm) {
-  const loc = navLastPos || userLocation;
-  if (!loc) { showError('Waiting for GPS location'); return; }
-  haltNavigation();
-  loopRegenBtn.disabled = true;
-  loadingBox.classList.add('visible');
-  try {
-    startLocation = loc;
-    destination = { lat: loc.lat, lng: loc.lng, name: 'Loop start' };
-    const result = await generateLoopRoute(loc.lat, loc.lng, distKm, loopToleranceKm());
-    notifyLoopVariance(result, distKm);
-    navRouteDistKm = result.summary.distance / 1000;
-    routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
-    updateRouteDist();
-    navRouteCoords = result.coords;
-    initSteps(result.steps || []);
-    drawRoute(result.coords);
-    drawRouteArrows(result.coords);
-    loopReverseBtn.classList.remove('hidden');
-    navFreeCamera = false;
-    navRecentreBtn.classList.add('hidden');
-    showPhase('route-panel');
-  } catch {
-    showError('Could not generate route — please try again');
-    showPhase('loop-panel');
-  }
-  loadingBox.classList.remove('visible');
-  loopRegenBtn.disabled = false;
+// ─── In-flight loop change ────────────────────────────────────────────────────
+// Mid-walk, a new loop is not a new walk: the timer, the distance already
+// covered and the original start point all stand. Only what is left of the
+// route changes — and it still ends where the walk began.
+
+let navPromptKm = 0;  // the distance-left the stepper is showing, in km
+
+// Shortest way home is the floor: you can't ask to walk less than it takes to
+// get back. Crow-flight, rounded up — generatePaddedRoute holds the real line.
+function navPromptFloorKm() {
+  const pos = navLastPos || userLocation;
+  if (!pos || !destination) return 0.5;
+  const crow = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
+  return Math.max(0.5, Math.ceil(crow * 2) / 2);
 }
 
-document.getElementById('nav-prompt-adjust').addEventListener('click', function () {
-  const remainingKm = Math.max(0.5, loopLastDistKm - navTotalDistKm);
-  loopLastDistKm = remainingKm;
-  hideNavPrompt();
-  runLoopRegen(remainingKm);
+function renderNavPrompt() {
+  if (useMetric) {
+    navPromptValue.textContent = `${navPromptKm.toFixed(1)} km`;
+  } else {
+    navPromptValue.textContent = `${(navPromptKm * 0.621371).toFixed(1)} mi`;
+  }
+  renderUnitSeg(navPromptUnit, useMetric);
+}
+
+function stepNavPrompt(dir) {
+  const stepKm = useMetric ? 0.5 : 0.5 / 0.621371;
+  navPromptKm = Math.max(navPromptFloorKm(), navPromptKm + dir * stepKm);
+  renderNavPrompt();
+}
+
+navPromptDown.addEventListener('click', function () { stepNavPrompt(-1); });
+navPromptUp.addEventListener('click', function () { stepNavPrompt(1); });
+
+navPromptCenter.addEventListener('click', function () {
+  useMetric = !useMetric;
+  saveUnits(useMetric);
+  renderNavPrompt();
+  updateNavDisplay();
 });
 
-document.getElementById('nav-prompt-fresh').addEventListener('click', function () {
+bindUnitSeg(navPromptUnit, function (metric) {
+  if (useMetric === metric) return;
+  useMetric = metric;
+  saveUnits(metric);
+  renderNavPrompt();
+  updateNavDisplay();
+});
+
+// Reshapes the rest of the walk to `targetKm` and brings it home to the loop's
+// original start — no haltNavigation, no phase change, the walk carries on.
+async function reshapeRemainingLoop(targetKm) {
+  const pos = navLastPos || userLocation;
+  if (!navStartTime || !pos || !destination) {
+    showError('Waiting for GPS location');
+    return;
+  }
+
+  navRerouting = true;
+  navLastRerouteTime = Date.now();
+  navOffCourseFixes = 0;
+
+  instructionArrowEl.textContent = '↻';
+  instructionTextEl.innerHTML = 'Reshaping loop...';
+  instructionDistEl.textContent = '';
+  instructionPill.classList.remove('hidden');
+  speak('New route');
+
+  try {
+    const result = await generatePaddedRoute(
+      pos.lat, pos.lng,
+      destination.lat, destination.lng,
+      targetKm, loopToleranceKm()
+    );
+    if (navStartTime) {
+      notifyLoopVariance(result, targetKm, result.summary.distance / 1000 < targetKm
+        ? 'Shortest way back from here'
+        : 'Closest route back the streets allow');
+      navRouteCoords = result.coords;
+      navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
+      loopLastDistKm = navRouteDistKm; // keeps "distance left" honest on a second change
+      navArrived = false;
+      drawRoute(result.coords);
+      drawRouteArrows(result.coords);
+      initSteps(result.steps || [], navTotalDistKm);
+      updateNavDisplay();
+      updateInstruction();
+    }
+  } catch (e) {
+    showError('Could not reshape your loop — carrying on with your current route');
+    if (navStartTime) updateInstruction();
+  }
+
+  navRerouting = false;
+}
+
+navPromptGo.addEventListener('click', function () {
+  const targetKm = navPromptKm;
   hideNavPrompt();
-  runLoopRegen(loopLastDistKm);
+  reshapeRemainingLoop(targetKm);
 });
 
 function escapeHtml(str) {
@@ -981,7 +1273,14 @@ async function triggerReroute() {
   speak('Rerouting');
 
   try {
-    const result = await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
+    // A walk deliberately stretched past the direct route keeps its length
+    // through a reroute — otherwise one wrong turn quietly shortens it.
+    const remainingKm = navPaddedTargetKm > 0
+      ? Math.max(0, navRouteDistKm - navTotalDistKm)
+      : 0;
+    const result = remainingKm > 0
+      ? await generatePaddedRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng, remainingKm, 0.2)
+      : await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
     if (navStartTime) {
       navRouteCoords = result.coords;
       navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
@@ -1145,6 +1444,7 @@ function doStopNavigation() {
   pinLat = null; pinLng = null; pinName = null;
   navRouteDistKm = 0;
   navRouteCoords = null;
+  navPaddedTargetKm = 0;
   clearRoute();
   clearDestination();
   clearStartMarker();
@@ -1438,9 +1738,16 @@ window.onLoadSavedABRoute = function (route) {
   previewDest.textContent = route.name;
   showPhase('preview-panel');
   acquireStartLocation();
+  resetAbLen(userLocation
+    ? haversineKm(userLocation.lat, userLocation.lng, route.dest_lat, route.dest_lng) * 1.25
+    : 0);
 };
 
-window.onLoadSavedLoopRoute = function (route) {
+// Loads the loop that was actually saved, rather than generating a new one of
+// the same size. The walker is rarely standing on the loop, so the saved shape
+// is rotated to begin at the node nearest them and a walk-in leg is routed to
+// it — the distance and time shown cover that leg plus the loop itself.
+window.onLoadSavedLoopRoute = async function (route) {
   currentMode = 'loop';
   loopTab.classList.add('active');
   abTab.classList.remove('active');
@@ -1461,8 +1768,79 @@ window.onLoadSavedLoopRoute = function (route) {
   loopStepRow.classList.remove('hidden');
   updateLoopStepValue();
   updateLoopGenerateBtn();
+
+  const saved = Array.isArray(route.coords) && route.coords.length > 1 ? route.coords : null;
+  if (!saved) {
+    // Nothing walkable stored — fall back to planning a fresh loop of that size.
+    showPhase('loop-panel');
+    loopGenerateBtn.click();
+    return;
+  }
+
   showPhase('loop-panel');
-  loopGenerateBtn.click();
+  loadingBox.classList.add('visible');
+
+  const loc = await getFreshLocation();
+
+  let bestI = 0;
+  let bestD = Infinity;
+  if (loc) {
+    for (let i = 0; i < saved.length; i++) {
+      const d = haversineKm(loc.lat, loc.lng, saved[i][0], saved[i][1]);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+  }
+
+  // Rotating only makes sense on a closed ring; anything else is walked as saved.
+  const closed = haversineKm(
+    saved[0][0], saved[0][1],
+    saved[saved.length - 1][0], saved[saved.length - 1][1]
+  ) < 0.05;
+
+  // Start the loop at the node nearest the walker, and close it there.
+  const loop = closed && bestI > 0
+    ? saved.slice(bestI).concat(saved.slice(1, bestI + 1))
+    : saved.slice();
+  const loopKm = polylineKm(loop);
+
+  // Walk-in leg from where the walker stands to that node.
+  let approach = null;
+  const walkInKm = loc ? haversineKm(loc.lat, loc.lng, loop[0][0], loop[0][1]) : 0;
+  if (loc && walkInKm > 0.03 && walkInKm <= 5) {
+    try {
+      approach = await generateABRoute(loc.lat, loc.lng, loop[0][0], loop[0][1]);
+    } catch (e) { /* walk the loop as saved — the leg is a nicety */ }
+  } else if (loc && walkInKm > 5) {
+    showError(`This loop starts ${walkInKm.toFixed(1)} km away — travel there first`);
+  }
+
+  const approachKm = approach ? approach.summary.distance / 1000 : 0;
+  const coords = approach ? approach.coords.concat(loop) : loop;
+
+  navRouteCoords = coords;
+  navRouteDistKm = approachKm + loopKm;
+  loopLastDistKm = navRouteDistKm;
+  navPaddedTargetKm = 0;
+  destination = { lat: loop[0][0], lng: loop[0][1], name: 'Loop start' };
+  startLocation = loc || { lat: loop[0][0], lng: loop[0][1] };
+
+  // The saved loop carries no ORS steps, so it walks as one instruction after
+  // the leg's turns — the same shape rejoinRouteAfterPause uses.
+  const rawSteps = (approach ? (approach.steps || []) : []).concat([
+    { instruction: 'Continue along your loop', type: 11, distance: loopKm * 1000 },
+  ]);
+  initSteps(rawSteps);
+
+  routeTimeEl.textContent = `${Math.round(navRouteDistKm / 5 * 60)} min`;
+  updateRouteDist();
+  drawRoute(coords);
+  drawRouteArrows(coords);
+  loopRegenBtn.classList.remove('hidden');
+  loopReverseBtn.classList.remove('hidden');
+  navRecentreBtn.classList.add('hidden');
+  navFreeCamera = false;
+  showPhase('route-panel');
+  loadingBox.classList.remove('visible');
 };
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -1512,6 +1890,7 @@ function saveWalkState() {
       mode: currentMode,
       dest: destination,
       loopLastKm: loopLastDistKm,
+      padKm: navPaddedTargetKm,
     }));
   } catch (e) {}
 }
@@ -1556,6 +1935,7 @@ function clearWalkState() {
     navSteps = s.steps || [];
     navCurrentStep = Math.min(s.step || 0, Math.max(0, navSteps.length - 1));
     if (s.loopLastKm) loopLastDistKm = s.loopLastKm;
+    navPaddedTargetKm = s.padKm || 0;
     drawRoute(navRouteCoords);
     if (currentMode === 'loop') {
       drawRouteArrows(navRouteCoords);
