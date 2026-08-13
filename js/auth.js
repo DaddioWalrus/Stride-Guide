@@ -28,6 +28,8 @@ const authSavedLocationsView = document.getElementById('auth-saved-locations-vie
 const authHelpView           = document.getElementById('auth-help-view');
 const authPrivacyView        = document.getElementById('auth-privacy-view');
 
+document.getElementById('app-version').textContent = 'v' + APP_VERSION;
+
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 
 function openAccountPanel() {
