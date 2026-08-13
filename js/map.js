@@ -69,7 +69,7 @@ if (navigator.geolocation) {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
     });
-    map.setView([userLocation.lat, userLocation.lng], 17);
+    centreInView(userLocation.lat, userLocation.lng, 17, { animate: false });
     try {
       const resp = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json&zoom=10`,
@@ -261,20 +261,108 @@ function drawRoute(coords) {
   if (navRafId === null) requestAnimationFrame(fitRouteToView);
 }
 
+// The map runs full-bleed under the dock and mode bar, so Leaflet's centre is
+// the middle of the whole screen — well below the middle of the strip the
+// walker can actually see. Everything that frames something on the map measures
+// the live dock instead: its height is content-driven (whichever panel is up)
+// and the keyboard can move it, so there is no constant to hard-code.
+const MAP_TOP_PAD = 70; // clears the safe area and the account/terrain/voice buttons
+
+function dockBottomPad() {
+  const dockEl = document.getElementById('dock');
+  if (!dockEl) return 60;
+  const rect = dockEl.getBoundingClientRect();
+  if (rect.height > 0 && rect.top < window.innerHeight) {
+    return Math.max(60, window.innerHeight - rect.top + 16);
+  }
+  return 60;
+}
+
+// What the map is currently framed on, so a dock that changes height can
+// re-frame the same thing. Cleared the moment the walker drags or pinches the
+// map somewhere of their own choosing — then it is their view, not ours.
+let framedAnchor = null; // {lat, lng}, or null for "the whole route"
+let mapFramed = false;
+let framing = false;     // set only across our own move, which fires zoomstart synchronously
+
+function frame(anchor, apply) {
+  framedAnchor = anchor;
+  mapFramed = true;
+  framing = true;
+  try { apply(); } finally { framing = false; }
+}
+
+map.on('dragstart', function () { mapFramed = false; });
+map.on('zoomstart', function () { if (!framing) mapFramed = false; });
+
 function fitRouteToView() {
   if (!currentRoute) return;
-  let bottomPad = 60;
-  const dockEl = document.getElementById('dock');
-  if (dockEl) {
-    const rect = dockEl.getBoundingClientRect();
-    if (rect.height > 0 && rect.top < window.innerHeight) {
-      bottomPad = Math.max(60, window.innerHeight - rect.top + 16);
-    }
-  }
-  map.fitBounds(currentRoute.getBounds(), {
-    paddingTopLeft: [40, 70],
-    paddingBottomRight: [40, bottomPad],
+  frame(null, function () {
+    map.fitBounds(currentRoute.getBounds(), {
+      paddingTopLeft: [40, MAP_TOP_PAD],
+      paddingBottomRight: [40, dockBottomPad()],
+    });
   });
+}
+
+// How far down-screen the map centre has to move for the true centre to land on
+// the centre of the visible strip. Capped, because with the keyboard open the
+// dock is pinned near the top of the screen and the raw figure goes silly.
+function visibleCentreShiftPx() {
+  const shift = (dockBottomPad() - MAP_TOP_PAD) / 2;
+  return Math.max(0, Math.min(shift, map.getSize().y * 0.35));
+}
+
+// Centre lat/lng in the visible strip rather than in the viewport. The map
+// rotates, so the offset is applied along screen-down: at bearing theta that is
+// (sin theta, cos theta) in projected pixels.
+function centreInView(lat, lng, zoom, opts) {
+  const options = opts || {};
+  const z = zoom ?? map.getZoom();
+  const shift = visibleCentreShiftPx();
+  let target = L.latLng(lat, lng);
+  if (shift > 0) {
+    const theta = (typeof map.getBearing === 'function' ? map.getBearing() : 0) * Math.PI / 180;
+    const p = map.project(target, z);
+    target = map.unproject(
+      L.point(p.x + Math.sin(theta) * shift, p.y + Math.cos(theta) * shift),
+      z
+    );
+  }
+  frame({ lat: lat, lng: lng }, function () {
+    if (options.animate === false) {
+      map.setView(target, z, { animate: false });
+    } else {
+      map.flyTo(target, z, { duration: options.duration ?? 0.4 });
+    }
+  });
+}
+
+// A panel opening or closing changes how much map is left, so re-frame the same
+// thing against the new gap. Mid-walk the follow camera re-applies the offset
+// every frame and needs no help here.
+function syncMapToDock() {
+  if (!mapFramed || navRafId !== null) return;
+  if (typeof keyboardIsUp === 'function' && keyboardIsUp()) return;
+  if (framedAnchor === null) {
+    fitRouteToView();
+  } else {
+    centreInView(framedAnchor.lat, framedAnchor.lng, map.getZoom(), { duration: 0.25 });
+  }
+}
+
+if (typeof ResizeObserver !== 'undefined') {
+  let syncPending = false;
+  const dockObserver = new ResizeObserver(function () {
+    if (syncPending) return;
+    syncPending = true;
+    requestAnimationFrame(function () {
+      syncPending = false;
+      syncMapToDock();
+    });
+  });
+  const dockEl = document.getElementById('dock');
+  if (dockEl) dockObserver.observe(dockEl);
 }
 
 function drawRouteArrows(coords) {
@@ -421,11 +509,14 @@ function navRafTick(ts) {
   }
 
   if (!navFreeCamera) {
-    // Offset map center forward so user sits in lower third
+    // Sit the walker in the middle of the strip left above the nav panel, then
+    // bias them a little further back so there is more road ahead than behind.
+    // Both act on the same screen axis: in follow mode, forward is up.
     const zoom = map.getZoom();
     const bearingRad = (navDisplayBearing ?? 0) * Math.PI / 180;
     const userPx = map.project(L.latLng(navDisplayLat, navDisplayLng), zoom);
-    const shift = map.getSize().y * 0.15;
+    const visH = Math.max(0, map.getSize().y - MAP_TOP_PAD - dockBottomPad());
+    const shift = -visibleCentreShiftPx() + visH * 0.15;
     const centerPx = L.point(
       userPx.x + Math.sin(bearingRad) * shift,
       userPx.y - Math.cos(bearingRad) * shift

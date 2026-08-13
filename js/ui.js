@@ -928,9 +928,13 @@ function selectDestination(result) {
   destination = { lat: result.lat, lng: result.lng, name: result.name };
   suggestionsList.classList.add('hidden');
   placeDestinationPin(result.lat, result.lng);
-  map.flyTo([result.lat, result.lng], 15, { duration: 1.5 });
   previewDest.textContent = result.name;
   showPhase('preview-panel');
+  // Deferred a frame so the pin is framed against the preview panel that just
+  // went up, not against the panel it replaced.
+  requestAnimationFrame(function () {
+    centreInView(result.lat, result.lng, 15, { duration: 1.5 });
+  });
   acquireStartLocation();
   // Nothing is routed yet, so seed the stepper's floor from the crow-flight
   // distance with a typical street-network allowance; the real route corrects it.
@@ -1060,12 +1064,12 @@ navRecentreBtn.addEventListener('click', function () {
   }
 
   if (userLocation) {
-    map.flyTo([userLocation.lat, userLocation.lng], mapDefaultZoom, { duration: 0.4 });
+    centreInView(userLocation.lat, userLocation.lng, mapDefaultZoom);
   } else {
     requestGPS(
       function (loc) {
         userLocation = loc;
-        map.flyTo([loc.lat, loc.lng], mapDefaultZoom, { duration: 0.4 });
+        centreInView(loc.lat, loc.lng, mapDefaultZoom);
       },
       function () {
         showError('Location access is blocked — enable it in your browser or device settings');
@@ -1322,7 +1326,7 @@ function beginNavigation(opts) {
   showPhase('nav-panel');
   if (typeof map.setBearing === 'function') map.setBearing(0);
   if (userLocation) {
-    map.setView([userLocation.lat, userLocation.lng], 18);
+    centreInView(userLocation.lat, userLocation.lng, 18, { animate: false });
   } else {
     map.setZoom(18);
   }
@@ -1645,10 +1649,14 @@ function sizeSearchList() {
 const KB_GAP = 60;
 
 function resetDockKeyboard() {
+  const wasLifted = dockEl.style.bottom !== '';
   dockEl.style.top = '';
   dockEl.style.bottom = '';
   dockEl.style.transform = '';
   suggestionsList.style.maxHeight = '';
+  // The dock drops back over the map without changing height, so the resize
+  // observer never sees it. Re-frame once the drop has landed.
+  if (wasLifted) requestAnimationFrame(syncMapToDock);
 }
 
 // Pin the dock's bottom edge directly to the top of the keyboard using the
@@ -1664,6 +1672,12 @@ function keyboardTargetFocused() {
 // wiggle (e.g. Safari's URL bar collapsing as you drag the map) so the panel
 // stays put. Only a full close+reopen re-positions.
 let kbLatched = false;
+
+// While the dock is lifted clear of the keyboard it sits near the top of the
+// screen, so anything that frames the map against it would swing wildly.
+function keyboardIsUp() {
+  return kbLatched || keyboardTargetFocused();
+}
 
 // Keyboard height = the part of the layout viewport the visual viewport no
 // longer covers. Using heights only (not offsetTop) makes it immune to iOS's
@@ -1789,9 +1803,11 @@ window.onLoadSavedABRoute = function (route) {
   clearStartMarker();
   destination = { lat: route.dest_lat, lng: route.dest_lng, name: route.name };
   placeDestinationPin(route.dest_lat, route.dest_lng);
-  map.flyTo([route.dest_lat, route.dest_lng], 15, { duration: 1.5 });
   previewDest.textContent = route.name;
   showPhase('preview-panel');
+  requestAnimationFrame(function () {
+    centreInView(route.dest_lat, route.dest_lng, 15, { duration: 1.5 });
+  });
   acquireStartLocation();
   resetAbLen(userLocation
     ? haversineKm(userLocation.lat, userLocation.lng, route.dest_lat, route.dest_lng) * 1.25

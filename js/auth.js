@@ -559,8 +559,11 @@ async function loadSavedLocations() {
       const lat = parseFloat(this.dataset.lat);
       const lng = parseFloat(this.dataset.lng);
       placePinMarker(lat, lng);
-      map.flyTo([lat, lng], 16, { duration: 1 });
       if (typeof window.onPinDropped === 'function') window.onPinDropped(lat, lng);
+      // A frame late, so the pin is framed against the card it just opened.
+      requestAnimationFrame(function () {
+        centreInView(lat, lng, 16, { duration: 1 });
+      });
     });
   });
 
