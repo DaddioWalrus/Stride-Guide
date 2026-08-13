@@ -1,8 +1,3 @@
-// ─── App version ──────────────────────────────────────────────────────────────
-// Bump on each user-visible release. Shown at the foot of the account panel.
-
-const APP_VERSION = '1.0.0';
-
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let destination = null;

@@ -30,16 +30,13 @@ const authPrivacyView        = document.getElementById('auth-privacy-view');
 
 // The commit rides along on the config call supabase.js already makes, so the
 // foot of the panel says what is actually deployed. Locally there is no commit
-// and it stays at the bare version.
+// and the line stays empty.
 const appVersionEl = document.getElementById('app-version');
-appVersionEl.textContent = 'v' + APP_VERSION;
 sbConfig
   .then(function (cfg) {
-    if (cfg && cfg.commit) {
-      appVersionEl.textContent = 'v' + APP_VERSION + ' · ' + cfg.commit.slice(0, 7);
-    }
+    if (cfg && cfg.commit) appVersionEl.textContent = cfg.commit.slice(0, 7);
   })
-  .catch(function () { /* offline or config down — the version alone is fine */ });
+  .catch(function () { /* offline or config down — no stamp to show */ });
 
 // ─── Panel Open / Close ────────────────────────────────────────────────────────
 

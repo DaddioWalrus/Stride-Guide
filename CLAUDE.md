@@ -59,6 +59,6 @@ page for the pattern. Never just paste SQL into the reply.
 - ORS API key injected by Vercel from `ORS_API_KEY` env var. Never hardcode it.
 - Deployment: Vercel auto-deploys from `main` on push.
 - Never force-push `main` without explicit user approval.
-- Version shown at the foot of the account panel: bump `APP_VERSION` in `js/ui.js`
-  on each user-visible release. The commit hash beside it comes from
-  `VERCEL_GIT_COMMIT_SHA` via `/api/config` — nothing to maintain by hand.
+- The foot of the account panel shows the deployed commit's short hash, from
+  `VERCEL_GIT_COMMIT_SHA` via `/api/config`. Nothing to maintain by hand; there
+  is deliberately no separate version number.
