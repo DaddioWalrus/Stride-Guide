@@ -741,7 +741,8 @@ button { touch-action: manipulation; font-family: inherit; }
   font-variant-numeric: tabular-nums;
 }
 
-#loop-unit-hint { white-space: nowrap; }
+/* Every stepper's unit toggle, loop and A→B alike, stays on one line */
+.step-center .unit-seg { white-space: nowrap; }
 
 /* ─── Unit segmented control ──────────────────────── */
 

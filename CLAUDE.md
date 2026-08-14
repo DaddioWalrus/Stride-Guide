@@ -22,9 +22,34 @@ UI is phase-based: `showPhase(id)` hides all panels and shows the specified one.
 - User never manually sets a start point on A→B; `acquireStartLocation()` does it
 - Errors shown via `showError(msg)` — toast from `#error-toast` (defined in ui.js, global)
 - Loop state: `currentMode`, `loopMode`, `loopValue`, `loopUseMetric`, `loopLastDistKm`
-- Nav state: `navTotalDistKm`, `navStartTime`, `navRouteCoords`, `navRouteDistKm`
+- A→B length state: `abLenMode`, `abLenValue`, `abLenMetric`, `abVariant` — the
+  "Longer walk" stepper, which is the loop stepper's markup and CSS reused
+- Nav state: `navTotalDistKm`, `navStartTime`, `navRouteCoords`, `navRouteDistKm`,
+  `navAlongM`
 - `haversineKm(lat1,lng1,lat2,lng2)` — global utility in ui.js
 - `drawRouteArrows(coords)` — available in map.js
+- `#loop-regen-btn` serves both modes — "New loop" and "New route" — labelled by
+  `showRegenBtn()`. Hide it whenever the route it belonged to goes away.
+
+## Route shape
+
+A walk must never tread the same strip of path twice, not even for a few metres.
+`measureRetrace(coords)` in route.js is the judge: it returns metres of route
+spent on doubled ground, counting only stretches that run along the same line
+(so crossing your own route at a junction is fine, a U-turn is not). Both
+generators rank candidates with `routeCost(retraceM, errKm)` — retracing is
+charged metre for metre, missing the requested length at half that — and return
+early only on a route under `RETRACE_OK_M`. When nothing clean turns up they
+block the worst doubled strip with `avoid_polygons` and ask ORS again.
+
+Judging a route by proximity alone does not work: parallel pavements read as a
+retrace, and junctions read as one too. Direction is what separates them. If you
+change the constants, re-check them against known shapes — a square loop and a
+self-crossing route must both read 0.
+
+Arrival is not proximity either. A stretched walk can pass its own destination
+mid-route, so `navAlongM` tracks progress along the drawn line
+(`trackAlongRoute`) and arrival needs the walker at the *end* of it.
 
 ## File Map
 

@@ -13,6 +13,7 @@ let navStartTime = null;
 let navLastPos = null;
 let navTimerInterval = null;
 let navArrived = false;
+let navAlongM = 0;          // metres along navRouteCoords the walker has reached
 let navLeftStart = false; // has the walker moved off the start point yet?
 let navSteps = [];
 let navCurrentStep = 0;
@@ -199,6 +200,7 @@ loopTab.addEventListener('click', function () {
   currentMode = 'loop';
   loopTab.classList.add('active');
   abTab.classList.remove('active');
+  loopRegenBtn.classList.add('hidden');  // the A→B route it belonged to is gone
   clearRoute();
   clearDestination();
   clearStartMarker();
@@ -300,16 +302,19 @@ function loopToleranceKm() {
 // say so rather than silently presenting the near-miss as a match.
 function notifyLoopVariance(result, targetKm, lead) {
   const actualKm = result.summary.distance / 1000;
-  if (Math.abs(actualKm - targetKm) <= loopToleranceKm() + 0.01) return;
-  let label;
-  if (loopMode === 'time') {
-    label = `${Math.round(result.summary.duration / 60)} min`;
-  } else {
-    label = loopUseMetric
-      ? `${actualKm.toFixed(1)} km`
-      : `${(actualKm * 0.621371).toFixed(1)} mi`;
+  if (Math.abs(actualKm - targetKm) > loopToleranceKm() + 0.01) {
+    let label;
+    if (loopMode === 'time') {
+      label = `${Math.round(result.summary.duration / 60)} min`;
+    } else {
+      label = loopUseMetric
+        ? `${actualKm.toFixed(1)} km`
+        : `${(actualKm * 0.621371).toFixed(1)} mi`;
+    }
+    showError(`${lead || 'Closest loop the streets here allow'}: ${label}`);
+    return;
   }
-  showError(`${lead || 'Closest loop the streets here allow'}: ${label}`);
+  notifyBacktrack(result);
 }
 
 loopGenerateBtn.addEventListener('click', async function () {
@@ -346,7 +351,7 @@ loopGenerateBtn.addEventListener('click', async function () {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
-    loopRegenBtn.classList.remove('hidden');
+    showRegenBtn();
     loopReverseBtn.classList.remove('hidden');
     showPhase('route-panel');
   } catch {
@@ -542,6 +547,7 @@ let abLenMode = null;    // null → plain shortest route
 let abLenValue = 0;      // minutes, or km/mi per abLenMetric
 let abLenMetric = true;
 let abLenDirectKm = 0;   // shortest route there — the floor the stepper can't go under
+let abVariant = 0;       // bumped by "New route" to send the builders down a different line
 const abLenControls = [];
 
 function abLenTargetKm() {
@@ -617,6 +623,7 @@ function resetAbLen(directKm) {
   abLenMode = null;
   abLenMetric = unitsMetric();
   abLenDirectKm = directKm || 0;
+  abVariant = 0;   // a new destination gets the best route, not the next one along
   renderAbLen();
 }
 
@@ -658,19 +665,32 @@ function bindAbLenControl(prefix, onChange) {
   abLenControls.push(c);
 }
 
+// Where the streets leave no way round, the best walk on offer still treads
+// some of itself. Saying so beats letting it come as a surprise at the corner,
+// and regenerating is the thing most likely to shake it off. Quiet under 60m of
+// doubled route, which is a junction you'd not notice walking it.
+function notifyBacktrack(result) {
+  const m = result.shape ? result.shape.meters : 0;
+  if (m < 60) return;
+  showError(`No way round here — this route doubles back for about ${Math.round(m / 10) * 10} m`);
+}
+
 // Deviation from a requested walk length, in the units the stepper is showing.
 function notifyLengthVariance(result, targetKm, lead) {
   const actualKm = result.summary.distance / 1000;
-  if (Math.abs(actualKm - targetKm) <= 0.25) return;
-  let label;
-  if (abLenMode === 'time') {
-    label = `${Math.round(result.summary.duration / 60)} min`;
-  } else {
-    label = abLenMetric
-      ? `${actualKm.toFixed(1)} km`
-      : `${(actualKm * 0.621371).toFixed(1)} mi`;
+  if (Math.abs(actualKm - targetKm) > 0.25) {
+    let label;
+    if (abLenMode === 'time') {
+      label = `${Math.round(result.summary.duration / 60)} min`;
+    } else {
+      label = abLenMetric
+        ? `${actualKm.toFixed(1)} km`
+        : `${(actualKm * 0.621371).toFixed(1)} mi`;
+    }
+    showError(`${lead}: ${label}`);
+    return;
   }
-  showError(`${lead}: ${label}`);
+  notifyBacktrack(result);
 }
 
 // ─── Pin Card ────────────────────────────────────────────────────────────────
@@ -1030,6 +1050,7 @@ directionsBtn.addEventListener('click', function () {
       navRouteCoords = result.coords;
       initSteps(result.steps || []);
       drawRoute(result.coords);
+      showRegenBtn();
       showPhase('route-panel');
       showRouteDest(destination.name);
       if (targetKm > 0) {
@@ -1083,7 +1104,65 @@ routeBack.addEventListener('click', function () {
   showPhase(currentMode === 'loop' ? 'loop-panel' : 'preview-panel');
 });
 
+// The regenerate button serves both modes from one place in the dock: a fresh
+// loop, or a different way to the same destination. Only the wording changes.
+function showRegenBtn() {
+  loopRegenBtn.textContent = currentMode === 'loop' ? 'New loop' : 'New route';
+  loopRegenBtn.classList.remove('hidden');
+}
+
+// Another way to the same destination, at the same length. The start stands —
+// it may be a searched address rather than where the walker is — and only the
+// line between the two changes.
+async function regenerateAbRoute() {
+  if (!destination || !startLocation) {
+    showError('Pick a destination first');
+    return;
+  }
+
+  loopRegenBtn.disabled = true;
+  loadingBox.classList.add('visible');
+  abVariant++;
+
+  const targetKm = abLenTargetKm();
+  try {
+    const result = targetKm > 0
+      ? await generatePaddedRoute(
+          startLocation.lat, startLocation.lng,
+          destination.lat, destination.lng, targetKm, 0.2, abVariant)
+      : await generateABRoute(
+          startLocation.lat, startLocation.lng,
+          destination.lat, destination.lng, abVariant);
+
+    navRouteDistKm = result.summary.distance / 1000;
+    navPaddedTargetKm = targetKm;
+    routeTimeEl.textContent = `${Math.round(result.summary.duration / 60)} min`;
+    updateRouteDist();
+    navRouteCoords = result.coords;
+    initSteps(result.steps || []);
+    drawRoute(result.coords);
+    navRecentreBtn.classList.add('hidden');
+    navFreeCamera = false;
+    showPhase('route-panel');
+    showRouteDest(destination.name);
+    if (targetKm > 0) {
+      notifyLengthVariance(result, targetKm, 'Longest walk the streets here allow');
+    } else {
+      setAbLenDirect(navRouteDistKm);
+    }
+  } catch {
+    showError('Could not generate route — please try again');
+  }
+
+  loadingBox.classList.remove('visible');
+  loopRegenBtn.disabled = false;
+}
+
 loopRegenBtn.addEventListener('click', async function () {
+  if (currentMode === 'ab') {
+    await regenerateAbRoute();
+    return;
+  }
   if (navRafId !== null) {
     showNavPrompt();
     return;
@@ -1109,6 +1188,7 @@ loopRegenBtn.addEventListener('click', async function () {
     initSteps(result.steps || []);
     drawRoute(result.coords);
     drawRouteArrows(result.coords);
+    showRegenBtn();
     loopReverseBtn.classList.remove('hidden');
     navRecentreBtn.classList.add('hidden');
     navFreeCamera = false;
@@ -1201,6 +1281,7 @@ async function reshapeRemainingLoop(targetKm) {
         ? 'Shortest way back from here'
         : 'Closest route back the streets allow');
       navRouteCoords = result.coords;
+      navAlongM = 0;   // the reshaped route starts at the walker's feet
       navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
       loopLastDistKm = navRouteDistKm; // keeps "distance left" honest on a second change
       navArrived = false;
@@ -1262,6 +1343,66 @@ function distToRouteM(lat, lng, coords) {
   return min;
 }
 
+// Where the walker sits against the drawn line: how far off it they are, how
+// far along it they have got, and how much is still in front of them. Both
+// answers fall out of the same projection, and the plane is centred on the
+// walker so their position is the origin — which is the whole of the distance
+// arithmetic below. The search can be confined to a stretch of the line, which
+// is what trackAlongRoute uses it for.
+// A metre of walking backwards along the route is worth this much extra
+// distance off it when the two readings are being compared. Where a route lies
+// on its own path, standing on it is exactly as near the outbound pass as the
+// return one, and an unbiased nearest-point search settles those ties by
+// polyline order — which walks the tracked position backwards down the leg the
+// walker already finished. The penalty is small enough that a walker who really
+// has doubled back is still found there.
+const BACKWARD_PENALTY = 0.1;
+
+function nearestOnRoute(lat, lng, coords, fromM, toM, biasM) {
+  const R = 6371000, D = Math.PI / 180;
+  const cosLat = Math.cos(lat * D);
+  const lo = fromM === undefined ? -Infinity : fromM;
+  const hi = toM === undefined ? Infinity : toM;
+  let bestScore = Infinity, bestDist = Infinity, bestAlong = 0, total = 0;
+
+  for (let i = 0; i < coords.length - 1; i++) {
+    const ax = (coords[i][1] - lng) * cosLat * R * D;
+    const ay = (coords[i][0] - lat) * R * D;
+    const dx = (coords[i + 1][1] - lng) * cosLat * R * D - ax;
+    const dy = (coords[i + 1][0] - lat) * R * D - ay;
+    const len2 = dx * dx + dy * dy;
+    const len = Math.sqrt(len2);
+
+    if (total + len >= lo && total <= hi) {
+      const t = len2 > 0 ? Math.max(0, Math.min(1, (-ax * dx - ay * dy) / len2)) : 0;
+      const px = ax + t * dx, py = ay + t * dy;
+      const d = Math.sqrt(px * px + py * py);
+      const at = total + t * len;
+      const score = biasM !== undefined && at < biasM
+        ? d + (biasM - at) * BACKWARD_PENALTY
+        : d;
+      if (score < bestScore) { bestScore = score; bestDist = d; bestAlong = at; }
+    }
+    total += len;
+  }
+
+  return { distM: bestDist, alongM: bestAlong, totalM: total, remainingM: total - bestAlong };
+}
+
+// How far along the route the walker has got. The nearest point on the line
+// can't answer that on its own: a walk that comes back near itself puts two
+// answers the same distance away, and standing on the destination is equally
+// "on" the leg that passed it half an hour earlier. So the search is windowed
+// around where the walker was last seen — they arrive on foot, they don't jump
+// — and leans forwards within that window. It only widens when they have
+// genuinely left the line, which is the case the off-course reroute is about to
+// pick up anyway.
+function trackAlongRoute(lat, lng, coords, fromM) {
+  const near = nearestOnRoute(lat, lng, coords, fromM - 60, fromM + 200, fromM);
+  if (near.distM <= 40) return near;
+  return nearestOnRoute(lat, lng, coords);
+}
+
 async function triggerReroute() {
   navRerouting = true;
   navLastRerouteTime = Date.now();
@@ -1293,6 +1434,7 @@ async function triggerReroute() {
       : await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
     if (navStartTime) {
       navRouteCoords = result.coords;
+      navAlongM = 0;   // the new route starts at the walker's feet
       navRouteDistKm = navTotalDistKm + result.summary.distance / 1000;
       drawRoute(result.coords);
       initSteps(result.steps || [], navTotalDistKm);
@@ -1311,6 +1453,7 @@ function beginNavigation(opts) {
   mapDefaultZoom = 18;
   navFreeCamera = false; // touches before Start must not leave the follow-camera off
   navRecentreBtn.classList.add('hidden');
+  if (currentMode !== 'loop') loopRegenBtn.classList.add('hidden');
 
   // Snapshot the route now so it can still be saved from the nav panel by
   // someone who forgot to before setting off.
@@ -1342,6 +1485,7 @@ function beginNavigation(opts) {
   navLastPos = null;
   navCurrentSpeedMs = 0;
   navArrived = false;
+  navAlongM = 0;
   navLeftStart = false;
   hideArrival();
   updateNavDisplay();
@@ -1395,17 +1539,27 @@ function beginNavigation(opts) {
         navLeftStart = true;
       }
 
+      const onRoute = navRouteCoords && navRouteCoords.length > 1
+        ? trackAlongRoute(pos.lat, pos.lng, navRouteCoords, navAlongM)
+        : null;
+      if (onRoute) navAlongM = onRoute.alongM;
+
+      // Being near the destination is not the same as arriving at it. A walk
+      // deliberately stretched past the direct route swings out and comes back,
+      // and can pass within a few metres of where it ends long before it ends
+      // there — which is what was firing the arrival toast mid-walk. Arriving
+      // means standing on the destination at the end of the drawn line.
       if (!navArrived && navLeftStart && destination) {
         const distToDest = haversineKm(pos.lat, pos.lng, destination.lat, destination.lng);
-        if (distToDest < 0.01) {
+        if (distToDest < 0.01 && (!onRoute || onRoute.remainingM < 30)) {
           navArrived = true;
           instructionPill.classList.add('hidden');
           if (currentMode !== 'loop') showArrival(destination.name);
         }
       }
 
-      if (!navArrived && !navRerouting && destination && navRouteCoords && navRouteCoords.length > 1) {
-        if (distToRouteM(pos.lat, pos.lng, navRouteCoords) > 15) {
+      if (!navArrived && !navRerouting && destination && onRoute) {
+        if (onRoute.distM > 15) {
           navOffCourseFixes++;
           if (navOffCourseFixes >= 2 && Date.now() - navLastRerouteTime > 20000) {
             triggerReroute();
@@ -1557,6 +1711,7 @@ async function rejoinLoopRoute(pos) {
   const remaining = navRouteCoords.slice(bestI);
   const remainingKm = polylineKm(remaining);
   navRouteCoords = result.coords.concat(remaining);
+  navAlongM = 0;   // the leg back onto the loop starts at the walker's feet
   navRouteDistKm = navTotalDistKm + result.summary.distance / 1000 + remainingKm;
   drawRoute(navRouteCoords);
   drawRouteArrows(navRouteCoords);
@@ -1890,7 +2045,7 @@ window.onLoadSavedLoopRoute = async function (route) {
   updateRouteDist();
   drawRoute(coords);
   drawRouteArrows(coords);
-  loopRegenBtn.classList.remove('hidden');
+  showRegenBtn();
   loopReverseBtn.classList.remove('hidden');
   navRecentreBtn.classList.add('hidden');
   navFreeCamera = false;
@@ -1994,7 +2149,7 @@ function clearWalkState() {
     drawRoute(navRouteCoords);
     if (currentMode === 'loop') {
       drawRouteArrows(navRouteCoords);
-      loopRegenBtn.classList.remove('hidden');
+      showRegenBtn();
       loopReverseBtn.classList.remove('hidden');
     }
     beginNavigation({ resume: true, elapsedMs: s.elapsedMs || 0, totalKm: s.totalKm || 0 });

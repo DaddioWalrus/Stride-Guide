@@ -318,11 +318,16 @@ const navPositionHistory = [];
 let navLastBearing    = null;
 let navSmoothedBearing = null; // EMA-filtered target bearing (updated on GPS fix)
 let navDisplayBearing  = null; // animated bearing (updated every RAF frame)
+let navArrowTurn       = null; // rotation last written to the arrow, in screen degrees
 let navTargetLat = null, navTargetLng = null; // latest GPS position
 let navDisplayLat = null, navDisplayLng = null; // animated position
 let navRafId = null, navRafPrevTs = null;
 
-const NAV_ROT_SPEED = 200; // degrees per second max rotation
+// Degrees per second the view may turn. A walker spinning on the spot takes
+// about a second to come round, so this keeps up with real turns while refusing
+// to follow the jitter a phone compass produces standing still — at 200 the cap
+// was above anything the compass ever did, and so smoothed nothing.
+const NAV_ROT_SPEED = 120;
 
 let navCompassWatching = false;
 let navLastSpeed = 0;
@@ -405,21 +410,12 @@ function navRafTick(ts) {
     navDisplayLng += (navTargetLng - navDisplayLng) * k;
   }
 
-  if (userMarker) {
-    userMarker.setLatLng([navDisplayLat, navDisplayLng]);
-    // Point the arrow along the walker's heading in screen space. In follow
-    // mode (map bearing = 360 - heading) this resolves to 0° — straight up —
-    // and when the camera is freed by a pan, the arrow keeps showing the
-    // true direction of travel instead of whatever "up" happens to be.
-    if (navDisplayBearing !== null) {
-      const el = userMarker.getElement();
-      if (el && el.firstChild) {
-        const b = typeof map.getBearing === 'function' ? map.getBearing() : 0;
-        el.firstChild.style.transform = `rotate(${(navDisplayBearing + b) % 360}deg)`;
-      }
-    }
-  }
-
+  // The camera moves first, and the arrow is turned afterwards. Both are driven
+  // by navDisplayBearing, and in follow mode they cancel out to leave the arrow
+  // pointing straight up — but only if the arrow reads the bearing the map is
+  // on *now*. Turning the arrow first left it cancelling against the previous
+  // frame's bearing, so every degree the camera turned showed up as a twitch in
+  // the arrow, worst exactly when the walker was turning a corner.
   if (!navFreeCamera) {
     // Offset map center forward so user sits in lower third
     const zoom = map.getZoom();
@@ -435,6 +431,28 @@ function navRafTick(ts) {
     if (typeof map.setBearing === 'function') {
       map.setBearing((360 - (navDisplayBearing ?? 0)) % 360);
       syncMapBearingVar(); // keep the route arrows locked to the line
+    }
+  }
+
+  if (userMarker) {
+    userMarker.setLatLng([navDisplayLat, navDisplayLng]);
+    // Point the arrow along the walker's heading in screen space. In follow
+    // mode (map bearing = 360 - heading) this resolves to 0° — straight up —
+    // and when the camera is freed by a pan, the arrow keeps showing the
+    // true direction of travel instead of whatever "up" happens to be.
+    if (navDisplayBearing !== null) {
+      const el = userMarker.getElement();
+      if (el && el.firstChild) {
+        const b = typeof map.getBearing === 'function' ? map.getBearing() : 0;
+        const turn = (navDisplayBearing + b + 360) % 360;
+        // A compass sitting still still reports sub-degree churn. Rewriting the
+        // transform for it buys nothing but a repaint on every frame.
+        if (navArrowTurn === null ||
+            Math.abs(((turn - navArrowTurn + 540) % 360) - 180) > 0.4) {
+          navArrowTurn = turn;
+          el.firstChild.style.transform = `rotate(${turn}deg)`;
+        }
+      }
     }
   }
 }
@@ -516,7 +534,7 @@ function stopNavigation(watchId) {
   navFreeCamera = false;
   navPositionHistory.length = 0;
   navLastBearing = null; navSmoothedBearing = null;
-  navDisplayBearing = null;
+  navDisplayBearing = null; navArrowTurn = null;
   navTargetLat = null; navTargetLng = null;
   navDisplayLat = null; navDisplayLng = null;
   navRafPrevTs = null; navLastSpeed = 0;
