@@ -302,6 +302,7 @@ function loopToleranceKm() {
 // say so rather than silently presenting the near-miss as a match.
 function notifyLoopVariance(result, targetKm, lead) {
   if (result.padRefused) { notifyPadRefused(); return; }
+  if (result.retraceWarn) { notifyBacktrack(result); return; }
   const actualKm = result.summary.distance / 1000;
   if (Math.abs(actualKm - targetKm) > loopToleranceKm() + 0.01) {
     let label;
@@ -666,14 +667,26 @@ function bindAbLenControl(prefix, onChange) {
   abLenControls.push(c);
 }
 
-// A walk is never handed over doubling back on itself, so the only retread that
-// can reach here is the geography's own — a destination up a road with one way
-// in and out. Worth saying once, because it is about the place, not the route,
-// and regenerating will not shift it.
+// Two ways a walk can come back treading itself, and they read differently.
+//
+// `retraceWarn` means nowhere here has a clean loop of that size and this is the
+// least-doubled one going — worth saying, because regenerating or changing the
+// length is what fixes it. Otherwise it is the geography's own: a destination up
+// a road with one way in and out, which no route can dodge.
+//
+// The figure quoted is the longest unbroken stretch, since that is the bit a
+// walker actually walks twice, not a total swept up from every junction.
 function notifyBacktrack(result) {
-  const m = result.shape ? result.shape.meters : 0;
-  if (m < 60) return;
-  showError(`There's only one way in and out here — about ${Math.round(m / 10) * 10} m is walked twice`);
+  const s = result.shape;
+  if (!s) return;
+  // Whichever pass is in breach owns the figure: the exact-retread stretch, or
+  // the longer run of walking alongside itself the loose pass picks up.
+  const run = Math.max(s.run || 0, s.wideRun >= 60 ? s.wideRun : 0);
+  if (run < 10) return;
+  const m = Math.round(run / 5) * 5;
+  showError(result.retraceWarn
+    ? `Best loop here repeats about ${m} m — try New loop or another length`
+    : `There's only one way in and out here — about ${m} m is walked twice`);
 }
 
 // A stretched walk is refused outright when every long way round would double
@@ -683,19 +696,19 @@ function notifyPadRefused() {
   showError('No longer way round here without doubling back — showing the direct walk');
 }
 
-// Generation now fails outright rather than hand over a walk that treads its
-// own path, so the failure has to say which of the two it was — a network or
-// street problem the walker can retry, or a length this place can't do cleanly,
-// which only a different length will fix.
+// A place with no clean loop now gets the least-doubled one and a warning, so
+// this only fires when no route came back at all. Kept as a safety net, and
+// worded for the one thing left that a walker can act on.
 function routeFailure(e, fallback) {
   return e && e.message === 'no-clean-route'
-    ? 'No loop that length here avoids doubling back — try a different time or distance'
+    ? 'No loop found here at that length — try a different time or distance'
     : fallback;
 }
 
 // Deviation from a requested walk length, in the units the stepper is showing.
 function notifyLengthVariance(result, targetKm, lead) {
   if (result.padRefused) { notifyPadRefused(); return; }
+  if (result.retraceWarn) { notifyBacktrack(result); return; }
   const actualKm = result.summary.distance / 1000;
   if (Math.abs(actualKm - targetKm) > 0.25) {
     let label;

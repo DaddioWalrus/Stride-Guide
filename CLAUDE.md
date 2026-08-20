@@ -38,18 +38,44 @@ This is a rule, not a preference to be weighed against length — it is the thin
 that separates this app from a weak one, and no toast makes a doubled-back walk
 acceptable.
 
-`measureRetrace(coords)` in route.js is the judge: it returns metres of route
-spent on doubled ground, counting only stretches that run along the same line
-(so crossing your own route at a junction is fine, a U-turn is not).
-`isClean(result, allowM)` is the gate, and **only clean routes are ever
-returned**. Among those the closest to the requested length wins. Length is what
+`measureRetrace(coords)` in route.js is the judge. It scans the route **twice**,
+and the two passes are not interchangeable — this is the part to understand
+before touching the constants:
+
+| pass | tolerance | rejects at | catches |
+|---|---|---|---|
+| `TIGHT` | 3m, ~14° | 10m run | a spur, an exact retread |
+| `WIDE` | 8m, ~31° | 60m run | out and back on opposite pavements |
+
+One pair of numbers cannot do both jobs. A **fork** — leaving the start up one
+arm and returning down the other — puts route within L metres of route for
+L/sin(θ) along each arm, so a loose tolerance reads an ordinary loop as doubling
+back. At 8m/31° a 20° fork scored 50m and *every real loop was rejected*; the
+app returned nothing at all. But tighten enough to kill that and a there-and-back
+on opposite pavements slips through unseen, which is far worse than any spur.
+
+What separates them is not how close but **how long they stay close**. A fork
+diverges within ~30m; doubling back on a street stays close for its whole
+length. Hence a run threshold per pass. If you change these, re-check against
+the shape suite — forks, roundabouts, 90° corners and crescents must all be
+accepted, and out-and-backs, spurs and hairpins all rejected.
+
+The cost of the tight pass is a floor: doubling back under ~10m no longer
+registers. There is no setting that sees a 5m spur and still lets a fork through.
+
+`isClean(result, allow)` is the gate — both passes must be under their limit.
+Among clean routes the closest to the requested length wins. Length is what
 gives: a clean 2.6km loop for a 2km ask is an honest answer the walker can
-regenerate; a doubled 2km one is not.
+regenerate; a doubled 2km one is not. `LOOP_ASKS` varies the requested length
+across seed rotations, because a place with no clean loop at 2.5km often has one
+at 2.3km.
 
 When nothing clean turns up, `clearRetrace` walls off the doubled strips one at
 a time with `avoid_polygons` and asks ORS again. If that still fails:
 
-- **Loop** — throws `NO_CLEAN_ROUTE`; the UI says to try another length.
+- **Loop** — returns the least-doubled walk with `retraceWarn` set; the UI says
+  how far it repeats. Never nothing: a walker standing outside wants a walk.
+  `NO_CLEAN_ROUTE` now only means no route came back at all.
 - **A→B** — falls back to the direct walk and sets `padRefused`, which the UI
   reports as a refusal, not as a length that came up short.
 
