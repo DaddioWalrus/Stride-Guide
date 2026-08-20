@@ -33,10 +33,11 @@ UI is phase-based: `showPhase(id)` hides all panels and shows the specified one.
 
 ## Route shape
 
-A walk must never tread the same strip of path twice, not even for a few metres.
-This is a rule, not a preference to be weighed against length — it is the thing
-that separates this app from a weak one, and no toast makes a doubled-back walk
-acceptable.
+A walk must not double back on itself pointlessly. That is not the same as
+"must never tread a strip twice" — walking down a street, round a loop at the
+far end, and back up the street the other way repeats the street, but it is a
+walk, not a there-and-back. What makes doubling back bad is having **nothing in
+between**.
 
 `measureRetrace(coords)` in route.js is the judge. It scans the route **twice**,
 and the two passes are not interchangeable — this is the part to understand
@@ -63,15 +64,42 @@ accepted, and out-and-backs, spurs and hairpins all rejected.
 The cost of the tight pass is a floor: doubling back under ~10m no longer
 registers. There is no setting that sees a 5m spur and still lets a fork through.
 
-`isClean(result, allow)` is the gate — both passes must be under their limit.
-Among clean routes the closest to the requested length wins. Length is what
-gives: a clean 2.6km loop for a 2km ask is an honest answer the walker can
-regenerate; a doubled 2km one is not. `LOOP_ASKS` varies the requested length
-across seed rotations, because a place with no clean loop at 2.5km often has one
-at 2.3km.
+### Turnarounds vs stems
 
-When nothing clean turns up, `clearRetrace` walls off the doubled strips one at
-a time with `avoid_polygons` and asks ORS again. If that still fails:
+Nearness alone cannot say whether treading a strip twice was worth it, so every
+doubled piece is also asked how far it is *along the route* to the pass that
+matches it — the walking done between the two:
+
+- gap under `CIRCUIT_M` (200m) → a **turnaround**: a spur, a hairpin, an
+  out-and-back. Nothing in between.
+- gap at or above it → a **stem**: a real loop sits between the passes.
+
+Measured, stems come out at 1000–2400m and every turnaround at 15m, so the line
+is not a fine judgement. Note a 15m spur and a loop sharing a 15m start/end stub
+are the *same length* of repeated path and get opposite verdicts — the gap is
+the only thing telling them apart, which is the whole point.
+
+`isClean(result, allow)` is the gate, and it is three tests: the longest
+**turnaround** run under each pass's limit, and the repeated fraction of the
+walk at most `STEM_MAX_FRAC` (a third). A stem is allowed as the way in to
+something; it cannot be the walk itself.
+
+### Length is enforced, not preferred
+
+`loopToleranceKm()` is ±5 min (±0.4km). It is a promise, not a hint — a walker
+who asks for half an hour and is handed eighteen minutes has been ignored, which
+is what an earlier "length is what gives" rule did. `generateLoopRoute` climbs a
+ladder: clean inside the tolerance, else clean inside **twice** it, else the
+least-doubled walk inside twice it (`retraceWarn`), else whatever is closest.
+The window widens *before* the shape gives at all — a loop five minutes long is
+still the walk you asked for; one that doubles back is a different thing.
+
+`LOOP_ASKS` varies the requested length across seed rotations, because a place
+with no clean loop at 2.5km often has one at 2.3km.
+
+When nothing clean turns up, `clearRetrace` walls off the offending
+**turnarounds** with `avoid_polygons` and asks ORS again — never a stem, which
+would only cut the loop off from the walker. If that still fails:
 
 - **Loop** — returns the least-doubled walk with `retraceWarn` set; the UI says
   how far it repeats. Never nothing: a walker standing outside wants a walk.

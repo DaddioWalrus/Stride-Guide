@@ -81,6 +81,20 @@ const WIDE  = { strip: 8, aligned: 0.85, runM: 60 };  // same street, ~31° — 
 
 const MIN_STRIP_M = 10;   // shorter than this and there is nothing to route around
 
+// Nearness alone still cannot say whether treading a strip twice was worth it.
+// Walking down a street, round a loop at the far end, and back up the street the
+// other way doubles back — but it is a walk, not a there-and-back, and the
+// difference is what you do in between. So every doubled piece is asked how far
+// it is, along the route, to the pass that matches it: that gap is the walking
+// done between the two. A turnaround has nothing in it; a stem has the whole
+// loop. Measured, stems come out at 1000-2400m and every turnaround at 15m, so
+// the line between them is not a fine judgement.
+const CIRCUIT_M = 200;    // a loop between the passes at least this long makes it a stem
+
+// A stem is allowed, but it cannot be most of the walk. Past a third repeated,
+// it stops being a loop with a way in and becomes an out-and-back with a bulge.
+const STEM_MAX_FRAC = 1 / 3;
+
 // The route chopped into fixed-length pieces on a local metre plane, each
 // carrying where it is, which way it points, and how far along the walk it sits.
 // Metres beat degrees here: every test below is a distance or an angle, and the
@@ -117,7 +131,7 @@ function routePieces(coords) {
     along += segM;
   }
 
-  return { list, proj: { mPerLat, mPerLng } };
+  return { list, proj: { mPerLat, mPerLng }, totalM: along };
 }
 
 // One pass at one tolerance: metres of route spent on ground the walk covers
@@ -133,46 +147,77 @@ function scanRetrace(list, tol) {
     if (bucket) bucket.push(i); else cells.set(k, [i]);
   }
 
-  function isDoubled(i) {
+  // Not just whether a piece is walked twice, but how much walking happens
+  // between the two passes — the shortest way round from one to the other. That
+  // is what separates a stem from a turnaround, so the search cannot stop at the
+  // first match; it has to find the nearest one in route order. It can stop as
+  // soon as it finds a gap under the circuit threshold, since no later match
+  // can talk that verdict back.
+  function passGap(i) {
     const p = list[i];
     const cx = Math.floor(p.x / tol.strip), cy = Math.floor(p.y / tol.strip);
+    let best = Infinity;
     for (let gx = cx - 1; gx <= cx + 1; gx++) {
       for (let gy = cy - 1; gy <= cy + 1; gy++) {
         const bucket = cells.get(gx + ':' + gy);
         if (!bucket) continue;
         for (let n = 0; n < bucket.length; n++) {
           const q = list[bucket[n]];
-          if (Math.abs(q.s - p.s) < APART_M) continue;   // its own neighbours, not a second pass
+          const gap = Math.abs(q.s - p.s);
+          if (gap < APART_M) continue;   // its own neighbours, not a second pass
+          if (gap >= best) continue;
           const dx = q.x - p.x, dy = q.y - p.y;
           if (dx * dx + dy * dy > tol.strip * tol.strip) continue;
           if (Math.abs(p.ux * q.ux + p.uy * q.uy) < tol.aligned) continue;  // a crossing, not a retread
-          return true;
+          best = gap;
+          if (best < CIRCUIT_M) return best;   // already a turnaround
         }
       }
     }
-    return false;
+    return best;
   }
 
+  // Doubled route is tallied whole, but the runs are kept apart: a turnaround
+  // run is the offence, a stem run is the price of reaching a loop.
   let meters = 0;
-  let worst = [], run = [];
+  let worst = [], turnWorst = [];
+  let run = [], turnRun = [];
   for (let i = 0; i < list.length; i++) {
-    if (isDoubled(i)) {
-      meters += PIECE_M;
-      run.push(list[i]);
-      if (run.length > worst.length) worst = run;
-    } else if (run.length) {
+    const gap = passGap(i);
+    if (gap === Infinity) {
       run = [];
+      turnRun = [];
+      continue;
+    }
+
+    meters += PIECE_M;
+    run.push(list[i]);
+    if (run.length > worst.length) worst = run;
+
+    if (gap < CIRCUIT_M) {
+      turnRun.push(list[i]);
+      if (turnRun.length > turnWorst.length) turnWorst = turnRun;
+    } else {
+      turnRun = [];
     }
   }
 
-  return { meters, worst, run: worst.length * PIECE_M };
+  return {
+    meters,
+    worst: turnWorst.length ? turnWorst : worst,   // wall off an offence, never a stem
+    run: worst.length * PIECE_M,
+    turnRun: turnWorst.length * PIECE_M,
+  };
 }
 
 // Both passes over one walk. `worst` is the strip worth walling off — taken
 // from whichever pass is actually in breach, so the repair always aims at a
 // real offender rather than at whichever tolerance happened to notice something.
 function measureRetrace(coords) {
-  const empty = { meters: 0, worst: [], proj: null, run: 0, wideRun: 0 };
+  const empty = {
+    meters: 0, worst: [], proj: null,
+    run: 0, wideRun: 0, turnRun: 0, wideTurnRun: 0, totalM: 0, frac: 0,
+  };
   if (!coords || coords.length < 2) return empty;
 
   const pieces = routePieces(coords);
@@ -181,14 +226,20 @@ function measureRetrace(coords) {
 
   const tight = scanRetrace(list, TIGHT);
   const wide = scanRetrace(list, WIDE);
-  const breach = tight.run >= TIGHT.runM ? tight : (wide.run >= WIDE.runM ? wide : tight);
+  const breach = tight.turnRun >= TIGHT.runM ? tight
+               : (wide.turnRun >= WIDE.runM ? wide : tight);
+  const meters = Math.max(tight.meters, wide.meters);
 
   return {
-    meters: Math.max(tight.meters, wide.meters),
+    meters,
     worst: breach.worst,
     proj: pieces.proj,
     run: tight.run,
     wideRun: wide.run,
+    turnRun: tight.turnRun,
+    wideTurnRun: wide.turnRun,
+    totalM: pieces.totalM,
+    frac: pieces.totalM > 0 ? meters / pieces.totalM : 0,
   };
 }
 
@@ -205,26 +256,34 @@ function measureRetrace(coords) {
 // place, so we never add a retread of our own on top of it.
 const NO_CLEAN_ROUTE = 'no-clean-route';
 
-// The longest unbroken doubled run is the judge, not the total. The total sums
-// fragments scattered across a walk — a metre here at one junction, a metre
-// there at another — which is not what treading the same strip twice means and
-// not what a walker sees. One continuous stretch is.
+// Three tests, and a walk has to pass all of them.
 //
-// A walk is clean when neither pass is in breach. `allow` raises the bar for a
-// destination whose own geography forces a retread; left out, the limits stand.
-// runM is the run length at which a walk becomes a doubled walk, so a run that
-// reaches it is already too far — under, not up to.
+// The first two ask whether it turns around: the longest unbroken *turnaround*
+// run, on each pass, under that pass's limit. The run is what counts, not the
+// total — a total sums fragments from every junction on the walk, which is not
+// what treading the same strip twice means and not what anyone walks. And it is
+// turnarounds only, because a stem out to a loop is a walk, not an offence.
+//
+// The third stops the stem from eating the walk. Doubling back is allowed as
+// the way in to something; it cannot be the thing itself.
+//
+// `allow` raises the bar for a destination whose own geography forces a
+// retread; left out, the limits stand. A limit is the point at which a walk
+// becomes a doubled walk, so reaching it is already too far — under, not up to.
 function isClean(result, allow) {
   const s = result.shape;
   const a = allow || {};
-  return s.run < (a.run == null ? TIGHT.runM : a.run)
-      && s.wideRun < (a.wideRun == null ? WIDE.runM : a.wideRun);
+  return s.turnRun < (a.turnRun == null ? TIGHT.runM : a.turnRun)
+      && s.wideTurnRun < (a.wideTurnRun == null ? WIDE.runM : a.wideTurnRun)
+      && s.frac <= (a.frac == null ? STEM_MAX_FRAC : a.frac);
 }
 
 // How badly a rejected walk doubles back, for picking which near miss is worth
-// spending a repair call on.
+// spending a repair call on. Turnarounds are what a repair can actually shift,
+// so they lead; the repeated fraction only breaks ties.
 function retraceBadness(result) {
-  return result.shape.run + result.shape.wideRun;
+  const s = result.shape;
+  return s.turnRun + s.wideTurnRun + s.frac * 100;
 }
 
 // The allowance a walk to this destination inherits from the streets themselves.
@@ -235,8 +294,12 @@ function retraceBadness(result) {
 // retrace passes while one that adds a single piece of its own does not.
 function forcedAllowance(direct) {
   return {
-    run: Math.max(TIGHT.runM, direct.shape.run + PIECE_M),
-    wideRun: Math.max(WIDE.runM, direct.shape.wideRun + PIECE_M),
+    turnRun: Math.max(TIGHT.runM, direct.shape.turnRun + PIECE_M),
+    wideTurnRun: Math.max(WIDE.runM, direct.shape.wideTurnRun + PIECE_M),
+    // A longer walk covers more ground, so the forced retrace is a smaller
+    // slice of it — the fraction only ever needs to be as generous as the
+    // direct walk's own, never more.
+    frac: Math.max(STEM_MAX_FRAC, direct.shape.frac),
   };
 }
 
@@ -296,6 +359,9 @@ async function clearRetrace(candidate, allow, rounds) {
     if (!shape || isClean(best, allow)) return best;
     if (shape.worst.length * PIECE_M < MIN_STRIP_M) return best;   // junction noise
     if (!best.body) return best;
+    // Nothing to wall off: the walk turns nowhere, its stem is simply too much
+    // of it. Blocking the stem would only cut the loop off from the walker.
+    if (!shape.turnRun && !shape.wideTurnRun) return best;
 
     const body = Object.assign({}, best.body);
     body.options = Object.assign({}, body.options, {
@@ -336,12 +402,18 @@ async function clearRetrace(candidate, allow, rounds) {
 // how many points the round trip is hung on, since that changes a loop's shape
 // far more than its length does.
 //
-// Only loops that never tread themselves are candidates. Among those the
-// closest to the requested length wins, and if none of them is inside the
-// tolerance the closest is still returned — a 2.6km loop when you asked for
-// 2km is a walk you can accept or regenerate. Only if nothing clean turns up
-// anywhere does the least-doubled loop come back, and then the caller warns —
-// a walker standing outside wants a walk, and a dead end helps nobody.
+// The length asked for is a promise, not a preference: a walker who asks for
+// half an hour and is handed eighteen minutes has been ignored. So the
+// tolerance is enforced, and when the streets cannot satisfy both the length
+// and the shape, the length window widens before the shape gives at all:
+//
+//   1. clean, inside the tolerance                     — what we came for
+//   2. clean, inside twice the tolerance               — caller reports the time
+//   3. inside twice the tolerance, least doubled       — caller warns on shape
+//   4. whatever is closest                             — caller warns on both
+//
+// Widening first is the right order because a loop five minutes long is still
+// the walk you asked for; a loop that doubles back is a different thing.
 
 // How far off the requested length each rotation is willing to ask. A round
 // trip's shape depends far more on the length asked for than on the seed, so a
@@ -357,8 +429,10 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
   const PER_SEED = 3;        // correction rounds before giving up on a seed
   const REPAIR_ROUNDS = 3;   // strips walled off before giving up on a near miss
 
+  const wideKm = tolKm * 2;                // the widened window, before shape gives
   let clean = null, cleanErr = Infinity;   // best loop that never doubles back
-  let near = null, nearM = Infinity;       // least bad of the rejects, for repair
+  let nearIn = null, nearInM = Infinity;   // least doubled of the rejects inside the window
+  let near = null, nearM = Infinity;       // least doubled anywhere, for the repair pass
   let calls = 0;
   let spin = 0;
   let seed = Math.floor(Math.random() * 90);
@@ -397,8 +471,10 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
       if (isClean(result)) {
         if (err < cleanErr) { clean = result; cleanErr = err; }
         if (cleanErr <= tolKm) return clean;
-      } else if (retraceBadness(result) < nearM) {
-        near = result; nearM = retraceBadness(result);
+      } else {
+        const bad = retraceBadness(result);
+        if (bad < nearM) { near = result; nearM = bad; }
+        if (err <= wideKm && bad < nearInM) { nearIn = result; nearInM = bad; }
       }
       if (actualKm <= 0) break;
 
@@ -425,26 +501,45 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
     spin++;
   }
 
-  // No clean loop at any length yet. The closest near miss gets its doubled
-  // strips walled off one at a time — a spur blocked is often a circuit found.
-  if (!clean && near) {
+  // Nothing clean inside the widened window yet. The least-doubled near miss
+  // gets its turnarounds walled off one at a time — a spur blocked is often a
+  // circuit found. Only worth the calls when the answer would otherwise be a
+  // doubled walk or a badly-sized one.
+  if ((!clean || cleanErr > wideKm) && near) {
     const fixed = await clearRetrace(near, undefined, REPAIR_ROUNDS);
-    if (isClean(fixed)) clean = fixed;
-    else near = fixed;   // still doubled, but less so than it was
+    const err = Math.abs(fixed.summary.distance / 1000 - distanceKm);
+    if (isClean(fixed)) {
+      if (err < cleanErr) { clean = fixed; cleanErr = err; }
+    } else {
+      const bad = retraceBadness(fixed);
+      if (bad < nearM) { near = fixed; nearM = bad; }
+      if (err <= wideKm && bad < nearInM) { nearIn = fixed; nearInM = bad; }
+    }
   }
 
+  // Steps 1 and 3: a clean loop, at the length asked for or within the widened
+  // window. The caller reports the time if it drifted.
+  if (clean && cleanErr <= wideKm) return clean;
+
+  // Step 4: nothing clean fits the window, so the shape gives — but only inside
+  // it. The walker asked for a length and gets one; the caller says what it cost.
+  if (nearIn) {
+    nearIn.retraceWarn = true;
+    return nearIn;
+  }
+
+  // Step 5: the streets here offer nothing near the right size either way.
+  // Whatever came closest still beats an empty map — a walker standing outside
+  // wants a walk — and the caller warns on whichever count it falls short.
   if (clean) return clean;
+  if (near) {
+    near.retraceWarn = true;
+    return near;
+  }
 
   // Every direction failed outright — no route came back at all. That is the
   // network or the streets, not the shape, and it is the one case that fails.
-  if (!near) throw new Error(NO_CLEAN_ROUTE);
-
-  // Somewhere with no clean loop of this size: an island, a cul-de-sac estate,
-  // a village with one road out. Refusing outright leaves a walker standing
-  // outside with nothing, so the least-doubled loop comes back and the caller
-  // says how far it repeats — they can regenerate or ask for another length.
-  near.retraceWarn = true;
-  return near;
+  throw new Error(NO_CLEAN_ROUTE);
 }
 
 // ─── A→B Route ────────────────────────────────────────────────────────────────

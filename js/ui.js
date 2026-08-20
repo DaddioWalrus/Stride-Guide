@@ -292,10 +292,12 @@ function updateLoopGenerateBtn() {
   loopGenerateBtn.classList.toggle('hidden', !loopMode);
 }
 
-// Max acceptable deviation from the requested loop size:
-// time mode → 2 min at ORS walking pace (5 km/h); distance mode → 0.2 km.
+// The wiggle room a requested loop size is allowed: 5 minutes either side at
+// ORS walking pace (5 km/h), and the same window in distance mode. This is
+// enforced, not a preference — generateLoopRoute will widen it once before it
+// lets the shape give, and never just hands back whatever length it found.
 function loopToleranceKm() {
-  return loopMode === 'time' ? (2 / 60) * 5 : 0.2;
+  return loopMode === 'time' ? (5 / 60) * 5 : 0.4;
 }
 
 // If the streets here genuinely can't produce a route of the requested size,
@@ -679,14 +681,23 @@ function bindAbLenControl(prefix, onChange) {
 function notifyBacktrack(result) {
   const s = result.shape;
   if (!s) return;
-  // Whichever pass is in breach owns the figure: the exact-retread stretch, or
-  // the longer run of walking alongside itself the loose pass picks up.
-  const run = Math.max(s.run || 0, s.wideRun >= 60 ? s.wideRun : 0);
-  if (run < 10) return;
-  const m = Math.round(run / 5) * 5;
-  showError(result.retraceWarn
-    ? `Best loop here repeats about ${m} m — try New loop or another length`
-    : `There's only one way in and out here — about ${m} m is walked twice`);
+
+  // Only turnarounds are worth mentioning. A stem out to a loop and back is a
+  // walk, not a fault, and saying "repeats 300 m" about one would read as an
+  // apology for the route being fine.
+  const turn = Math.max(s.turnRun || 0, s.wideTurnRun || 0);
+  if (turn >= 10) {
+    const m = Math.round(turn / 5) * 5;
+    showError(result.retraceWarn
+      ? `Best loop here repeats about ${m} m — try New loop or another length`
+      : `There's only one way in and out here — about ${m} m is walked twice`);
+    return;
+  }
+
+  // No turnaround, so what failed was the stem being most of the walk.
+  if (result.retraceWarn && s.frac > 0) {
+    showError(`Best loop here is ${Math.round(s.frac * 100)}% the same stretch twice — try another length`);
+  }
 }
 
 // A stretched walk is refused outright when every long way round would double
