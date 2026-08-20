@@ -301,6 +301,7 @@ function loopToleranceKm() {
 // If the streets here genuinely can't produce a route of the requested size,
 // say so rather than silently presenting the near-miss as a match.
 function notifyLoopVariance(result, targetKm, lead) {
+  if (result.padRefused) { notifyPadRefused(); return; }
   const actualKm = result.summary.distance / 1000;
   if (Math.abs(actualKm - targetKm) > loopToleranceKm() + 0.01) {
     let label;
@@ -354,8 +355,8 @@ loopGenerateBtn.addEventListener('click', async function () {
     showRegenBtn();
     loopReverseBtn.classList.remove('hidden');
     showPhase('route-panel');
-  } catch {
-    showError('Could not generate route — please try again');
+  } catch (e) {
+    showError(routeFailure(e, 'Could not generate route — please try again'));
   }
 
   loadingBox.classList.remove('visible');
@@ -665,18 +666,36 @@ function bindAbLenControl(prefix, onChange) {
   abLenControls.push(c);
 }
 
-// Where the streets leave no way round, the best walk on offer still treads
-// some of itself. Saying so beats letting it come as a surprise at the corner,
-// and regenerating is the thing most likely to shake it off. Quiet under 60m of
-// doubled route, which is a junction you'd not notice walking it.
+// A walk is never handed over doubling back on itself, so the only retread that
+// can reach here is the geography's own — a destination up a road with one way
+// in and out. Worth saying once, because it is about the place, not the route,
+// and regenerating will not shift it.
 function notifyBacktrack(result) {
   const m = result.shape ? result.shape.meters : 0;
   if (m < 60) return;
-  showError(`No way round here — this route doubles back for about ${Math.round(m / 10) * 10} m`);
+  showError(`There's only one way in and out here — about ${Math.round(m / 10) * 10} m is walked twice`);
+}
+
+// A stretched walk is refused outright when every long way round would double
+// the walker back. That is not a length that came up short, so it doesn't get
+// reported as one.
+function notifyPadRefused() {
+  showError('No longer way round here without doubling back — showing the direct walk');
+}
+
+// Generation now fails outright rather than hand over a walk that treads its
+// own path, so the failure has to say which of the two it was — a network or
+// street problem the walker can retry, or a length this place can't do cleanly,
+// which only a different length will fix.
+function routeFailure(e, fallback) {
+  return e && e.message === 'no-clean-route'
+    ? 'No loop that length here avoids doubling back — try a different time or distance'
+    : fallback;
 }
 
 // Deviation from a requested walk length, in the units the stepper is showing.
 function notifyLengthVariance(result, targetKm, lead) {
+  if (result.padRefused) { notifyPadRefused(); return; }
   const actualKm = result.summary.distance / 1000;
   if (Math.abs(actualKm - targetKm) > 0.25) {
     let label;
@@ -1150,8 +1169,8 @@ async function regenerateAbRoute() {
     } else {
       setAbLenDirect(navRouteDistKm);
     }
-  } catch {
-    showError('Could not generate route — please try again');
+  } catch (e) {
+    showError(routeFailure(e, 'Could not generate route — please try again'));
   }
 
   loadingBox.classList.remove('visible');
@@ -1193,8 +1212,8 @@ loopRegenBtn.addEventListener('click', async function () {
     navRecentreBtn.classList.add('hidden');
     navFreeCamera = false;
     showPhase('route-panel');
-  } catch {
-    showError('Could not generate route — please try again');
+  } catch (e) {
+    showError(routeFailure(e, 'Could not generate route — please try again'));
   }
   loadingBox.classList.remove('visible');
   loopRegenBtn.disabled = false;
@@ -1292,7 +1311,9 @@ async function reshapeRemainingLoop(targetKm) {
       updateInstruction();
     }
   } catch (e) {
-    showError('Could not reshape your loop — carrying on with your current route');
+    showError(e && e.message === 'no-clean-route'
+      ? 'No way back that length without doubling back — carrying on as you were'
+      : 'Could not reshape your loop — carrying on with your current route');
     if (navStartTime) updateInstruction();
   }
 

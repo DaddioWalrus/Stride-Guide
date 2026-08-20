@@ -157,12 +157,20 @@ function measureRetrace(coords) {
   return { meters, worst, proj: pieces.proj };
 }
 
-// What a candidate walk costs us. Doubling back is the thing being avoided, so
-// it's charged metre for metre; missing the requested length is charged at half
-// that, which still lets a big shortfall outweigh a small retread — a walk
-// nowhere near the length asked for is no use either.
-function routeCost(retraceM, errKm) {
-  return retraceM + errKm * 500;
+// Doubling back is not a cost to be weighed against length — it is a rule. A
+// walk that treads its own path is never returned, however well it matches the
+// time or distance asked for. Length is the thing that gives: a clean walk of
+// the wrong size is an honest answer the walker can see and accept, a walk that
+// doubles back is not, and no toast makes it one.
+//
+// The only doubling back that ever survives is the sort the geography imposes —
+// a destination up a road with one way in and out. That is measured on the
+// direct route and becomes the allowance for every longer walk to the same
+// place, so we never add a retread of our own on top of it.
+const NO_CLEAN_ROUTE = 'no-clean-route';
+
+function isClean(result, allowM) {
+  return result.shape.meters <= (allowM === undefined ? RETRACE_OK_M : allowM);
 }
 
 // A corridor around a doubled strip, as the GeoJSON polygon ORS understands, so
@@ -205,36 +213,45 @@ function addAvoidPolygon(existing, ring) {
   return { type: 'MultiPolygon', coordinates: rings };
 }
 
-// One more go at a walk that still doubles back: block the worst doubled strip
-// and ask again. The strip may be the only way through, so an unroutable retry
-// or a worse answer leaves the original standing.
-async function retryWithoutWorstStrip(best, targetKm) {
-  const shape = best.shape;
-  if (!shape || shape.meters <= RETRACE_OK_M) return best;
-  if (shape.worst.length * PIECE_M < MIN_STRIP_M) return best;
-  if (!best.body) return best;
+// Wall off the doubled strips one at a time and ask again, until the walk comes
+// back clean or the tries run out. Corridors accumulate, so clearing one spur
+// can't quietly reopen the last, and each round attacks whatever is now the
+// worst — which is how a route with two spurs gets rid of both.
+//
+// Returns the last route it got, clean or not; the caller applies the rule.
+// Where the strip is the only way through, ORS says so by failing, and the
+// route we already had stands.
+async function clearRetrace(candidate, allowM, rounds) {
+  let best = candidate;
 
-  const body = Object.assign({}, best.body);
-  body.options = Object.assign({}, body.options, {
-    avoid_polygons: addAvoidPolygon(
-      body.options && body.options.avoid_polygons,
-      stripCorridor(shape.worst, shape.proj, 10)
-    ),
-  });
+  for (let i = 0; i < rounds; i++) {
+    const shape = best.shape;
+    if (!shape || isClean(best, allowM)) return best;
+    if (shape.worst.length * PIECE_M < MIN_STRIP_M) return best;   // junction noise
+    if (!best.body) return best;
 
-  let result;
-  try {
-    result = await callORS(body);
-  } catch (e) {
-    return best;
+    const body = Object.assign({}, best.body);
+    body.options = Object.assign({}, body.options, {
+      avoid_polygons: addAvoidPolygon(
+        body.options && body.options.avoid_polygons,
+        stripCorridor(shape.worst, shape.proj, 10)
+      ),
+    });
+
+    let result;
+    try {
+      result = await callORS(body);
+    } catch (e) {
+      return best;   // nothing routes with that strip blocked
+    }
+
+    result.shape = measureRetrace(result.coords);
+    result.body = body;
+    if (result.shape.meters >= shape.meters) return best;   // no ground gained
+    best = result;
   }
 
-  result.shape = measureRetrace(result.coords);
-  result.body = body;
-
-  const wasCost = routeCost(shape.meters, Math.abs(best.summary.distance / 1000 - targetKm));
-  const nowCost = routeCost(result.shape.meters, Math.abs(result.summary.distance / 1000 - targetKm));
-  return nowCost < wasCost ? result : best;
+  return best;
 }
 
 // ─── Loop Route ───────────────────────────────────────────────────────────────
@@ -252,16 +269,21 @@ async function retryWithoutWorstStrip(best, targetKm) {
 // how many points the round trip is hung on, since that changes a loop's shape
 // far more than its length does.
 //
-// Returns the best attempt overall if nothing lands clean inside the call
-// budget, judged by routeCost — so a walk that doubles back only wins when
-// nothing else came close to the length asked for.
+// Only loops that never tread themselves are candidates. Among those the
+// closest to the requested length wins, and if none of them is inside the
+// tolerance the closest is still returned — a 2.6km loop when you asked for
+// 2km is a walk you can accept or regenerate. If nothing clean turns up at all
+// the generation fails, and the caller says why: a loop that doubles back is
+// not a lesser version of what was asked for, it is the thing being avoided.
 
 async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
   const tolKm = toleranceKm || 0.2;
-  const MAX_CALLS = 9;       // total API budget per generation
+  const MAX_CALLS = 12;      // total API budget per generation
   const PER_SEED = 3;        // correction rounds before giving up on a seed
+  const REPAIR_ROUNDS = 3;   // strips walled off before giving up on a near miss
 
-  let best = null, bestCost = Infinity;
+  let clean = null, cleanErr = Infinity;   // best loop that never doubles back
+  let near = null, nearM = Infinity;       // least bad of the rejects, for repair
   let calls = 0;
   let spin = 0;
   let seed = Math.floor(Math.random() * 90);
@@ -296,9 +318,12 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
       result.shape = measureRetrace(result.coords);
       result.body = body;
 
-      const cost = routeCost(result.shape.meters, err);
-      if (cost < bestCost) { best = result; bestCost = cost; }
-      if (result.shape.meters <= RETRACE_OK_M && err <= tolKm) return result;
+      if (isClean(result)) {
+        if (err < cleanErr) { clean = result; cleanErr = err; }
+        if (cleanErr <= tolKm) return clean;
+      } else if (result.shape.meters < nearM) {
+        near = result; nearM = result.shape.meters;
+      }
       if (actualKm <= 0) break;
 
       // Plateau: the network returned (near-)identical length despite an
@@ -316,7 +341,7 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
       // The seed is what decides a round trip's shape, so a walk that doubles
       // back won't be rescaled into one that doesn't — swing to a different
       // seed instead. The length lesson above is kept, which makes that cheap.
-      if (result.shape.meters > RETRACE_OK_M) break;
+      if (!isClean(result)) break;
     }
 
     // This direction won't converge — rotate to a meaningfully different one.
@@ -324,13 +349,18 @@ async function generateLoopRoute(lat, lng, distanceKm, toleranceKm) {
     spin++;
   }
 
-  // Every direction failed outright. Swallowing that would hand the caller a
-  // route-shaped nothing, so fail the way a single bad call used to.
-  if (!best) throw new Error('Could not generate route, please try again');
+  // No clean loop at any length yet. The closest near miss gets its doubled
+  // strips walled off one at a time — a spur blocked is often a circuit found.
+  if (!clean && near) {
+    const fixed = await clearRetrace(near, RETRACE_OK_M, REPAIR_ROUNDS);
+    if (isClean(fixed)) clean = fixed;
+  }
 
-  // Nothing clean turned up. Before settling, block the worst doubled strip and
-  // let ORS find its way round.
-  return retryWithoutWorstStrip(best, distanceKm);
+  // Nothing that doesn't double back exists here. That is a real answer, and
+  // the caller turns it into one the walker can act on — try another length.
+  if (!clean) throw new Error(NO_CLEAN_ROUTE);
+
+  return clean;
 }
 
 // ─── A→B Route ────────────────────────────────────────────────────────────────
@@ -469,13 +499,21 @@ function solveArcLength(aLat, aLng, bLat, bLng, targetKm, sweepDeg, count) {
 
 async function generatePaddedRoute(fromLat, fromLng, toLat, toLng, distanceKm, toleranceKm, variant) {
   const tolKm = toleranceKm || 0.2;
-  const MAX_CALLS = 10; // via-point attempts, on top of the direct probe
+  const MAX_CALLS = 12; // via-point attempts, on top of the direct probe
   const PER_SEED = 2;   // correction rounds before swinging to another sweep
+  const REPAIR_ROUNDS = 3;
 
   // The direct route is the floor: nothing shorter can reach the destination.
   const direct = await generateABRoute(fromLat, fromLng, toLat, toLng);
   const directKm = direct.summary.distance / 1000;
+  direct.shape = measureRetrace(direct.coords);
   if (distanceKm <= directKm * 1.1) return direct;
+
+  // Some destinations sit up a road with one way in and one way out, and the
+  // shortest walk there already treads it twice. That much is the geography's
+  // doing and no route can dodge it, so it becomes the allowance — a longer
+  // walk may inherit it, but it may not add a single metre of its own.
+  const allowM = Math.max(RETRACE_OK_M, direct.shape.meters);
 
   const viaCount = padViaCount(distanceKm / directKm);
 
@@ -486,13 +524,12 @@ async function generatePaddedRoute(fromLat, fromLng, toLat, toLng, distanceKm, t
   const sweeps = PAD_SWEEPS.slice(spin % PAD_SWEEPS.length)
     .concat(PAD_SWEEPS.slice(0, spin % PAD_SWEEPS.length));
 
-  // The direct walk is the standing candidate: shorter than asked for, but it
-  // never doubles back, so a padded route has to beat it on routeCost to win.
-  // Where no long way round exists, that is the honest answer and the caller's
-  // variance toast owns the explaining.
-  direct.shape = measureRetrace(direct.coords);
-  let best = direct;
-  let bestCost = routeCost(direct.shape.meters, Math.abs(directKm - distanceKm));
+  // The direct walk is the standing candidate. It is short of what was asked
+  // for, but it adds nothing to the geography's own doubling back — so where no
+  // long way round can say the same, it wins by default and the caller tells
+  // the walker why. A stretched walk that treads itself is never the answer.
+  let clean = direct, cleanErr = Math.abs(directKm - distanceKm);
+  let near = null, nearM = Infinity;
   let calls = 0;
 
   // How much longer the streets run than the crow-flight chain. It is a
@@ -543,9 +580,12 @@ async function generatePaddedRoute(fromLat, fromLng, toLat, toLng, distanceKm, t
       result.shape = measureRetrace(result.coords);
       result.body = body;
 
-      const cost = routeCost(result.shape.meters, err);
-      if (cost < bestCost) { best = result; bestCost = cost; }
-      if (result.shape.meters <= RETRACE_OK_M && err <= tolKm) return result;
+      if (isClean(result, allowM)) {
+        if (err < cleanErr) { clean = result; cleanErr = err; }
+        if (cleanErr <= tolKm) return clean;
+      } else if (result.shape.meters < nearM) {
+        near = result; nearM = result.shape.meters;
+      }
       if (actualKm <= 0) break;
 
       // A walk that doubles back never ends the search early, but the length
@@ -563,14 +603,20 @@ async function generatePaddedRoute(fromLat, fromLng, toLat, toLng, distanceKm, t
   }
 
   // This is where the doubling back actually bites — a via snapped onto a road
-  // whose only way in is its only way out. Block the worst offending strip and
-  // let ORS find its way round; twice, because clearing one spur often just
-  // uncovers the next. A round that changes nothing means the strip is the only
-  // way through, and asking again would only spend the same call twice.
-  for (let i = 0; i < 2; i++) {
-    const better = await retryWithoutWorstStrip(best, distanceKm);
-    if (better === best) break;
-    best = better;
+  // whose only way in is its only way out. Wall off the offending strips and
+  // let ORS find its way round. Only worth the calls while the direct walk is
+  // still the best we have; once a clean long way round is in hand, it is.
+  if (near && clean === direct) {
+    const fixed = await clearRetrace(near, allowM, REPAIR_ROUNDS);
+    if (isClean(fixed, allowM) &&
+        Math.abs(fixed.summary.distance / 1000 - distanceKm) < cleanErr) {
+      clean = fixed;
+    }
   }
-  return best;
+
+  // Falling back to the direct walk is not a near miss to be reported as a
+  // length — it is a refusal to double the walker back, and it reads as one.
+  if (clean === direct) direct.padRefused = true;
+
+  return clean;
 }

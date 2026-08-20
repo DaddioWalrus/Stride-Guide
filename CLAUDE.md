@@ -34,13 +34,29 @@ UI is phase-based: `showPhase(id)` hides all panels and shows the specified one.
 ## Route shape
 
 A walk must never tread the same strip of path twice, not even for a few metres.
+This is a rule, not a preference to be weighed against length — it is the thing
+that separates this app from a weak one, and no toast makes a doubled-back walk
+acceptable.
+
 `measureRetrace(coords)` in route.js is the judge: it returns metres of route
 spent on doubled ground, counting only stretches that run along the same line
-(so crossing your own route at a junction is fine, a U-turn is not). Both
-generators rank candidates with `routeCost(retraceM, errKm)` — retracing is
-charged metre for metre, missing the requested length at half that — and return
-early only on a route under `RETRACE_OK_M`. When nothing clean turns up they
-block the worst doubled strip with `avoid_polygons` and ask ORS again.
+(so crossing your own route at a junction is fine, a U-turn is not).
+`isClean(result, allowM)` is the gate, and **only clean routes are ever
+returned**. Among those the closest to the requested length wins. Length is what
+gives: a clean 2.6km loop for a 2km ask is an honest answer the walker can
+regenerate; a doubled 2km one is not.
+
+When nothing clean turns up, `clearRetrace` walls off the doubled strips one at
+a time with `avoid_polygons` and asks ORS again. If that still fails:
+
+- **Loop** — throws `NO_CLEAN_ROUTE`; the UI says to try another length.
+- **A→B** — falls back to the direct walk and sets `padRefused`, which the UI
+  reports as a refusal, not as a length that came up short.
+
+The one retrace that survives is the geography's own: a destination reachable
+only by treading one road twice. That is measured on the direct route and
+becomes `allowM` for every longer walk to the same place — inherited, never
+added to.
 
 Judging a route by proximity alone does not work: parallel pavements read as a
 retrace, and junctions read as one too. Direction is what separates them. If you
