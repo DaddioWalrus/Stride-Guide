@@ -83,6 +83,7 @@ const previewDest = document.getElementById('preview-dest');
 const startInput = document.getElementById('start-input');
 const startGpsBtn = document.getElementById('start-gps-btn');
 const previewStartRow = document.getElementById('preview-start-row');
+const previewRegenBtn = document.getElementById('preview-regen-btn');
 const directionsBtn = document.getElementById('directions-btn');
 
 const routeBack = document.getElementById('route-back');
@@ -545,10 +546,16 @@ let abLenDirectKm = 0;   // shortest route there — the floor the stepper can't
 let abVariant = 0;       // bumped by "New route" to send the builders down a different line
 const abLenControls = [];
 
+// 0 means "just take me there". The stepper now opens sitting on the direct
+// walk's own length, so being at the floor is not a request for a longer route —
+// it is the walker leaving it alone, and padding it would spend a call to
+// rediscover the route we already had.
 function abLenTargetKm() {
   if (!abLenMode) return 0;
-  if (abLenMode === 'time') return (abLenValue / 60) * 5;
-  return abLenMetric ? abLenValue : abLenValue / 0.621371;
+  const km = abLenMode === 'time'
+    ? (abLenValue / 60) * 5
+    : (abLenMetric ? abLenValue : abLenValue / 0.621371);
+  return km <= abLenDirectKm * 1.05 ? 0 : km;
 }
 
 // You can't ask for a shorter walk than the destination actually is.
@@ -573,6 +580,7 @@ function renderAbLen() {
     c.timeBtn.classList.toggle('active', abLenMode === 'time');
     c.distBtn.classList.toggle('active', abLenMode === 'distance');
     c.step.classList.toggle('hidden', !abLenMode);
+    updatePreviewRegen();
     if (abLenMode === 'time') {
       c.value.textContent = `${abLenValue} min`;
       c.unit.classList.add('hidden');
@@ -586,10 +594,10 @@ function renderAbLen() {
 
 function setAbLenMode(mode) {
   abLenMode = abLenMode === mode ? null : mode;
-  if (abLenMode) {
-    // Open one step past the direct route — picking a mode means "make it longer".
-    abLenValue = abLenMode === 'time' ? abLenFloorValue() + 5 : abLenFloorValue() + 0.5;
-  }
+  // Open on the direct walk itself, so the number is true the moment it appears
+  // and one tap of + is a longer walk. Opening a step past it made the card lie
+  // about the route it was showing until you touched something.
+  if (abLenMode) abLenValue = abLenFloorValue();
   renderAbLen();
 }
 
@@ -615,19 +623,29 @@ function stepAbLen(dir) {
 }
 
 // A new destination starts from scratch: shortest route, control collapsed.
+// A new destination opens on time, showing the direct walk. Making the walker
+// tap Time before a number will show them is a tap that buys nothing — the
+// answer is the same whether they asked for it or not.
 function resetAbLen(directKm) {
   abLenOpen = false;
-  abLenMode = null;
+  abLenMode = 'time';
   abLenMetric = unitsMetric();
   abLenDirectKm = directKm || 0;
+  abLenValue = abLenFloorValue();
   abVariant = 0;   // a new destination gets the best route, not the next one along
   renderAbLen();
 }
 
 // The measured direct route replaces the estimate the floor was seeded from.
+// The measured route replaces the crow-flight estimate the stepper opened on.
+// If the walker hasn't moved it off the floor, it follows the correction down
+// as well as up — otherwise the estimate would stick as a phantom longer walk.
 function setAbLenDirect(km) {
+  const wasAtFloor = abLenMode && abLenValue <= abLenFloorValue();
   abLenDirectKm = km;
-  if (abLenMode) abLenValue = Math.max(abLenValue, abLenFloorValue());
+  if (abLenMode) {
+    abLenValue = wasAtFloor ? abLenFloorValue() : Math.max(abLenValue, abLenFloorValue());
+  }
   renderAbLen();
 }
 
@@ -1179,6 +1197,15 @@ function showRegenBtn() {
   loopRegenBtn.classList.remove('hidden');
 }
 
+// The same offer on the preview card, so a walk can be shuffled before it is
+// committed to. Only worth showing once a longer walk has been asked for: the
+// direct route is the shortest way there and there is only one of those.
+function updatePreviewRegen() {
+  previewRegenBtn.classList.toggle('hidden', abLenTargetKm() <= 0);
+}
+
+previewRegenBtn.addEventListener('click', function () { regenerateAbRoute(); });
+
 // Another way to the same destination, at the same length. The start stands —
 // it may be a searched address rather than where the walker is — and only the
 // line between the two changes.
@@ -1227,6 +1254,13 @@ async function regenerateAbRoute() {
 
 loopRegenBtn.addEventListener('click', async function () {
   if (currentMode === 'ab') {
+    // Mid-walk it is a reroute, not a replan: the walk, its timer and the
+    // ground already covered all stand, only the way ahead changes.
+    if (navRafId !== null) {
+      abVariant++;
+      triggerReroute();
+      return;
+    }
     await regenerateAbRoute();
     return;
   }
@@ -1499,8 +1533,8 @@ async function triggerReroute() {
       ? Math.max(0, navRouteDistKm - navTotalDistKm)
       : 0;
     const result = remainingKm > 0
-      ? await generatePaddedRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng, remainingKm, 0.2)
-      : await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng);
+      ? await generatePaddedRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng, remainingKm, 0.2, abVariant)
+      : await generateABRoute(navLastPos.lat, navLastPos.lng, destination.lat, destination.lng, abVariant);
     if (navStartTime) {
       navRouteCoords = result.coords;
       navAlongM = 0;   // the new route starts at the walker's feet
@@ -1522,7 +1556,6 @@ function beginNavigation(opts) {
   mapDefaultZoom = 18;
   navFreeCamera = false; // touches before Start must not leave the follow-camera off
   navRecentreBtn.classList.add('hidden');
-  if (currentMode !== 'loop') loopRegenBtn.classList.add('hidden');
 
   // Snapshot the route now so it can still be saved from the nav panel by
   // someone who forgot to before setting off.
