@@ -321,6 +321,7 @@ loopGenerateBtn.addEventListener('click', async function () {
 
   loopLastDistKm = distanceKm;
   navPaddedTargetKm = 0;
+  frameNextRoute();
   loopGenerateBtn.disabled = true;
   loadingBox.classList.add('visible');
 
@@ -611,11 +612,11 @@ function stepAbLen(dir) {
 }
 
 // A new destination starts from scratch: shortest route, control collapsed.
-// A new destination opens on time, showing the direct walk. Making the walker
-// tap Time before a number will show them is a tap that buys nothing — the
-// answer is the same whether they asked for it or not.
+// A new place opens on Direct — the shortest way there is what asking for
+// directions means, and a length on the card before one has been asked for only
+// proposes a walk nobody chose.
 function resetAbLen(directKm) {
-  abLenMode = 'time';
+  abLenMode = null;
   abLenMetric = unitsMetric();
   abLenDirectKm = directKm || 0;
   abLenValue = abLenFloorValue();
@@ -683,12 +684,12 @@ function notifyBacktrack(result) {
   }
 }
 
-// A stretched walk is refused outright when every long way round would double
-// the walker back. That is not a length that came up short, so it doesn't get
-// reported as one.
-function notifyPadRefused() {
-  showError('No longer way round here without doubling back — showing the direct walk');
-}
+// A stretched walk falls back to the direct one when every long way round would
+// double the walker back. Nothing is said: the card already shows the walk's
+// real time and distance, so the answer is on screen either way, and a toast
+// firing on every +5 min over a short walk — where a clean detour rarely exists
+// — is noise about a route that is already the best on offer.
+function notifyPadRefused() {}
 
 // A place with no clean loop now gets the least-doubled one and a warning, so
 // this only fires when no route came back at all. Kept as a safety net, and
@@ -794,6 +795,7 @@ function pinLenChanged() {
 bindAbLenControl('pin', pinLenChanged);
 
 window.onPinDropped = async function (lat, lng) {
+  frameNextRoute();
   pinLat = lat;
   pinLng = lng;
   pinName = null;
@@ -1009,6 +1011,7 @@ function selectDestination(result) {
   suggestionsList.classList.add('hidden');
   placeDestinationPin(result.lat, result.lng);
   previewDest.textContent = result.name;
+  frameNextRoute();
   showPhase('preview-panel');
   // Deferred a frame so the pin is framed against the preview panel that just
   // went up, not against the panel it replaced.
@@ -1111,6 +1114,7 @@ directionsBtn.addEventListener('click', function () {
 
   directionsBtn.disabled = true;
   placeStartMarker(startLocation.lat, startLocation.lng);
+  frameNextRoute();
 
   const targetKm = abLenTargetKm();
   const routing = targetKm > 0
@@ -1211,6 +1215,7 @@ async function regenerateAbRoute() {
   loopRegenBtn.disabled = true;
   loadingBox.classList.add('visible');
   abVariant++;
+  frameNextRoute();
 
   const targetKm = abLenTargetKm();
   try {
@@ -1263,6 +1268,7 @@ loopRegenBtn.addEventListener('click', async function () {
   }
   loopRegenBtn.disabled = true;
   loadingBox.classList.add('visible');
+  frameNextRoute();
   const loc = await getFreshLocation();
   if (!loc) {
     loadingBox.classList.remove('visible');
@@ -2148,6 +2154,7 @@ window.onLoadSavedLoopRoute = async function (route) {
 
   routeTimeEl.textContent = `${Math.round(navRouteDistKm / 5 * 60)} min`;
   updateRouteDist();
+  frameNextRoute();
   drawRoute(coords);
   drawRouteArrows(coords);
   showRegenBtn();

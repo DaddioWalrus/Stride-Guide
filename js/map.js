@@ -258,7 +258,13 @@ function drawRoute(coords) {
   // frame so the phase panel shown after drawRoute() is measurable).
   // Mid-navigation (reroutes, pause-rejoins): never zoom out to the full
   // route — the follow-camera stays focused on the walker.
-  if (navRafId === null) requestAnimationFrame(fitRouteToView);
+  //
+  // Not once the walker has framed the map themselves, though. Stepping +Time
+  // redraws the route on every press, and each redraw was snatching the view
+  // back to the whole line — so zooming in during planning only held until the
+  // next redraw landed. Their framing outranks ours until the route is replaced
+  // outright, which calls refitRoute.
+  if (navRafId === null && mapFramed) requestAnimationFrame(fitRouteToView);
 }
 
 // The map runs full-bleed under the dock and mode bar, so Leaflet's centre is
@@ -294,6 +300,13 @@ function frame(anchor, apply) {
 
 map.on('dragstart', function () { mapFramed = false; });
 map.on('zoomstart', function () { if (!framing) mapFramed = false; });
+
+// A genuinely new route — a new destination, a new pin, a fresh generation —
+// earns the view back even if the walker had moved the map for the last one.
+// Called before the request; drawRoute does the framing when it lands.
+function frameNextRoute() {
+  mapFramed = true;
+}
 
 function fitRouteToView() {
   if (!currentRoute) return;
