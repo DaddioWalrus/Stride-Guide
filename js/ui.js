@@ -136,7 +136,6 @@ const pinTimeEl = document.getElementById('pin-time');
 const pinDistEl = document.getElementById('pin-dist');
 const pinCenter = document.getElementById('pin-center');
 const pinUnitHint = document.getElementById('pin-unit-hint');
-const pinLocationLabel = document.getElementById('pin-location-label');
 const pinLocationName = document.getElementById('pin-location-name');
 const pinCloseBtn = document.getElementById('pin-close-btn');
 const pinDirectionsBtn = document.getElementById('pin-directions-btn');
@@ -199,7 +198,6 @@ loopTab.addEventListener('click', function () {
   clearStartMarker();
   clearPinMarker();
   pinCard.classList.add('hidden');
-  pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
   destination = null;
   startLocation = null;
@@ -837,7 +835,6 @@ window.onPinDropped = async function (lat, lng) {
 
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
-  pinLocationLabel.classList.remove('hidden');
   // The pin card is raised outside showPhase, so the mode bar has to be dealt
   // with here too — otherwise A→B/Loop sits under a card that is neither.
   modeBar.classList.add('hidden');
@@ -860,7 +857,6 @@ window.onPinDropped = async function (lat, lng) {
 
 pinCloseBtn.addEventListener('click', function () {
   pinCard.classList.add('hidden');
-  pinLocationLabel.classList.add('hidden');
   clearPinMarker();
   clearRoute();
   pinLat = null; pinLng = null; pinName = null;
@@ -920,7 +916,6 @@ pinDirectionsBtn.addEventListener('click', async function () {
 
   clearDestination();
   pinCard.classList.add('hidden');
-  pinLocationLabel.classList.add('hidden');
   clearPinMarker();
   pinLat = null; pinLng = null;
   beginNavigation();
@@ -936,7 +931,12 @@ destInput.addEventListener('keydown', function (e) {
 
 let suppressMapClick = false;
 map.getContainer().addEventListener('touchstart', function () {
-  if (document.activeElement === destInput) suppressMapClick = true;
+  if (document.activeElement === destInput) {
+    const vv = window.visualViewport;
+    const keyboardUp = vv ? (window.innerHeight - (vv.offsetTop + vv.height)) > 60 : false;
+    if (keyboardUp) suppressMapClick = true;
+    destInput.blur();
+  }
   navFreeCamera = true;
   navRecentreBtn.classList.remove('hidden');
 }, { passive: true });
@@ -1677,7 +1677,6 @@ function doStopNavigation() {
     if (typeof currentUser === 'undefined' || !currentUser) showGuestNudge();
   }
   pinCard.classList.add('hidden');
-  pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
   navRouteDistKm = 0;
   navRouteCoords = null;
@@ -2043,7 +2042,6 @@ window.onLoadSavedLoopRoute = async function (route) {
   clearStartMarker();
   clearPinMarker();
   pinCard.classList.add('hidden');
-  pinLocationLabel.classList.add('hidden');
   pinLat = null; pinLng = null; pinName = null;
   destination = null;
   startLocation = null;

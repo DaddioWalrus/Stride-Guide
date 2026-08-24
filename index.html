@@ -293,11 +293,6 @@
         </div>
       </div>
 
-      <!-- Pin location label (sits above pin card) -->
-      <div id="pin-location-label" class="hidden">
-        <span id="pin-location-name">Locating...</span>
-      </div>
-
       <!-- Turn-by-turn maneuver card -->
       <div id="instruction-pill" class="hidden">
         <span id="instruction-arrow">↑</span>
@@ -390,6 +385,9 @@
 
     <!-- Pin Card -->
     <div id="pin-card" class="panel info-card hidden">
+      <div class="preview-header">
+        <span class="preview-title" id="pin-location-name">Locating...</span>
+      </div>
       <button class="len-toggle" id="pin-len-toggle">
         <svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11a7.5 7.5 0 0 1 12.7-4.6L20 9"/><path d="M20 3.5V9h-5.5"/><path d="M19.5 13a7.5 7.5 0 0 1-12.7 4.6L4 15"/><path d="M4 20.5V15h5.5"/></svg>
         <span class="len-toggle-text">Longer walk</span>

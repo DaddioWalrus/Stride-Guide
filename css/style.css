@@ -336,9 +336,6 @@ body {
 
 .panel,
 #instruction-pill,
-#pin-location-label {
-  animation: dock-rise 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
-}
 
 .row-panel { display: flex; align-items: center; gap: 12px; }
 
@@ -771,6 +768,7 @@ button { touch-action: manipulation; font-family: inherit; }
 /* ─── Info cards (route overview + pin) ───────────── */
 
 .info-card { display: flex; flex-direction: column; gap: 16px; }
+.info-card .preview-header { margin-bottom: 0; }
 
 .info-metrics { display: flex; align-items: center; gap: 14px; }
 
@@ -979,21 +977,6 @@ button { touch-action: manipulation; font-family: inherit; }
 
 /* ─── Route / Pin floating labels ─────────────────── */
 
-#pin-location-label {
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--overlay-ink);
-  border-radius: var(--r-md);
-  padding: 11px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ─── Maneuver Card (turn-by-turn hero) ───────────── */
 
