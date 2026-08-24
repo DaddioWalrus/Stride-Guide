@@ -336,7 +336,6 @@ body {
 
 .panel,
 #instruction-pill,
-#route-dest-label,
 #pin-location-label {
   animation: dock-rise 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
 }
@@ -490,14 +489,14 @@ button { touch-action: manipulation; font-family: inherit; }
 
 /* ─── Preview Panel — Directions Setup ───────────── */
 
-#preview-panel { display: flex; flex-direction: column; }
+#preview-panel { display: flex; flex-direction: column; gap: 14px; }
 
+/* The A→B start row, shown only when GPS can't supply one */
 .route-setup {
   border: 1.5px solid var(--line-strong);
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--surface);
-  margin-bottom: 12px;
 }
 
 .route-field {
@@ -947,8 +946,6 @@ button { touch-action: manipulation; font-family: inherit; }
 }
 
 .len-block { display: flex; flex-direction: column; gap: 10px; }
-#preview-len-toggle { margin-bottom: 12px; }
-#preview-len-block { margin-bottom: 12px; }
 
 /* ─── Dock floating buttons ───────────────────────── */
 
@@ -982,7 +979,7 @@ button { touch-action: manipulation; font-family: inherit; }
 
 /* ─── Route / Pin floating labels ─────────────────── */
 
-#route-dest-label, #pin-location-label {
+#pin-location-label {
   background: var(--glass);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

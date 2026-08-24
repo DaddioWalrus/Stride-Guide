@@ -82,13 +82,12 @@ const previewBack = document.getElementById('preview-back');
 const previewDest = document.getElementById('preview-dest');
 const startInput = document.getElementById('start-input');
 const startGpsBtn = document.getElementById('start-gps-btn');
+const previewStartRow = document.getElementById('preview-start-row');
 const directionsBtn = document.getElementById('directions-btn');
 
 const routeBack = document.getElementById('route-back');
 const routeTimeEl = document.getElementById('route-time');
 const routeDistEl = document.getElementById('route-dist');
-const routeDestLabel = document.getElementById('route-dest-label');
-const routeDestName = document.getElementById('route-dest-name');
 const startBtn = document.getElementById('start-btn');
 const loopRegenBtn = document.getElementById('loop-regen-btn');
 const navRecentreBtn = document.getElementById('nav-recentre-btn');
@@ -151,7 +150,6 @@ function showPhase(id) {
     document.getElementById(p).classList.add('hidden');
   });
   document.getElementById(id).classList.remove('hidden');
-  if (id !== 'route-panel') routeDestLabel.classList.add('hidden');
   const barVisible = id === 'search-panel' || id === 'preview-panel' || id === 'loop-panel';
   modeBar.classList.toggle('hidden', !barVisible);
   dockEl.classList.toggle('with-bar', barVisible);
@@ -172,11 +170,6 @@ function hideNavPrompt() {
   document.getElementById('nav-eta-wrap').classList.remove('hidden');
   navCenterEl.classList.remove('hidden');
   document.getElementById('nav-controls-wrap').classList.remove('hidden');
-}
-
-function showRouteDest(name) {
-  routeDestName.textContent = name || '';
-  routeDestLabel.classList.toggle('hidden', !name);
 }
 
 // ─── Mode Selector ───────────────────────────────────────────────────────────
@@ -575,11 +568,13 @@ function abLenLabel() {
 
 function renderAbLen() {
   abLenControls.forEach(function (c) {
-    c.block.classList.toggle('hidden', !abLenOpen);
+    // No block means no disclosure: the mode row is simply always on show, and
+    // abLenOpen has nothing to say about it.
+    if (c.block) c.block.classList.toggle('hidden', !abLenOpen);
+    if (c.hint) c.hint.textContent = abLenLabel();
     c.timeBtn.classList.toggle('active', abLenMode === 'time');
     c.distBtn.classList.toggle('active', abLenMode === 'distance');
     c.step.classList.toggle('hidden', !abLenMode);
-    c.hint.textContent = abLenLabel();
     if (abLenMode === 'time') {
       c.value.textContent = `${abLenValue} min`;
       c.unit.classList.add('hidden');
@@ -649,10 +644,13 @@ function bindAbLenControl(prefix, onChange) {
     unit:    document.getElementById(prefix + '-len-unit'),
   };
 
-  document.getElementById(prefix + '-len-toggle').addEventListener('click', function () {
-    abLenOpen = !abLenOpen;
-    renderAbLen();
-  });
+  const toggle = document.getElementById(prefix + '-len-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', function () {
+      abLenOpen = !abLenOpen;
+      renderAbLen();
+    });
+  }
   c.timeBtn.addEventListener('click', function () { setAbLenMode('time'); onChange(); });
   c.distBtn.addEventListener('click', function () { setAbLenMode('distance'); onChange(); });
   document.getElementById(prefix + '-len-down').addEventListener('click', function () {
@@ -840,6 +838,10 @@ window.onPinDropped = async function (lat, lng) {
   phases.forEach(function (p) { document.getElementById(p).classList.add('hidden'); });
   pinCard.classList.remove('hidden');
   pinLocationLabel.classList.remove('hidden');
+  // The pin card is raised outside showPhase, so the mode bar has to be dealt
+  // with here too — otherwise A→B/Loop sits under a card that is neither.
+  modeBar.classList.add('hidden');
+  dockEl.classList.remove('with-bar');
 
   // Draw from the last known fix straight away, then take a current one — if the
   // walker has moved since the app opened, redraw from where they actually are.
@@ -1008,6 +1010,10 @@ function selectDestination(result) {
 
 // ─── Phase 2: Start Location ──────────────────────────────────────────────────
 
+// The start row earns its space only when there is something to decide. GPS
+// answers that question on its own nearly every time, and a row that always
+// reads "My Location" is a row that says nothing — so it stays out of the card
+// until the fix fails, or until the walker asks for it by tapping the title.
 function acquireStartLocation() {
   startLocation = null;
   startInput.value = '';
@@ -1023,14 +1029,22 @@ function acquireStartLocation() {
       startInput.disabled = true;
       startGpsBtn.classList.remove('loading');
       directionsBtn.disabled = false;
+      previewStartRow.classList.add('hidden');
     },
     function () {
       startInput.placeholder = 'Enter a start address...';
       startInput.disabled = false;
       startGpsBtn.classList.remove('loading');
+      previewStartRow.classList.remove('hidden');
     }
   );
 }
+
+// Tapping the destination name opens the start row, which is the only way to
+// walk from somewhere other than where you are when GPS is working.
+previewDest.addEventListener('click', function () {
+  previewStartRow.classList.toggle('hidden');
+});
 
 startGpsBtn.addEventListener('click', acquireStartLocation);
 
@@ -1069,6 +1083,7 @@ previewBack.addEventListener('click', function () {
   startLocation = null;
   startInput.value = '';
   startInput.disabled = false;
+  previewStartRow.classList.add('hidden');
   suggestionsList.classList.add('hidden');
   showPhase('search-panel');
 });
@@ -1099,7 +1114,6 @@ directionsBtn.addEventListener('click', function () {
       drawRoute(result.coords);
       showRegenBtn();
       showPhase('route-panel');
-      showRouteDest(destination.name);
       if (targetKm > 0) {
         notifyLengthVariance(result, targetKm, 'Longest walk the streets here allow');
       } else {
@@ -1191,7 +1205,6 @@ async function regenerateAbRoute() {
     navRecentreBtn.classList.add('hidden');
     navFreeCamera = false;
     showPhase('route-panel');
-    showRouteDest(destination.name);
     if (targetKm > 0) {
       notifyLengthVariance(result, targetKm, 'Longest walk the streets here allow');
     } else {
