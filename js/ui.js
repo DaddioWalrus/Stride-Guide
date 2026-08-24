@@ -537,7 +537,6 @@ bindUnitSeg(pinUnitHint, function (metric) {
 // takes the scenic way round. Both destination flows — map pin and search —
 // drive one shared setting through two identical controls.
 
-let abLenOpen = false;
 let abLenMode = null;    // null → plain shortest route
 let abLenValue = 0;      // minutes, or km/mi per abLenMetric
 let abLenMetric = true;
@@ -564,18 +563,8 @@ function abLenFloorValue() {
   return abLenMetric ? km : Math.max(0.5, Math.ceil(km * 0.621371 * 2) / 2);
 }
 
-function abLenLabel() {
-  if (!abLenMode) return 'Direct route';
-  if (abLenMode === 'time') return `${abLenValue} min`;
-  return abLenMetric ? `${abLenValue} km` : `${abLenValue} mi`;
-}
-
 function renderAbLen() {
   abLenControls.forEach(function (c) {
-    // No block means no disclosure: the mode row is simply always on show, and
-    // abLenOpen has nothing to say about it.
-    if (c.block) c.block.classList.toggle('hidden', !abLenOpen);
-    if (c.hint) c.hint.textContent = abLenLabel();
     if (c.directBtn) c.directBtn.classList.toggle('active', !abLenMode);
     c.timeBtn.classList.toggle('active', abLenMode === 'time');
     c.distBtn.classList.toggle('active', abLenMode === 'distance');
@@ -626,7 +615,6 @@ function stepAbLen(dir) {
 // tap Time before a number will show them is a tap that buys nothing — the
 // answer is the same whether they asked for it or not.
 function resetAbLen(directKm) {
-  abLenOpen = false;
   abLenMode = 'time';
   abLenMetric = unitsMetric();
   abLenDirectKm = directKm || 0;
@@ -650,8 +638,6 @@ function setAbLenDirect(km) {
 
 function bindAbLenControl(prefix, onChange) {
   const c = {
-    block:   document.getElementById(prefix + '-len-block'),
-    hint:    document.getElementById(prefix + '-len-hint'),
     directBtn: document.getElementById(prefix + '-len-direct'),
     timeBtn: document.getElementById(prefix + '-len-time'),
     distBtn: document.getElementById(prefix + '-len-dist'),
@@ -660,13 +646,6 @@ function bindAbLenControl(prefix, onChange) {
     unit:    document.getElementById(prefix + '-len-unit'),
   };
 
-  const toggle = document.getElementById(prefix + '-len-toggle');
-  if (toggle) {
-    toggle.addEventListener('click', function () {
-      abLenOpen = !abLenOpen;
-      renderAbLen();
-    });
-  }
   if (c.directBtn) {
     c.directBtn.addEventListener('click', function () { setAbLenMode(null); onChange(); });
   }
