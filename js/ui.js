@@ -929,13 +929,20 @@ destInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleSearch();
 });
 
-let suppressMapClick = false;
+// A tap that dismisses the keyboard shouldn't also drop a pin. As a latched
+// flag this misfired badly: it was set on touchstart but only ever cleared by a
+// click, so panning the map — which fires no click — left it armed to swallow
+// whatever came next. A deadline expires on its own, so the most it can ever
+// cost is the tap it was actually meant for.
+let suppressClickUntil = 0;
 map.getContainer().addEventListener('touchstart', function () {
   if (document.activeElement === destInput) {
     const vv = window.visualViewport;
     const keyboardUp = vv ? (window.innerHeight - (vv.offsetTop + vv.height)) > 60 : false;
-    if (keyboardUp) suppressMapClick = true;
-    destInput.blur();
+    if (keyboardUp) {
+      suppressClickUntil = Date.now() + 700;
+      destInput.blur();
+    }
   }
   navFreeCamera = true;
   navRecentreBtn.classList.remove('hidden');
@@ -946,8 +953,8 @@ map.on('click', function (e) {
     suggestionsList.classList.add('hidden');
     return;
   }
-  if (suppressMapClick) {
-    suppressMapClick = false;
+  if (Date.now() < suppressClickUntil) {
+    suppressClickUntil = 0;
     return;
   }
   if (navRafId !== null) return;
