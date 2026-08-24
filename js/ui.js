@@ -931,22 +931,56 @@ destInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleSearch();
 });
 
-map.getContainer().addEventListener('touchstart', function () {
-  navFreeCamera = true;
-  navRecentreBtn.classList.remove('hidden');
-}, { passive: true });
-
-map.on('click', function (e) {
-  // A tap on the map means one thing: put a pin there. It tidies the keyboard
-  // and any open suggestions away on the way past, but it never spends the tap
-  // doing only that. Every attempt to be clever here — swallowing the tap that
-  // closed the keyboard, then the one that closed the list — cost the walker a
-  // tap somewhere else, and the map is the one place a tap should never miss.
+// A tap on the map means one thing: put a pin there. It tidies the keyboard and
+// any open suggestions away on the way past, but it never spends the tap doing
+// only that — the map is the one place a tap should never miss.
+function handleMapTap(latlng) {
   suggestionsList.classList.add('hidden');
   if (document.activeElement === destInput) destInput.blur();
   if (navRafId !== null) return;
   if (currentMode === 'loop') return;
-  placePinMarker(e.latlng.lat, e.latlng.lng);
+  placePinMarker(latlng.lat, latlng.lng);
+}
+
+// Leaflet decides for itself whether a touch was a tap or the start of a drag,
+// and on a rotating map it kept calling a still finger a drag — so the first tap
+// panned by a pixel, raised Re-centre, and fired no click at all. The second one
+// worked, which is why this read as needing a double tap. Judge the tap here
+// instead: one finger, barely moved, quickly let go.
+const TAP_SLOP_PX = 12;
+const TAP_MAX_MS = 500;
+let mapTapStart = null;
+let mapTapHandledAt = 0;
+
+map.getContainer().addEventListener('touchstart', function (e) {
+  navFreeCamera = true;
+  navRecentreBtn.classList.remove('hidden');
+  mapTapStart = e.touches.length === 1
+    ? { x: e.touches[0].clientX, y: e.touches[0].clientY, at: Date.now() }
+    : null;
+}, { passive: true });
+
+map.getContainer().addEventListener('touchend', function (e) {
+  const start = mapTapStart;
+  mapTapStart = null;
+  if (!start || e.touches.length) return;
+
+  const t = e.changedTouches[0];
+  if (!t) return;
+  if (Date.now() - start.at > TAP_MAX_MS) return;
+  if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > TAP_SLOP_PX) return;
+  // Leaflet's own controls live inside the map container; their taps aren't ours.
+  if (e.target.closest && e.target.closest('.leaflet-control')) return;
+
+  mapTapHandledAt = Date.now();
+  handleMapTap(map.mouseEventToLatLng(t));
+}, { passive: true });
+
+// Mouse only. A touch tap already came through above, and the browser sends a
+// synthetic click behind it that would drop a second pin.
+map.on('click', function (e) {
+  if (Date.now() - mapTapHandledAt < 700) return;
+  handleMapTap(e.latlng);
 });
 
 async function handleSearch() {
