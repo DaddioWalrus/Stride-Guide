@@ -615,19 +615,6 @@ button { touch-action: manipulation; font-family: inherit; }
 
 .full-btn { width: 100%; padding: 14px; height: auto; }
 
-/* Get directions keeps the weight; New route sits beside it as the quieter
-   option, so the pair reads as one primary action and one alternative. */
-.preview-actions { display: flex; gap: 10px; }
-.preview-actions .full-btn { flex: 1; }
-
-.ghost-btn {
-  padding: 14px 16px;
-  height: auto;
-  background: var(--field);
-  color: var(--accent-soft);
-  box-shadow: none;
-  flex-shrink: 0;
-}
 
 /* ─── Mode Bar (segmented tabs) ───────────────────── */
 

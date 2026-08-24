@@ -83,7 +83,6 @@ const previewDest = document.getElementById('preview-dest');
 const startInput = document.getElementById('start-input');
 const startGpsBtn = document.getElementById('start-gps-btn');
 const previewStartRow = document.getElementById('preview-start-row');
-const previewRegenBtn = document.getElementById('preview-regen-btn');
 const directionsBtn = document.getElementById('directions-btn');
 
 const routeBack = document.getElementById('route-back');
@@ -580,7 +579,6 @@ function renderAbLen() {
     c.timeBtn.classList.toggle('active', abLenMode === 'time');
     c.distBtn.classList.toggle('active', abLenMode === 'distance');
     c.step.classList.toggle('hidden', !abLenMode);
-    updatePreviewRegen();
     if (abLenMode === 'time') {
       c.value.textContent = `${abLenValue} min`;
       c.unit.classList.add('hidden');
@@ -789,8 +787,8 @@ function buildPinRoute(loc) {
   const targetKm = abLenTargetKm();
 
   pinRoutePromise = (targetKm > 0
-    ? generatePaddedRoute(loc.lat, loc.lng, toLat, toLng, targetKm, 0.2)
-    : generateABRoute(loc.lat, loc.lng, toLat, toLng))
+    ? generatePaddedRoute(loc.lat, loc.lng, toLat, toLng, targetKm, 0.2, abVariant)
+    : generateABRoute(loc.lat, loc.lng, toLat, toLng, abVariant))
     .then(function (result) {
       if (seq !== pinRouteSeq) return;                    // superseded
       if (pinCard.classList.contains('hidden')) return;   // card closed meanwhile
@@ -857,6 +855,7 @@ window.onPinDropped = async function (lat, lng) {
   // with here too — otherwise A→B/Loop sits under a card that is neither.
   modeBar.classList.add('hidden');
   dockEl.classList.remove('with-bar');
+  showRegenBtn();
 
   // Draw from the last known fix straight away, then take a current one — if the
   // walker has moved since the app opened, redraw from where they actually are.
@@ -875,6 +874,7 @@ window.onPinDropped = async function (lat, lng) {
 
 pinCloseBtn.addEventListener('click', function () {
   pinCard.classList.add('hidden');
+  loopRegenBtn.classList.add('hidden');
   clearPinMarker();
   clearRoute();
   pinLat = null; pinLng = null; pinName = null;
@@ -1197,19 +1197,22 @@ function showRegenBtn() {
   loopRegenBtn.classList.remove('hidden');
 }
 
-// The same offer on the preview card, so a walk can be shuffled before it is
-// committed to. Only worth showing once a longer walk has been asked for: the
-// direct route is the shortest way there and there is only one of those.
-function updatePreviewRegen() {
-  previewRegenBtn.classList.toggle('hidden', abLenTargetKm() <= 0);
-}
-
-previewRegenBtn.addEventListener('click', function () { regenerateAbRoute(); });
 
 // Another way to the same destination, at the same length. The start stands —
 // it may be a searched address rather than where the walker is — and only the
 // line between the two changes.
 async function regenerateAbRoute() {
+  // A dropped pin has no destination set until the walk starts, so its route
+  // is rebuilt through the pin card's own builder.
+  if (!pinCard.classList.contains('hidden') && pinLat !== null) {
+    abVariant++;
+    loopRegenBtn.disabled = true;
+    pinTimeEl.textContent = '…';
+    await buildPinRoute(userLocation);
+    loopRegenBtn.disabled = false;
+    return;
+  }
+
   if (!destination || !startLocation) {
     showError('Pick a destination first');
     return;
