@@ -576,6 +576,7 @@ function renderAbLen() {
     // abLenOpen has nothing to say about it.
     if (c.block) c.block.classList.toggle('hidden', !abLenOpen);
     if (c.hint) c.hint.textContent = abLenLabel();
+    if (c.directBtn) c.directBtn.classList.toggle('active', !abLenMode);
     c.timeBtn.classList.toggle('active', abLenMode === 'time');
     c.distBtn.classList.toggle('active', abLenMode === 'distance');
     c.step.classList.toggle('hidden', !abLenMode);
@@ -591,7 +592,7 @@ function renderAbLen() {
 }
 
 function setAbLenMode(mode) {
-  abLenMode = abLenMode === mode ? null : mode;
+  abLenMode = mode;
   // Open on the direct walk itself, so the number is true the moment it appears
   // and one tap of + is a longer walk. Opening a step past it made the card lie
   // about the route it was showing until you touched something.
@@ -651,6 +652,7 @@ function bindAbLenControl(prefix, onChange) {
   const c = {
     block:   document.getElementById(prefix + '-len-block'),
     hint:    document.getElementById(prefix + '-len-hint'),
+    directBtn: document.getElementById(prefix + '-len-direct'),
     timeBtn: document.getElementById(prefix + '-len-time'),
     distBtn: document.getElementById(prefix + '-len-dist'),
     step:    document.getElementById(prefix + '-len-step'),
@@ -664,6 +666,9 @@ function bindAbLenControl(prefix, onChange) {
       abLenOpen = !abLenOpen;
       renderAbLen();
     });
+  }
+  if (c.directBtn) {
+    c.directBtn.addEventListener('click', function () { setAbLenMode(null); onChange(); });
   }
   c.timeBtn.addEventListener('click', function () { setAbLenMode('time'); onChange(); });
   c.distBtn.addEventListener('click', function () { setAbLenMode('distance'); onChange(); });
@@ -947,34 +952,19 @@ destInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') handleSearch();
 });
 
-// A tap that dismisses the keyboard shouldn't also drop a pin. As a latched
-// flag this misfired badly: it was set on touchstart but only ever cleared by a
-// click, so panning the map — which fires no click — left it armed to swallow
-// whatever came next. A deadline expires on its own, so the most it can ever
-// cost is the tap it was actually meant for.
-let suppressClickUntil = 0;
 map.getContainer().addEventListener('touchstart', function () {
-  if (document.activeElement === destInput) {
-    const vv = window.visualViewport;
-    const keyboardUp = vv ? (window.innerHeight - (vv.offsetTop + vv.height)) > 60 : false;
-    if (keyboardUp) {
-      suppressClickUntil = Date.now() + 700;
-      destInput.blur();
-    }
-  }
   navFreeCamera = true;
   navRecentreBtn.classList.remove('hidden');
 }, { passive: true });
 
 map.on('click', function (e) {
-  if (!suggestionsList.classList.contains('hidden')) {
-    suggestionsList.classList.add('hidden');
-    return;
-  }
-  if (Date.now() < suppressClickUntil) {
-    suppressClickUntil = 0;
-    return;
-  }
+  // A tap on the map means one thing: put a pin there. It tidies the keyboard
+  // and any open suggestions away on the way past, but it never spends the tap
+  // doing only that. Every attempt to be clever here — swallowing the tap that
+  // closed the keyboard, then the one that closed the list — cost the walker a
+  // tap somewhere else, and the map is the one place a tap should never miss.
+  suggestionsList.classList.add('hidden');
+  if (document.activeElement === destInput) destInput.blur();
   if (navRafId !== null) return;
   if (currentMode === 'loop') return;
   placePinMarker(e.latlng.lat, e.latlng.lng);
