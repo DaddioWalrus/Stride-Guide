@@ -665,33 +665,20 @@ function bindAbLenControl(prefix, onChange) {
   abLenControls.push(c);
 }
 
-// Two ways a walk can come back treading itself, and they read differently.
-//
-// `retraceWarn` means nowhere here has a clean loop of that size and this is the
-// least-doubled one going — worth saying, because regenerating or changing the
-// length is what fixes it. Otherwise it is the geography's own: a destination up
-// a road with one way in and out, which no route can dodge.
-//
-// The figure quoted is the longest unbroken stretch, since that is the bit a
-// walker actually walks twice, not a total swept up from every junction.
+// Only spoken when the generator had to settle: nowhere here has a clean walk of
+// that size and this is the least-doubled one going, which regenerating or
+// changing the length can fix. A retrace the geography forces is not worth
+// saying — the walker cannot act on it and the route is the best there is.
 function notifyBacktrack(result) {
   const s = result.shape;
-  if (!s) return;
+  if (!s || !result.retraceWarn) return;
 
-  // Only turnarounds are worth mentioning. A stem out to a loop and back is a
-  // walk, not a fault, and saying "repeats 300 m" about one would read as an
-  // apology for the route being fine.
+  // A stem out to a loop is a walk, not a fault, so the figure quoted is the
+  // turnaround — the stretch actually walked twice for nothing.
   const turn = Math.max(s.turnRun || 0, s.wideTurnRun || 0);
   if (turn >= 10) {
-    const m = Math.round(turn / 5) * 5;
-    showError(result.retraceWarn
-      ? `Best loop here repeats about ${m} m — try New loop or another length`
-      : `There's only one way in and out here — about ${m} m is walked twice`);
-    return;
-  }
-
-  // No turnaround, so what failed was the stem being most of the walk.
-  if (result.retraceWarn && s.frac > 0) {
+    showError(`Best loop here repeats about ${Math.round(turn / 5) * 5} m — try New loop or another length`);
+  } else if (s.frac > 0) {
     showError(`Best loop here is ${Math.round(s.frac * 100)}% the same stretch twice — try another length`);
   }
 }
